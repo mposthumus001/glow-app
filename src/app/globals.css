@@ -1,26 +1,193 @@
 @import "tailwindcss";
 
+/* ─── Glow OS Design Tokens ─────────────────────────────────────────────── */
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Colours */
+  --glow-background: #060914;
+  --glow-background-elevated: #0c1020;
+  --glow-background-sunken: #04060d;
+
+  --glow-primary: #b694ff;
+  --glow-primary-light: #d4bcff;
+  --glow-primary-dark: #9a6fe8;
+  --glow-primary-muted: rgba(182, 148, 255, 0.15);
+
+  --glow-secondary: #6c7bff;
+  --glow-secondary-light: #8e9aff;
+  --glow-secondary-dark: #4f5fe0;
+  --glow-secondary-muted: rgba(108, 123, 255, 0.15);
+
+  --glow-accent: #ffd87a;
+  --glow-accent-light: #ffe8a8;
+  --glow-accent-dark: #e8be4a;
+  --glow-accent-muted: rgba(255, 216, 122, 0.15);
+
+  --glow-text: #f4eeff;
+  --glow-text-secondary: #b8afcf;
+  --glow-text-tertiary: #827a99;
+  --glow-text-inverse: #060914;
+
+  --glow-card: rgba(255, 255, 255, 0.06);
+  --glow-card-elevated: rgba(255, 255, 255, 0.09);
+  --glow-card-border: rgba(255, 255, 255, 0.12);
+  --glow-card-border-hover: rgba(255, 255, 255, 0.18);
+
+  --glow-glass: rgba(12, 16, 32, 0.72);
+  --glow-glass-border: rgba(255, 255, 255, 0.06);
+
+  /* Border Radius */
+  --glow-radius-button: 1.5rem;
+  --glow-radius-card: 1.75rem;
+  --glow-radius-input: 1.25rem;
+  --glow-radius-modal: 2rem;
+
+  /* Layout */
+  --glow-bottom-nav-height: 4rem;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  /* ── Colours ── */
+  --color-glow-background: var(--glow-background);
+  --color-glow-background-elevated: var(--glow-background-elevated);
+  --color-glow-background-sunken: var(--glow-background-sunken);
+
+  --color-glow-primary: var(--glow-primary);
+  --color-glow-primary-light: var(--glow-primary-light);
+  --color-glow-primary-dark: var(--glow-primary-dark);
+  --color-glow-primary-muted: var(--glow-primary-muted);
+
+  --color-glow-secondary: var(--glow-secondary);
+  --color-glow-secondary-light: var(--glow-secondary-light);
+  --color-glow-secondary-dark: var(--glow-secondary-dark);
+  --color-glow-secondary-muted: var(--glow-secondary-muted);
+
+  --color-glow-accent: var(--glow-accent);
+  --color-glow-accent-light: var(--glow-accent-light);
+  --color-glow-accent-dark: var(--glow-accent-dark);
+  --color-glow-accent-muted: var(--glow-accent-muted);
+
+  --color-glow-text: var(--glow-text);
+  --color-glow-text-secondary: var(--glow-text-secondary);
+  --color-glow-text-tertiary: var(--glow-text-tertiary);
+  --color-glow-text-inverse: var(--glow-text-inverse);
+
+  --color-glow-card: var(--glow-card);
+  --color-glow-card-elevated: var(--glow-card-elevated);
+  --color-glow-card-border: var(--glow-card-border);
+  --color-glow-card-border-hover: var(--glow-card-border-hover);
+
+  --color-glow-glass: var(--glow-glass);
+  --color-glow-glass-border: var(--glow-glass-border);
+
+  --color-glow-success: #7ae8a0;
+  --color-glow-warning: #ffd87a;
+  --color-glow-error: #ff8a8a;
+  --color-glow-info: #6c7bff;
+
+  /* ── Typography ── */
+  --font-sans: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+
+  /* ── Border Radius ── */
+  --radius-glow-button: var(--glow-radius-button);
+  --radius-glow-card: var(--glow-radius-card);
+  --radius-glow-input: var(--glow-radius-input);
+  --radius-glow-modal: var(--glow-radius-modal);
+
+  /* ── Shadows ── */
+  --shadow-glow-xs: 0 1px 2px rgba(6, 9, 20, 0.3);
+  --shadow-glow-sm: 0 2px 8px rgba(6, 9, 20, 0.35);
+  --shadow-glow-md: 0 4px 16px rgba(6, 9, 20, 0.4);
+  --shadow-glow-lg: 0 8px 32px rgba(6, 9, 20, 0.45);
+  --shadow-glow-xl: 0 16px 48px rgba(6, 9, 20, 0.5);
+  --shadow-glow-card: 0 4px 24px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  --shadow-glow-card-elevated: 0 8px 40px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  --shadow-glow-primary: 0 4px 24px rgba(182, 148, 255, 0.25);
+  --shadow-glow-secondary: 0 4px 24px rgba(108, 123, 255, 0.25);
+  --shadow-glow-accent: 0 4px 24px rgba(255, 216, 122, 0.2);
+
+  /* ── Gradients ── */
+  --background-image-glow-gradient-primary: linear-gradient(
+    135deg,
+    #b694ff 0%,
+    #6c7bff 100%
+  );
+  --background-image-glow-gradient-primary-soft: linear-gradient(
+    135deg,
+    rgba(182, 148, 255, 0.3) 0%,
+    rgba(108, 123, 255, 0.2) 100%
+  );
+  --background-image-glow-gradient-secondary: linear-gradient(
+    135deg,
+    #6c7bff 0%,
+    #4f5fe0 100%
+  );
+  --background-image-glow-gradient-accent: linear-gradient(
+    135deg,
+    #ffd87a 0%,
+    #e8be4a 100%
+  );
+  --background-image-glow-gradient-text-primary: linear-gradient(
+    135deg,
+    #d4bcff 0%,
+    #8e9aff 100%
+  );
+  --background-image-glow-gradient-text-accent: linear-gradient(
+    135deg,
+    #ffd87a 0%,
+    #ffe8a8 100%
+  );
+  --background-image-glow-gradient-background: radial-gradient(
+      ellipse 80% 60% at 50% -10%,
+      rgba(182, 148, 255, 0.12) 0%,
+      transparent 60%
+    ),
+    radial-gradient(
+      ellipse 60% 40% at 80% 20%,
+      rgba(108, 123, 255, 0.08) 0%,
+      transparent 50%
+    ),
+    radial-gradient(
+      ellipse 50% 30% at 20% 80%,
+      rgba(255, 216, 122, 0.06) 0%,
+      transparent 50%
+    );
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+/* ─── Base Styles ───────────────────────────────────────────────────────── */
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--glow-background);
+  color: var(--glow-text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Safe area utilities for mobile */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.pt-safe {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+/* Glass card utility */
+.glow-glass {
+  background: var(--glow-glass);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--glow-glass-border);
+}
+
+/* Gradient text utility */
+.glow-gradient-text {
+  background-image: var(--background-image-glow-gradient-text-primary);
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
 }
