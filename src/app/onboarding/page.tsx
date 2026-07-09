@@ -1,17 +1,16 @@
-import { LoginForm } from "@/components/auth/LoginForm";
 import { OnboardingForm } from "@/components/onboarding/OnboardingForm";
-import { TonightScreen } from "@/components/tonight";
 import { isParentOnboarded } from "@/lib/auth/onboarding";
 import { createClient } from "@/lib/supabase/server";
+import { redirect } from "next/navigation";
 
-export default async function Home() {
+export default async function OnboardingPage() {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return <LoginForm />;
+    redirect("/login");
   }
 
   const { data: parent } = await supabase
@@ -20,14 +19,14 @@ export default async function Home() {
     .eq("id", user.id)
     .maybeSingle();
 
-  if (!parent || !isParentOnboarded(parent)) {
-    return (
-      <OnboardingForm
-        defaultDisplayName={parent?.display_name}
-        defaultState={parent?.state}
-      />
-    );
+  if (isParentOnboarded(parent)) {
+    redirect("/");
   }
 
-  return <TonightScreen displayName={parent.display_name} />;
+  return (
+    <OnboardingForm
+      defaultDisplayName={parent?.display_name}
+      defaultState={parent?.state}
+    />
+  );
 }

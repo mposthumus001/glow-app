@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { LogoutButton } from "@/components/auth/LogoutButton";
 import { GlowButton, GlowCard } from "@/components/ui";
 import { GlowPage, GlowContainer, BottomNavigation } from "@/components/layout";
 import { GlowMapPlaceholder } from "./GlowMapPlaceholder";
@@ -16,9 +17,10 @@ const fadeUp = {
   }),
 };
 
-export function TonightScreen() {
+export function TonightScreen({ displayName }: { displayName?: string }) {
   const { user, greeting, awakeCount, awakeTogether, circle, reminder } =
     tonightMock;
+  const name = displayName?.trim() || user.name;
 
   return (
     <GlowPage withBottomNav>
@@ -30,11 +32,12 @@ export function TonightScreen() {
             initial="hidden"
             animate="visible"
             variants={fadeUp}
-            className="flex items-center justify-center pb-6 pt-8"
+            className="flex items-center justify-between gap-3 pb-6 pt-8"
           >
             <span className="glow-gradient-text text-3xl font-bold tracking-tight">
               Glow
             </span>
+            <LogoutButton />
           </motion.header>
 
           {/* ── Greeting ── */}
@@ -46,7 +49,7 @@ export function TonightScreen() {
             className="mb-8"
           >
             <h1 className={textStyles.h1}>
-              {greeting}, {user.name} 🌙
+              {greeting}, {name} 🌙
             </h1>
             <p className="mt-3 text-lg leading-relaxed text-glow-text-secondary">
               💜 {awakeCount.toLocaleString()} parents are awake with you

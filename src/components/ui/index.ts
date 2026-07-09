@@ -11,3 +11,9 @@ export type {
   GlowCardVariant,
   GlowCardPadding,
 } from "./GlowCard";
+
+export { GlowInput } from "./GlowInput";
+export type { GlowInputProps } from "./GlowInput";
+
+export { GlowSelect } from "./GlowSelect";
+export type { GlowSelectProps } from "./GlowSelect";
