@@ -19,7 +19,7 @@ export function LogoutButton() {
       onClick={() => startTransition(() => signOut())}
       aria-label="Sign out"
     >
-      Sign out
+      Sign Out
     </GlowButton>
   );
 }

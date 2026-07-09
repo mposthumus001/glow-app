@@ -15,7 +15,8 @@ export function GlowPage({
     <div
       className={cn(
         "relative min-h-dvh bg-glow-background bg-glow-gradient-background text-glow-text",
-        withBottomNav && "pb-[calc(var(--glow-bottom-nav-height)+env(safe-area-inset-bottom,0px))]",
+        withBottomNav &&
+          "pb-[calc(var(--glow-bottom-nav-height)+1.25rem+env(safe-area-inset-bottom,0px))]",
         className,
       )}
     >
