@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { LogoutButton } from "@/components/auth/LogoutButton";
 import { GlowButton, GlowCard } from "@/components/ui";
 import { GlowPage, GlowContainer, BottomNavigation } from "@/components/layout";
-import { GlowMap } from "@/features/glow-map";
+import { GlowAtlas } from "@/features/glow-atlas";
 import { tonightMock } from "@/lib/mock/tonight";
 import { getTimeOfDayGreeting } from "@/lib/utils/greeting";
 import { textStyles } from "@/lib/theme";
@@ -69,7 +69,7 @@ export function TonightScreen({ displayName }: { displayName?: string }) {
             variants={fadeUp}
             className="mb-8"
           >
-            <GlowMap />
+            <GlowAtlas />
           </motion.div>
 
           {/* ── Awake Together ── */}
