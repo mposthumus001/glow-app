@@ -27,3 +27,30 @@ export const breatheKeyframes = {
   opacity: [0.2, 0.9, 0.3, 0.75, 0.2],
   scale: [0.85, 1.35, 0.9, 1.2, 0.85],
 };
+
+/** Soft ease — presence updates should feel calm, never snappy */
+export const PRESENCE_EASE = [0.22, 1, 0.36, 1] as const;
+
+/** New lights / badges appearing */
+export const presenceEnterTransition = {
+  duration: 0.9,
+  ease: PRESENCE_EASE,
+} as const;
+
+/** Offline lights / badges leaving */
+export const presenceExitTransition = {
+  duration: 1.05,
+  ease: PRESENCE_EASE,
+} as const;
+
+/** Count numeral swap inside a badge */
+export const badgeCountTransition = {
+  duration: 0.55,
+  ease: PRESENCE_EASE,
+} as const;
+
+/** Subtle capsule pulse when a live count changes */
+export const badgePulseTransition = {
+  duration: 0.75,
+  ease: PRESENCE_EASE,
+} as const;

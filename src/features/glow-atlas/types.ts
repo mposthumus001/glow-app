@@ -1,6 +1,6 @@
 /**
  * Glow Atlas — shared types.
- * Presence overlays swap from demo → map_cluster_public without changing these shapes.
+ * Counts come from map_cluster_public → AtlasPresence (hierarchy unchanged).
  */
 
 export type AuStateCode =

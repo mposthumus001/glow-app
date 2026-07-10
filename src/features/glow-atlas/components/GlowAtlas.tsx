@@ -4,13 +4,17 @@ import { BaseMapLayer } from "./BaseMapLayer";
 import { GlowLightLayer } from "./GlowLightLayer";
 import { OverlayLayer } from "./OverlayLayer";
 import { useGlowAtlas } from "../hooks/useGlowAtlas";
+import { useMapClusterPresence } from "../hooks/useMapClusterPresence";
 import type { AtlasPresence } from "../types";
 import { dimOpacityForLevel } from "../utils/zoom";
 import { cn } from "@/lib/utils/cn";
 
 export type GlowAtlasProps = {
   className?: string;
-  /** Override presence — tomorrow: map_cluster_public mapped to AtlasPresence */
+  /**
+   * Optional override (tests / Storybook).
+   * Product default: live map_cluster_public via useMapClusterPresence.
+   */
   presence?: AtlasPresence;
   caption?: string;
   helperText?: string;
@@ -26,14 +30,23 @@ const DEFAULT_HELPER = "Privacy-safe · Approximate only";
  * - BaseMapLayer: SVG only (scales)
  * - GlowLightLayer: lights in viewport space (controlled size)
  * - OverlayLayer: badges / chrome (never inherits map scale)
+ *
+ * Counts: map_cluster_public (Australia → State → City → Suburb).
+ * Hierarchy + animations unchanged — datasource only.
  */
 export function GlowAtlas({
   className,
-  presence,
+  presence: presenceOverride,
   caption = DEFAULT_CAPTION,
   helperText = DEFAULT_HELPER,
 }: GlowAtlasProps) {
-  const atlas = useGlowAtlas({ presence });
+  const { presence: livePresence } = useMapClusterPresence({
+    enabled: presenceOverride === undefined,
+  });
+  const atlas = useGlowAtlas({
+    presence: presenceOverride ?? livePresence,
+    source: presenceOverride ? undefined : "live",
+  });
   const dim = dimOpacityForLevel(atlas.currentLevel);
 
   return (

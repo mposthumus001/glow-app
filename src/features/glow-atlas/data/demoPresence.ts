@@ -4,10 +4,8 @@ import { atlasSuburbs } from "./suburbs";
 import type { AtlasPresence, AuStateCode } from "../types";
 
 /**
- * Demo presence for Glow Atlas v1.
- *
- * Tomorrow: replace this module's export with a fetch from
- * `map_cluster_public` (and related views). Keep the AtlasPresence shape.
+ * Demo presence fixture for offline Atlas experiments.
+ * Product surfaces use map_cluster_public via useMapClusterPresence.
  */
 
 function buildDemoPresence(): AtlasPresence {

@@ -2,9 +2,10 @@
 
 import { useCallback, useMemo, useState } from "react";
 
+import { emptyAtlasPresence } from "@/features/presence";
+
 import { australiaMeta, COUNTRY_FOCUS } from "../data/australia";
 import { atlasCities, getCitiesForState, getCity } from "../data/cities";
-import { demoPresence } from "../data/demoPresence";
 import { getState } from "../data/states";
 import { getSuburb, getSuburbsForCity } from "../data/suburbs";
 import { buildClusterLights, buildNeighbourhoodLights } from "../utils/cluster";
@@ -33,10 +34,11 @@ import type {
 
 export type UseGlowAtlasOptions = {
   /**
-   * `demo` → demoPresence.ts
-   * `live` → reserved for map_cluster_public
+   * `live` → Supabase map_presence via usePresence()
+   * `demo` → legacy offline fixture (avoid in product surfaces)
    */
   source?: AtlasPresenceSource;
+  /** Live AtlasPresence from usePresence(); defaults to empty (not demo). */
   presence?: AtlasPresence;
 };
 
@@ -85,7 +87,7 @@ function unlabeledLightsFor(
 export function useGlowAtlas(
   options: UseGlowAtlasOptions = {},
 ): GlowAtlasController {
-  const presence = options.presence ?? demoPresence;
+  const presence = options.presence ?? emptyAtlasPresence();
 
   const [selection, setSelection] = useState<AtlasSelection>({
     currentLevel: "country",
@@ -140,40 +142,46 @@ export function useGlowAtlas(
 
   const stateBadges: AtlasBadge[] = useMemo(
     () =>
-      Object.entries(presence.stateCounts).map(([code, count]) => {
-        const state = getState(code as AuStateCode);
-        return {
-          id: code,
-          label: code,
-          count,
-          x: state.x,
-          y: state.y,
-        };
-      }),
+      Object.entries(presence.stateCounts)
+        .filter(([, count]) => count > 0)
+        .map(([code, count]) => {
+          const state = getState(code as AuStateCode);
+          return {
+            id: code,
+            label: code,
+            count,
+            x: state.x,
+            y: state.y,
+          };
+        }),
     [presence.stateCounts],
   );
 
   const allCityBadges: AtlasBadge[] = useMemo(
     () =>
-      cities.map((city) => ({
-        id: city.id,
-        label: city.name,
-        count: presence.cityCounts[city.id] ?? city.awakeCount,
-        x: city.x,
-        y: city.y,
-      })),
+      cities
+        .map((city) => ({
+          id: city.id,
+          label: city.name,
+          count: presence.cityCounts[city.id] ?? 0,
+          x: city.x,
+          y: city.y,
+        }))
+        .filter((badge) => badge.count > 0),
     [cities, presence.cityCounts],
   );
 
   const allSuburbBadges: AtlasBadge[] = useMemo(
     () =>
-      suburbs.map((suburb) => ({
-        id: suburb.id,
-        label: suburb.name,
-        count: presence.suburbCounts[suburb.id] ?? suburb.awakeCount,
-        x: suburb.x,
-        y: suburb.y,
-      })),
+      suburbs
+        .map((suburb) => ({
+          id: suburb.id,
+          label: suburb.name,
+          count: presence.suburbCounts[suburb.id] ?? 0,
+          x: suburb.x,
+          y: suburb.y,
+        }))
+        .filter((badge) => badge.count > 0),
     [presence.suburbCounts, suburbs],
   );
 
@@ -243,8 +251,8 @@ export function useGlowAtlas(
   const lights = useMemo((): AtlasLight[] => {
     if (selection.currentLevel === "suburb" && selectedSuburbData) {
       const parentCount =
-        presence.suburbParents[selectedSuburbData.id] ??
-        Math.max(6, Math.round(selectedSuburbData.awakeCount * 0.5));
+        presence.suburbParents[selectedSuburbData.id] ?? 0;
+      if (parentCount <= 0) return [];
       return buildNeighbourhoodLights(
         selectedSuburbData.id,
         selectedSuburbData.x,
@@ -259,12 +267,9 @@ export function useGlowAtlas(
       const labeledLights = suburbs
         .filter((s) => labeledIds.has(s.id))
         .flatMap((suburb) => {
-          const count = Math.max(
-            2,
-            Math.round(
-              (presence.suburbCounts[suburb.id] ?? suburb.awakeCount) * 0.22,
-            ),
-          );
+          const awake = presence.suburbCounts[suburb.id] ?? 0;
+          if (awake <= 0) return [];
+          const count = Math.max(2, Math.round(awake * 0.22));
           return buildClusterLights({
             id: suburb.id,
             x: suburb.x,
@@ -287,10 +292,9 @@ export function useGlowAtlas(
       const labeledLights = cities
         .filter((c) => labeledIds.has(c.id))
         .flatMap((city) => {
-          const count = Math.max(
-            3,
-            Math.round((presence.cityCounts[city.id] ?? city.awakeCount) * 0.2),
-          );
+          const awake = presence.cityCounts[city.id] ?? 0;
+          if (awake <= 0) return [];
+          const count = Math.max(3, Math.round(awake * 0.2));
           return buildClusterLights({
             id: city.id,
             x: city.x,
@@ -307,10 +311,9 @@ export function useGlowAtlas(
     }
 
     return atlasCities.flatMap((city) => {
-      const count = Math.max(
-        2,
-        Math.round((presence.cityCounts[city.id] ?? city.awakeCount) * 0.22),
-      );
+      const awake = presence.cityCounts[city.id] ?? 0;
+      if (awake <= 0) return [];
+      const count = Math.max(2, Math.round(awake * 0.22));
       return buildClusterLights({
         id: `country-${city.id}`,
         x: city.x,

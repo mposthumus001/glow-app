@@ -17,6 +17,8 @@ export type FeedingMethod =
 
 export type MapVisibility = "hidden" | "state_only" | "suburb_area";
 
+export type AppState = "active" | "background" | "offline";
+
 export type ParentRow = {
   id: string;
   family_id: string | null;
@@ -72,7 +74,7 @@ export type Database = {
         Row: {
           parent_id: string;
           online_status: boolean;
-          app_state: string;
+          app_state: AppState;
           state: AuState;
           suburb_area: string | null;
           approximate_lat: number | null;
@@ -85,14 +87,25 @@ export type Database = {
         Insert: {
           parent_id: string;
           state: AuState;
+          suburb_area?: string | null;
           map_visibility?: MapVisibility;
+          online_status?: boolean;
+          app_state?: AppState;
+          approximate_lat?: number | null;
+          approximate_lng?: number | null;
+          current_circle_id?: string | null;
+          last_seen_at?: string;
         };
         Update: {
           state?: AuState;
           suburb_area?: string | null;
           map_visibility?: MapVisibility;
+          online_status?: boolean;
+          app_state?: AppState;
           approximate_lat?: number | null;
           approximate_lng?: number | null;
+          current_circle_id?: string | null;
+          last_seen_at?: string;
         };
         Relationships: [];
       };
@@ -126,12 +139,42 @@ export type Database = {
         Relationships: [];
       };
     };
-    Views: Record<string, never>;
+    Views: {
+      map_presence: {
+        Row: {
+          parent_id: string;
+          online_status: boolean;
+          app_state: AppState;
+          state: AuState;
+          suburb_area: string | null;
+          approximate_lat: number | null;
+          approximate_lng: number | null;
+          map_visibility: MapVisibility;
+          current_circle_id: string | null;
+          last_seen_at: string;
+        };
+        Relationships: [];
+      };
+      map_cluster_public: {
+        Row: {
+          id: string;
+          level: "country" | "state" | "suburb_area";
+          state: AuState | null;
+          suburb_area: string | null;
+          online_count: number;
+          approximate_lat: number | null;
+          approximate_lng: number | null;
+          updated_at: string;
+        };
+        Relationships: [];
+      };
+    };
     Functions: Record<string, never>;
     Enums: {
       au_state: AuState;
       feeding_method: FeedingMethod;
       map_visibility: MapVisibility;
+      app_state: AppState;
     };
     CompositeTypes: Record<string, never>;
   };

@@ -1,0 +1,38 @@
+# Changelog
+
+## Milestone 2 – Glow Atlas
+
+### Added
+- Australia SVG
+- Hierarchical zoom
+- Progressive disclosure
+- Glass state badges
+- Responsive overlays
+
+### Changed
+- Home screen redesigned
+- Circle card updated
+- Reminder card refined
+
+### Fixed
+- Badge scaling
+- Label overlap
+- Overlay clipping
+
+## v0.3 – Realtime Presence
+
+### Added
+- Supabase Presence Engine
+- Live Atlas updates
+- Heartbeat service
+- Visibility detection
+- Automatic reconnect
+- Live cluster support
+
+### Changed
+- Glow Atlas now supports realtime data
+- Demo presence is now a fallback only
+
+### Fixed
+- React hook state management
+- Presence hook lifecycle

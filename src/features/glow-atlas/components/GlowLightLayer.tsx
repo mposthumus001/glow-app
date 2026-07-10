@@ -1,6 +1,7 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
+import { useMemo } from "react";
 
 import {
   breatheDuration,
@@ -8,6 +9,8 @@ import {
   circlePulse,
   clusterTwinkle,
   parentTwinkle,
+  presenceEnterTransition,
+  presenceExitTransition,
   twinkleDuration,
 } from "../utils/animation";
 import {
@@ -17,7 +20,6 @@ import {
 } from "../utils/zoom";
 import type { AtlasLight, FocusBounds } from "../types";
 import { cn } from "@/lib/utils/cn";
-import { useMemo } from "react";
 
 const kindStyles = {
   cluster: {
@@ -62,21 +64,36 @@ function LightDot({
 
   return (
     <motion.div
+      layout={false}
       className="pointer-events-none absolute"
       style={{ width: size, height: size }}
+      initial={{ opacity: 0, scale: 0.55 }}
       animate={{
+        opacity: 1,
+        scale: 1,
         left: `${x}%`,
         top: `${y}%`,
         x: "-50%",
         y: "-50%",
       }}
-      transition={zoomTransition}
+      exit={{
+        opacity: 0,
+        scale: 0.45,
+        transition: presenceExitTransition,
+      }}
+      transition={{
+        opacity: presenceEnterTransition,
+        scale: presenceEnterTransition,
+        left: zoomTransition,
+        top: zoomTransition,
+        x: zoomTransition,
+        y: zoomTransition,
+      }}
       aria-hidden="true"
     >
       <motion.div
         className={cn("h-full w-full rounded-full", style.bg)}
         style={{ boxShadow: style.shadow }}
-        initial={{ opacity: 0.3, scale: 0.85 }}
         animate={keyframes}
         transition={{
           duration,
@@ -96,7 +113,7 @@ export type GlowLightLayerProps = {
 
 /**
  * Presence lights in viewport space.
- * Positions follow map zoom; pixel size stays controlled.
+ * New lights fade in; offline lights fade out — calm, subtle.
  */
 export function GlowLightLayer({ lights, focus }: GlowLightLayerProps) {
   const sizeMul = lightSizeFactor(focus.scale);
@@ -117,9 +134,11 @@ export function GlowLightLayer({ lights, focus }: GlowLightLayerProps) {
 
   return (
     <div className="pointer-events-none absolute inset-0 z-[5]" aria-hidden="true">
-      {projected.map(({ light, x, y, size }) => (
-        <LightDot key={light.id} light={light} x={x} y={y} size={size} />
-      ))}
+      <AnimatePresence initial={false}>
+        {projected.map(({ light, x, y, size }) => (
+          <LightDot key={light.id} light={light} x={x} y={y} size={size} />
+        ))}
+      </AnimatePresence>
     </div>
   );
 }

@@ -18,6 +18,20 @@ export type {
   GlowAtlasController,
 } from "./hooks/useGlowAtlas";
 
+export { useMapClusterPresence } from "./hooks/useMapClusterPresence";
+export type {
+  UseMapClusterPresenceResult,
+  UseMapClusterPresenceOptions,
+} from "./hooks/useMapClusterPresence";
+
+export {
+  mapClustersToPresence,
+} from "./data/mapClustersToPresence";
+export type {
+  MapClusterPublicRow,
+  MapClusterPresenceResult,
+} from "./data/mapClustersToPresence";
+
 export { demoPresence, demoTotalAwake } from "./data/demoPresence";
 export { atlasStates } from "./data/states";
 export { atlasCities } from "./data/cities";

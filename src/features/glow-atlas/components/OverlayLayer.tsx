@@ -89,14 +89,16 @@ export function OverlayLayer({
               exit={{ opacity: 0 }}
               transition={{ duration: 0.3 }}
             >
-              {projectedStates.map((badge) => (
-                <GlowBadge
-                  key={badge.id}
-                  badge={badge}
-                  size="state"
-                  onSelect={(id) => onSelectState(id as AuStateCode)}
-                />
-              ))}
+              <AnimatePresence initial={false}>
+                {projectedStates.map((badge) => (
+                  <GlowBadge
+                    key={badge.id}
+                    badge={badge}
+                    size="state"
+                    onSelect={(id) => onSelectState(id as AuStateCode)}
+                  />
+                ))}
+              </AnimatePresence>
             </motion.div>
           ) : null}
 
@@ -109,14 +111,16 @@ export function OverlayLayer({
               exit={{ opacity: 0 }}
               transition={{ duration: 0.3 }}
             >
-              {projectedCities.map((badge) => (
-                <GlowBadge
-                  key={badge.id}
-                  badge={badge}
-                  size="city"
-                  onSelect={onSelectCity}
-                />
-              ))}
+              <AnimatePresence initial={false}>
+                {projectedCities.map((badge) => (
+                  <GlowBadge
+                    key={badge.id}
+                    badge={badge}
+                    size="city"
+                    onSelect={onSelectCity}
+                  />
+                ))}
+              </AnimatePresence>
             </motion.div>
           ) : null}
 
@@ -129,14 +133,16 @@ export function OverlayLayer({
               exit={{ opacity: 0 }}
               transition={{ duration: 0.3 }}
             >
-              {projectedSuburbs.map((badge) => (
-                <GlowBadge
-                  key={badge.id}
-                  badge={badge}
-                  size="suburb"
-                  onSelect={onSelectSuburb}
-                />
-              ))}
+              <AnimatePresence initial={false}>
+                {projectedSuburbs.map((badge) => (
+                  <GlowBadge
+                    key={badge.id}
+                    badge={badge}
+                    size="suburb"
+                    onSelect={onSelectSuburb}
+                  />
+                ))}
+              </AnimatePresence>
             </motion.div>
           ) : null}
         </AnimatePresence>

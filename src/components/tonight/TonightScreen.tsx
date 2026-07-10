@@ -6,6 +6,7 @@ import { LogoutButton } from "@/components/auth/LogoutButton";
 import { GlowButton, GlowCard } from "@/components/ui";
 import { GlowPage, GlowContainer, BottomNavigation } from "@/components/layout";
 import { GlowAtlas } from "@/features/glow-atlas";
+import { usePresence } from "@/features/presence";
 import { tonightMock } from "@/lib/mock/tonight";
 import { getTimeOfDayGreeting } from "@/lib/utils/greeting";
 import { textStyles } from "@/lib/theme";
@@ -21,9 +22,12 @@ const fadeUp = {
 };
 
 export function TonightScreen({ displayName }: { displayName?: string }) {
-  const { user, awakeCount, awakeTogether, circle, reminder } = tonightMock;
+  const { user, awakeTogether, circle, reminder } = tonightMock;
+  // PresenceService: online/away/background/offline via Realtime (no poll).
+  const { totalAwake } = usePresence();
   const name = displayName?.trim() || user.name;
   const greeting = getTimeOfDayGreeting();
+  const awakeCount = totalAwake;
 
   return (
     <GlowPage withBottomNav>
