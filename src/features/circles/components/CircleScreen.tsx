@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import Link from "next/link";
+import { useRef, useState } from "react";
 
 import { BottomNavigation, GlowContainer, GlowPage } from "@/components/layout";
 import type {
@@ -9,6 +10,7 @@ import type {
   CircleLoadResult,
 } from "@/features/circles/types";
 import { useCircleMessages } from "@/features/circles/messaging/useCircleMessages";
+import type { CircleDailyPrompt } from "@/features/circles/prompts/promptLibrary";
 import { useGlowReducedMotion } from "@/lib/hooks/useGlowReducedMotion";
 import { cn } from "@/lib/utils/cn";
 
@@ -16,9 +18,9 @@ import { CircleComposer } from "./CircleComposer";
 import { CircleErrorState } from "./CircleErrorState";
 import { CircleHeader } from "./CircleHeader";
 import { CircleMessageFeed } from "./CircleMessageFeed";
+import { CirclePromptCard } from "./CirclePromptCard";
 import { CircleTypingIndicator } from "./CircleTypingIndicator";
 import { CircleUnassignedState } from "./CircleUnassignedState";
-import { TonightPromptCard } from "./TonightPromptCard";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 14 },
@@ -38,6 +40,8 @@ export interface CircleScreenProps {
   parentId: string;
   displayName: string;
   circleNavHint?: string | null;
+  dailyPrompt?: CircleDailyPrompt | null;
+  promptUnavailable?: boolean;
 }
 
 export function CircleScreen({
@@ -45,6 +49,8 @@ export function CircleScreen({
   parentId,
   displayName,
   circleNavHint = null,
+  dailyPrompt = null,
+  promptUnavailable = false,
 }: CircleScreenProps) {
   const reduceMotion = useGlowReducedMotion();
 
@@ -107,6 +113,8 @@ export function CircleScreen({
               parentId={parentId}
               displayName={displayName}
               reduceMotion={reduceMotion}
+              dailyPrompt={dailyPrompt}
+              promptUnavailable={promptUnavailable}
             />
           ) : null}
         </GlowContainer>
@@ -122,17 +130,34 @@ function AssignedCircleSession({
   parentId,
   displayName,
   reduceMotion,
+  dailyPrompt,
+  promptUnavailable,
 }: {
   data: AssignedCircleView;
   parentId: string;
   displayName: string;
   reduceMotion: boolean;
+  dailyPrompt: CircleDailyPrompt | null;
+  promptUnavailable: boolean;
 }) {
   const messaging = useCircleMessages({
     circleId: data.circle.id,
     parentId,
     authorName: displayName,
   });
+
+  const composerRef = useRef<HTMLTextAreaElement>(null);
+  const [focusComposerToken, setFocusComposerToken] = useState(0);
+
+  const promptStatus =
+    promptUnavailable || !dailyPrompt?.promptText ? "unavailable" : "ready";
+
+  const handleSharePrompt = () => {
+    if (dailyPrompt?.id && dailyPrompt.id !== "fallback") {
+      messaging.setSendPromptId(dailyPrompt.id);
+    }
+    setFocusComposerToken((value) => value + 1);
+  };
 
   return (
     <>
@@ -154,6 +179,7 @@ function AssignedCircleSession({
                 : `${messaging.unreadCount} new messages`
               : null
           }
+          showSafetyNote
         />
       </motion.div>
 
@@ -163,7 +189,11 @@ function AssignedCircleSession({
         animate={reduceMotion ? undefined : "visible"}
         variants={reduceMotion ? undefined : fadeUp}
       >
-        <TonightPromptCard />
+        <CirclePromptCard
+          prompt={dailyPrompt}
+          status={promptStatus}
+          onShare={promptStatus === "ready" ? handleSharePrompt : undefined}
+        />
       </motion.div>
 
       <motion.div
@@ -187,10 +217,13 @@ function AssignedCircleSession({
           }}
           sendingClientKey={messaging.sendingClientKey}
           viewerParentId={parentId}
+          circleId={data.circle.id}
           reactionsByMessage={messaging.reactionsByMessage}
           firstUnreadIndex={messaging.firstUnreadIndex}
           onToggleReaction={messaging.toggleReaction}
           onReadObservation={messaging.updateReadObservation}
+          onHideMessage={messaging.hideMessage}
+          onReportMessage={messaging.reportMessage}
         />
       </motion.div>
 
@@ -199,16 +232,24 @@ function AssignedCircleSession({
         initial={reduceMotion ? false : "hidden"}
         animate={reduceMotion ? undefined : "visible"}
         variants={reduceMotion ? undefined : fadeUp}
-        className="space-y-2"
+        className="space-y-2 pb-safe"
       >
         <CircleTypingIndicator label={messaging.typingLabel} />
         <CircleComposer
-          onSend={messaging.send}
+          onSend={async (body) => {
+            const result = await messaging.send(body);
+            if (result.ok) {
+              messaging.setSendPromptId(null);
+            }
+            return result;
+          }}
           onTypingActivity={messaging.notifyTypingActivity}
           onStopTyping={() => {
             void messaging.stopTyping();
           }}
           isSending={messaging.sendingClientKey != null}
+          textareaRef={composerRef}
+          focusRequestToken={focusComposerToken}
         />
       </motion.div>
     </>

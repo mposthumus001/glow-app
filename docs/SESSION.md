@@ -22,43 +22,51 @@
 
 ✅ Sprint 4.4 — Circle Assignment Engine
 
-✅ Sprint 4.5 — Reactions & Read State (implementation complete; verification pending)
+✅ Sprint 4.5 — Reactions & Read State
+
+✅ Sprint 4.6 — Daily Prompts, Safety Foundations & Circle Polish (implementation complete; verification pending)
 
 ## Current Version
 
-v0.5 (pending verification)
+v0.6 (pending verification)
 
 ## Active Sprint
 
-Sprint 4.5 — Reactions and Read State
+Sprint 4.6 — Daily Prompts, Safety Foundations, and Final Circle Polish
 
 ### Implemented
 
-* Curated reactions (`support`, `with_you`, `tiny_win`, `sending_care`) with calm pill UI
-* Reaction persistence in `circle_message_reactions` + realtime on existing `circle:{id}` channel
-* Private read marker on `circle_members.last_read_message_id` with monotonic RPC
-* Unread count, first-unread divider, scroll positioning, nav hint
-* Debounced read updates (1500ms) gated on visibility + scroll position
-* Unit tests for reaction and read-state logic
+* Persisted daily prompts (`circle_prompts` + curated `prompt_library`) with `ensure_circle_daily_prompt` RPC
+* Australia/Sydney calendar-date resolution for “today”
+* Optional prompt responses via existing `circle_messages.prompt_id`
+* Message reporting (`reports.reason_code`, one report per reporter per message)
+* Per-user durable hide (`hidden_messages`) — local to viewer, cross-device
+* Crisis disclaimer and collapsible Safety & support note
+* `CirclePromptCard`, discreet report flow, message safety menu
+* Final Circle UX polish (composer focus from prompt, restrained prompt tag, safe areas)
+* Unit tests for prompt selection, report validation, and hide filtering
+* Migration `0006_circle_prompts_safety.sql`
 
 ### Current Status
 
-Sprint 4.5 is implemented. Awaiting migration apply, `npm run lint`, `npm run build`, `npm run test`, manual QA, commit, push, and deployment.
+Sprint 4.6 is implemented. **Milestone 4 code complete.** Awaiting migration apply, `npm run lint`, `npm run build`, `npm run test`, manual QA, commit, push, deployment, and Milestone 4 approval.
 
 ### Remaining Checks
 
-* Apply migration `0005_reactions_read_state.sql`
-* Two-user reaction + unread manual check
-* Multi-tab / multi-device read marker sync
-* Reduced-motion reaction presentation
+* Apply migration `0006_circle_prompts_safety.sql`
+* Two-user prompt stability check (same circle, same AU date)
+* Report + hide manual check (no public indicators)
+* Hidden messages remain hidden after realtime inserts
+* Reduced-motion prompt card and report dialog
 * Commit, push, and deploy after verification
 
 ## Next Sprint
 
-TBD — persistent daily prompts / moderation (out of scope for 4.5)
+TBD — Milestone 5 (moderator tooling, Realtime Authorization, or product expansion)
 
 ## Known Issues
 
 * Atlas still using temporary clustered demo data in some areas
 * Circle Realtime Presence/Broadcast not private-channel authorized yet
-* Persistent daily prompts not implemented
+* Moderator review tooling deferred — reports stored only
+* Supabase CLI not available locally for migration validation in dev environment

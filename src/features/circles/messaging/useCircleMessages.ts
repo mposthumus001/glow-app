@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-import type { CircleReactionType } from "@/lib/supabase/database.types";
+import type { CircleReactionType, ReportReason } from "@/lib/supabase/database.types";
 
 import {
   CircleMessagingService,
@@ -41,6 +41,14 @@ export type UseCircleMessagesResult = MessagingSnapshot & {
     isPageVisible: boolean;
     observedMessageId: string | null;
   }) => void;
+  setSendPromptId: (promptId: string | null) => void;
+  hideMessage: (messageId: string) => Promise<{ ok: boolean }>;
+  reportMessage: (input: {
+    messageId: string;
+    reportedParentId: string;
+    reasonCode: ReportReason;
+    notes: string | null;
+  }) => Promise<{ ok: boolean; duplicate?: boolean }>;
 };
 
 /**
@@ -85,5 +93,8 @@ export function useCircleMessages(input: {
     toggleReaction: (messageId, reactionType) =>
       service.toggleReaction({ messageId, reactionType }),
     updateReadObservation: (input) => service.updateReadObservation(input),
+    setSendPromptId: (promptId) => service.setSendPromptId(promptId),
+    hideMessage: (messageId) => service.hideMessage(messageId),
+    reportMessage: (input) => service.reportMessage(input),
   };
 }

@@ -66,7 +66,77 @@ Generated circle names use state + age band only. Matching details are never sho
 
 * No manual circle picker in app.
 * Realtime channel authorization still client-gated (see Sprint 4.3).
-* Persistent daily prompts not implemented.
+* Moderator dashboard and automated enforcement deferred (Sprint 4.6 stores reports only).
+
+---
+
+## Daily prompts (Sprint 4.6)
+
+### Data model
+
+* `prompt_library` — curated global templates (no runtime AI).
+* `circle_prompts` — one row per circle per calendar `prompt_date` (unique constraint).
+* `circle_messages.prompt_id` — optional FK when a message responds to the prompt.
+
+### Selection strategy
+
+Server-side `ensure_circle_daily_prompt(circle_id)` (SECURITY DEFINER):
+
+1. Resolve **today** as a calendar date in **`Australia/Sydney`** (DST-aware via Postgres `timezone()`).
+2. Return existing active row for `(circle_id, prompt_date)` if present.
+3. Else pick library index: `abs(hashtext(circle_id || prompt_date)) % active_library_count`.
+4. Insert idempotently; concurrent calls safe via unique constraint.
+
+Prompt text is stable for the same circle + date across devices. No streaks, completion counters, or participation metrics.
+
+### Timezone
+
+* Store `prompt_date` as `date` (calendar day, not UTC instant).
+* “Today” resolved server-side in **Australia/Sydney** including daylight saving.
+* Clients do not independently decide the prompt day.
+
+### Safety guidelines (prompt library)
+
+Prompts must be emotionally appropriate, optional, and must not request sensitive medical, legal, financial, location, trauma, or identifying information.
+
+### UI
+
+* `CirclePromptCard` — warm, optional, single CTA “Share something”.
+* Focuses composer and sets `sendPromptId` for the next send only.
+* Restrained “prompt” label on messages with `prompt_id`.
+* Graceful fallback when no prompt is available.
+
+---
+
+## Safety foundations (Sprint 4.6)
+
+### Message reports
+
+* Reuses `reports` table with constrained `reason_code` enum: `harmful`, `harassment`, `misinformation`, `privacy`, `spam`, `other`.
+* One report per reporter per message (unique index).
+* Only active circle members may report messages in their circle (RLS).
+* Reporters see only their own reports; no public report indicators.
+* Optional note max **500** characters.
+* Confirmation copy: *“Thanks for letting us know. We'll keep this report on record for review.”*
+* No automated punishment in beta.
+
+### Local hide
+
+* `hidden_messages(parent_id, message_id)` — durable per-user preference, synced across devices.
+* Hidden only for the viewer; other members unaffected; no global suppression.
+* Client filters hidden IDs after load and after realtime merges — no full refetch.
+
+### Crisis disclaimer
+
+* Peer support only — not emergency, medical, or crisis care.
+* Australian wording: call **000** for immediate danger; **Lifeline 13 11 14** for mental health support.
+* Shown in report dialog footer and collapsible **Safety & support** on Circle header.
+
+### Moderation boundary (deferred)
+
+* Reports stored privately for future moderator tooling.
+* No admin dashboard, no automated enforcement, no user-visible report counts.
+* Escalation policy and audit tooling are future work.
 
 ---
 

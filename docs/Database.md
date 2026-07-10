@@ -102,3 +102,34 @@ Unassigned onboarded parents: sign in and visit `/circle` — one assignment att
 Reactions: existing policies from 0001 (members read/insert own delete). Read marker: `circle_members_update_self` (own row only).
 
 ---
+
+## Daily prompts & safety (Sprint 4.6)
+
+### Tables
+
+* `prompt_library` — curated templates (`title`, `prompt_text`, `is_active`)
+* `circle_prompts` — per-circle daily prompt (`circle_id`, `prompt_date`, unique)
+* `hidden_messages` — per-parent hidden message ids
+* `circle_messages.prompt_id` — optional FK to `circle_prompts`
+* `reports.reason_code` — enum constrained report reasons
+
+### RPC
+
+`ensure_circle_daily_prompt(circle_id)` — idempotent daily assignment (SECURITY DEFINER).
+
+### Helpers
+
+* `australian_prompt_date()` — calendar date in Australia/Sydney
+* `prompt_library_index(circle_id, prompt_date)` — deterministic hash modulo library size
+
+### RLS (migration 0006)
+
+| Table | Policy |
+|-------|--------|
+| `circle_prompts` | Active members SELECT |
+| `hidden_messages` | Own rows SELECT / INSERT / DELETE |
+| `reports` | Insert requires active membership for message's circle; SELECT own (+ staff) |
+
+Reports are not exposed through normal Circle message queries.
+
+---

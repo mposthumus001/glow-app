@@ -46,6 +46,14 @@ export type CircleReactionType =
   | "tiny_win"
   | "sending_care";
 
+export type ReportReason =
+  | "harmful"
+  | "harassment"
+  | "misinformation"
+  | "privacy"
+  | "spam"
+  | "other";
+
 export type ModerationStatus = "clean" | "flagged" | "removed";
 
 export type ParentRow = {
@@ -96,6 +104,7 @@ export type CircleMessageRow = {
   parent_id: string;
   body: string;
   moderation_status: ModerationStatus;
+  prompt_id: string | null;
   created_at: string;
   edited_at: string | null;
   deleted_at: string | null;
@@ -250,6 +259,72 @@ export type Database = {
         }>;
         Relationships: [];
       };
+      circle_prompts: {
+        Row: {
+          id: string;
+          circle_id: string;
+          prompt_date: string;
+          title: string | null;
+          prompt_text: string;
+          library_index: number | null;
+          is_active: boolean;
+          source: string;
+          created_at: string;
+        };
+        Insert: Partial<{
+          circle_id: string;
+          prompt_date: string;
+          prompt_text: string;
+        }>;
+        Update: Partial<{
+          is_active: boolean;
+        }>;
+        Relationships: [];
+      };
+      hidden_messages: {
+        Row: {
+          id: string;
+          parent_id: string;
+          message_id: string;
+          hidden_at: string;
+        };
+        Insert: {
+          parent_id: string;
+          message_id: string;
+        };
+        Update: Record<string, never>;
+        Relationships: [];
+      };
+      reports: {
+        Row: {
+          id: string;
+          reporter_parent_id: string;
+          reported_parent_id: string | null;
+          circle_id: string | null;
+          message_id: string | null;
+          reason: string;
+          reason_code: ReportReason | null;
+          notes: string | null;
+          status: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          reporter_parent_id: string;
+          reason: string;
+          reported_parent_id?: string | null;
+          circle_id?: string | null;
+          message_id?: string | null;
+          reason_code?: ReportReason | null;
+          notes?: string | null;
+          status?: string;
+        };
+        Update: Partial<{
+          status: string;
+          notes: string | null;
+        }>;
+        Relationships: [];
+      };
     };
     Views: {
       map_presence: {
@@ -294,6 +369,14 @@ export type Database = {
         Args: { p_circle_id: string; p_message_id: string };
         Returns: Json;
       };
+      ensure_circle_daily_prompt: {
+        Args: { p_circle_id?: string };
+        Returns: Json;
+      };
+      australian_prompt_date: {
+        Args: { p_at?: string };
+        Returns: string;
+      };
     };
     Enums: {
       au_state: AuState;
@@ -305,6 +388,7 @@ export type Database = {
       circle_member_status: CircleMemberStatus;
       moderation_status: ModerationStatus;
       reaction_type: CircleReactionType;
+      report_reason: ReportReason;
     };
     CompositeTypes: Record<string, never>;
   };

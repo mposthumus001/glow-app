@@ -19,6 +19,8 @@ export type CircleFeedMessage = {
   authorName: string;
   status: MessageDeliveryStatus;
   isOwn: boolean;
+  /** Set when sent in response to the daily prompt. */
+  promptId?: string | null;
 };
 
 export type MessageCursor = {
@@ -57,7 +59,11 @@ export function sortMessagesAscending(
 }
 
 export function previewToFeedMessage(
-  preview: CircleMessagePreview & { parentId?: string; circleId: string },
+  preview: CircleMessagePreview & {
+    parentId?: string;
+    circleId: string;
+    promptId?: string | null;
+  },
   viewerParentId: string,
 ): CircleFeedMessage {
   const parentId = preview.parentId ?? "";
@@ -71,6 +77,7 @@ export function previewToFeedMessage(
     authorName: preview.authorName,
     status: "confirmed",
     isOwn: parentId !== "" && parentId === viewerParentId,
+    promptId: preview.promptId ?? null,
   };
 }
 
@@ -81,6 +88,7 @@ export function createOptimisticMessage(input: {
   body: string;
   authorName: string;
   createdAt?: string;
+  promptId?: string | null;
 }): CircleFeedMessage {
   return {
     id: `optimistic:${input.clientKey}`,
@@ -92,6 +100,7 @@ export function createOptimisticMessage(input: {
     authorName: input.authorName,
     status: "optimistic",
     isOwn: true,
+    promptId: input.promptId ?? null,
   };
 }
 

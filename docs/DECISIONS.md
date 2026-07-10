@@ -73,3 +73,24 @@ Read writes debounced at 1500ms; require visible tab + observed/near-bottom mess
 
 Limitation:
 Unread counts on nav are server-rendered on page load; live count updates inside Circle session only until next navigation.
+
+---
+
+## 2026-07-11 — Daily prompts & safety foundations (Sprint 4.6)
+
+Decision:
+Persist one daily prompt per circle per calendar date using a curated `prompt_library` and server-side `ensure_circle_daily_prompt`. Resolve “today” in **Australia/Sydney** and store `prompt_date` as a calendar `date`. Prompt responses reuse `circle_messages` with optional `prompt_id`. Safety MVP: constrained message reports (existing `reports` table + `reason_code`), durable per-user hide in `hidden_messages`, and crisis disclaimer copy. No automated moderation or admin UI.
+
+Reason:
+Calm, optional conversation starters without device-clock drift or AI runtime risk. Reports and hides stay private and scoped; hide survives refresh and realtime without new channels or full refetch.
+
+Hide persistence:
+Database table `hidden_messages` (not localStorage) for cross-device consistency.
+
+Moderation boundary:
+Store reports only; no punishment automation; moderator tooling deferred.
+
+Limitation:
+Report review is manual/off-platform for beta; Realtime channel authorization unchanged from 4.3.
+
+---

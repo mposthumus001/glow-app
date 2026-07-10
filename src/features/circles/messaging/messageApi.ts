@@ -13,6 +13,7 @@ type MessageJoinRow = {
   parent_id: string;
   body: string;
   created_at: string;
+  prompt_id?: string | null;
   parents: { display_name: string } | { display_name: string }[] | null;
 };
 
@@ -24,6 +25,7 @@ function asSingle<T>(value: T | T[] | null | undefined): T | null {
 function rowToPreview(row: MessageJoinRow): CircleMessagePreview & {
   parentId: string;
   circleId: string;
+  promptId?: string | null;
 } {
   const parent = asSingle(row.parents);
   return {
@@ -33,6 +35,7 @@ function rowToPreview(row: MessageJoinRow): CircleMessagePreview & {
     authorName: parent?.display_name?.trim() || "A parent",
     parentId: row.parent_id,
     circleId: row.circle_id,
+    promptId: row.prompt_id ?? null,
   };
 }
 
@@ -42,6 +45,7 @@ const MESSAGE_SELECT = `
   parent_id,
   body,
   created_at,
+  prompt_id,
   parents (
     display_name
   )
@@ -149,6 +153,7 @@ export async function insertCircleMessage(
     circleId: string;
     parentId: string;
     body: string;
+    promptId?: string | null;
   },
 ): Promise<{ message: CircleFeedMessage | null; error: string | null }> {
   const { data, error } = await supabase
@@ -158,6 +163,7 @@ export async function insertCircleMessage(
       parent_id: input.parentId,
       body: input.body,
       moderation_status: "clean",
+      prompt_id: input.promptId ?? null,
     })
     .select(MESSAGE_SELECT)
     .single();

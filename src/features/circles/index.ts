@@ -1,5 +1,4 @@
 export {
-  TONIGHT_PROMPT_PLACEHOLDER,
   isFormingCircle,
   isSmallCircle,
 } from "./types";

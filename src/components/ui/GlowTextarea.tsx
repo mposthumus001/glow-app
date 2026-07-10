@@ -1,3 +1,5 @@
+import { forwardRef } from "react";
+
 import { cn } from "@/lib/utils/cn";
 
 export interface GlowTextareaProps
@@ -7,15 +9,11 @@ export interface GlowTextareaProps
   hint?: string;
 }
 
-export function GlowTextarea({
-  label,
-  error,
-  hint,
-  id,
-  className,
-  rows = 3,
-  ...props
-}: GlowTextareaProps) {
+export const GlowTextarea = forwardRef<HTMLTextAreaElement, GlowTextareaProps>(
+  function GlowTextarea(
+    { label, error, hint, id, className, rows = 3, ...props },
+    ref,
+  ) {
   const textareaId = id ?? props.name;
 
   return (
@@ -24,6 +22,7 @@ export function GlowTextarea({
         {label}
       </span>
       <textarea
+        ref={ref}
         id={textareaId}
         rows={rows}
         className={cn(
@@ -42,4 +41,5 @@ export function GlowTextarea({
       {error ? <span className="text-xs text-red-300">{error}</span> : null}
     </label>
   );
-}
+  },
+);

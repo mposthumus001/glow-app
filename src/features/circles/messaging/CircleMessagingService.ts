@@ -35,7 +35,13 @@ import {
   shouldAdvanceReadMarker,
   type ReadMarker,
 } from "../reactions/readStateLogic";
-import type { CircleReactionType } from "@/lib/supabase/database.types";
+import {
+  fetchHiddenMessageIds,
+  hideMessageForParent,
+} from "../safety/hideApi";
+import { submitMessageReport } from "../safety/reportApi";
+import { filterVisibleMessages } from "../safety/hideLogic";
+import type { CircleReactionType, ReportReason } from "@/lib/supabase/database.types";
 import {
   createOptimisticMessage,
   markMessageFailed,
@@ -174,6 +180,8 @@ export class CircleMessagingService {
   private readPersistTimer: ReturnType<typeof setTimeout> | null = null;
   private pendingReadMessageId: string | null = null;
   private togglingReactionKey: string | null = null;
+  private hiddenMessageIds = new Set<string>();
+  private sendPromptId: string | null = null;
 
   private listeners = new Set<Listener>();
   private started = false;
@@ -238,6 +246,8 @@ export class CircleMessagingService {
     this.clearReadPersistTimer();
     this.pendingReadMessageId = null;
     this.togglingReactionKey = null;
+    this.hiddenMessageIds = new Set();
+    this.sendPromptId = null;
     this.connection = "connecting";
     this.reconnectAttempt = 0;
     this.bindNetwork();
@@ -273,6 +283,62 @@ export class CircleMessagingService {
     this.knownReactionIds = new Set();
     this.readMarker = null;
     this.clearReadPersistTimer();
+    this.hiddenMessageIds = new Set();
+    this.sendPromptId = null;
+  }
+
+  setSendPromptId(promptId: string | null): void {
+    this.sendPromptId = promptId;
+  }
+
+  async hideMessage(messageId: string): Promise<{ ok: boolean }> {
+    if (!this.started || !this.supabase || !this.parentId) {
+      return { ok: false };
+    }
+
+    const message = this.messages.find((m) => m.id === messageId);
+    if (!message || message.status !== "confirmed") {
+      return { ok: false };
+    }
+
+    this.hiddenMessageIds = new Set([...this.hiddenMessageIds, messageId]);
+    this.emit();
+
+    const result = await hideMessageForParent(this.supabase, {
+      parentId: this.parentId,
+      messageId,
+    });
+
+    if (!result.ok) {
+      const next = new Set(this.hiddenMessageIds);
+      next.delete(messageId);
+      this.hiddenMessageIds = next;
+      this.emit();
+    }
+
+    return { ok: result.ok };
+  }
+
+  async reportMessage(input: {
+    messageId: string;
+    reportedParentId: string;
+    reasonCode: ReportReason;
+    notes: string | null;
+  }): Promise<{ ok: boolean; duplicate?: boolean }> {
+    if (!this.started || !this.supabase || !this.parentId || !this.circleId) {
+      return { ok: false };
+    }
+
+    const result = await submitMessageReport(this.supabase, {
+      reporterParentId: this.parentId,
+      messageId: input.messageId,
+      circleId: this.circleId,
+      reportedParentId: input.reportedParentId,
+      reasonCode: input.reasonCode,
+      notes: input.notes,
+    });
+
+    return { ok: result.ok, duplicate: result.duplicate };
   }
 
   updateReadObservation(input: ReadObservation): void {
@@ -480,6 +546,7 @@ export class CircleMessagingService {
       parentId: this.parentId,
       body: prepared.body,
       authorName: this.authorName,
+      promptId: this.sendPromptId,
     });
 
     this.messages = [...this.messages, optimistic];
@@ -491,6 +558,7 @@ export class CircleMessagingService {
       circleId: this.circleId,
       parentId: this.parentId,
       body: prepared.body,
+      promptId: this.sendPromptId,
     });
 
     if (!this.started) return { ok: false, reason: "stopped" };
@@ -584,6 +652,12 @@ export class CircleMessagingService {
     this.error = null;
 
     await this.hydrateReactionsAndReadState();
+    if (this.supabase && this.parentId) {
+      this.hiddenMessageIds = await fetchHiddenMessageIds(
+        this.supabase,
+        this.parentId,
+      );
+    }
     this.emit();
   }
 
@@ -1165,11 +1239,19 @@ export class CircleMessagingService {
       ? formatTypingIndicatorCopy(this.typingPeers, this.parentId)
       : null;
 
-    const unreadCount = countUnreadMessages(this.messages, this.readMarker);
-    const firstUnreadIndex = findFirstUnreadIndex(this.messages, this.readMarker);
+    const visibleMessages = filterVisibleMessages(
+      this.messages,
+      this.hiddenMessageIds,
+    );
+
+    const unreadCount = countUnreadMessages(visibleMessages, this.readMarker);
+    const firstUnreadIndex = findFirstUnreadIndex(
+      visibleMessages,
+      this.readMarker,
+    );
 
     return {
-      messages: this.messages,
+      messages: visibleMessages,
       status: this.status,
       error: this.error,
       hasEarlier: this.hasEarlier,

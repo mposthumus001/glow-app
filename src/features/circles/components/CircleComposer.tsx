@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { Send } from "lucide-react";
 
 import { GlowButton, GlowTextarea } from "@/components/ui";
@@ -16,6 +16,8 @@ export interface CircleComposerProps {
   onStopTyping?: () => void;
   disabled?: boolean;
   isSending?: boolean;
+  textareaRef?: React.RefObject<HTMLTextAreaElement | null>;
+  focusRequestToken?: number;
 }
 
 /**
@@ -27,10 +29,18 @@ export function CircleComposer({
   onStopTyping,
   disabled = false,
   isSending = false,
+  textareaRef,
+  focusRequestToken = 0,
 }: CircleComposerProps) {
   const hintId = useId();
   const [draft, setDraft] = useState("");
   const [localError, setLocalError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (focusRequestToken > 0) {
+      textareaRef?.current?.focus();
+    }
+  }, [focusRequestToken, textareaRef]);
 
   const busy = disabled || isSending;
   const remaining = MESSAGE_MAX_LENGTH - draft.length;
@@ -97,6 +107,7 @@ export function CircleComposer({
           maxLength={MESSAGE_MAX_LENGTH}
           aria-describedby={hintId}
           error={localError ?? undefined}
+          ref={textareaRef}
           onChange={(event) => {
             setDraft(event.target.value);
             if (localError) setLocalError(null);

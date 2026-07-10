@@ -63,6 +63,8 @@ Supabase realtime pipeline
 
 ### Added
 
+* Sprint 4.6 persisted daily prompts, message reporting, per-user hide, and crisis disclaimer.
+* Migration `0006_circle_prompts_safety.sql` (`circle_prompts`, `prompt_library`, `hidden_messages`, report reason enum).
 * Sprint 4.5 curated Circle reactions with aggregate counts and optimistic toggle.
 * Private read markers, unread counts, first-unread positioning, and calm nav hints.
 * Migration `0005_reactions_read_state.sql` (reaction enum + read marker + RPC).
@@ -79,7 +81,7 @@ Supabase realtime pipeline
 * Unit tests for message preparation, ordering, reconciliation, and subscription helpers.
 * Your Circle foundation screen (`/circle`) for Milestone 4 / Sprint 4.1.
 * Circle feature module with typed repository reads over existing Circle schema.
-* Calm circle header, Tonight’s Prompt placeholder, message-area states, and disabled composer shell.
+* Calm circle header, daily prompt card, message-area states, and active composer.
 * Navigation into Your Circle from bottom nav and Home “Enter Circle”.
 * Animated Glow Atlas headline presence count.
 * Animated state presence badge transitions.
@@ -100,6 +102,7 @@ Supabase realtime pipeline
 
 ### Technical
 
+* Sprint 4.6: prompt assignment server-side only; hide/report insert-only (no new realtime channels); unit tests for prompt/safety logic.
 * Sprint 4.5: reaction realtime on existing circle channel; read-state debounce 1500ms; unit tests for reaction/read logic.
 * Sprint 4.4 migration `0004_circle_assignment.sql`: assignment RPC, baby-age helper, RLS tightening on `circle_members` and `circles` inserts.
 * Completed Sprint 4.3 without database or schema changes; presence/typing are ephemeral only.

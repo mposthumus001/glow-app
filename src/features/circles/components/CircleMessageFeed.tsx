@@ -10,10 +10,12 @@ import {
 } from "react";
 
 import { CircleMessageReactions } from "@/features/circles/components/CircleMessageReactions";
+import { MessageSafetyMenu } from "@/features/circles/components/MessageSafetyMenu";
 import type { CircleFeedMessage } from "@/features/circles/messaging/messageLogic";
 import { shouldAutoScrollForIncoming } from "@/features/circles/messaging/messageLogic";
 import type { ReactionAggregate } from "@/features/circles/reactions/reactionLogic";
-import type { CircleReactionType } from "@/lib/supabase/database.types";
+import { canReportMessage } from "@/features/circles/safety/reportLogic";
+import type { CircleReactionType, ReportReason } from "@/lib/supabase/database.types";
 import { useGlowReducedMotion } from "@/lib/hooks/useGlowReducedMotion";
 import { textStyles } from "@/lib/theme";
 import { cn } from "@/lib/utils/cn";
@@ -30,6 +32,7 @@ export interface CircleMessageFeedProps {
   onRetry: (clientKey: string) => void;
   sendingClientKey: string | null;
   viewerParentId: string;
+  circleId: string;
   reactionsByMessage: Record<string, ReactionAggregate[]>;
   firstUnreadIndex: number | null;
   onToggleReaction: (
@@ -41,6 +44,13 @@ export interface CircleMessageFeedProps {
     isPageVisible: boolean;
     observedMessageId: string | null;
   }) => void;
+  onHideMessage: (messageId: string) => Promise<{ ok: boolean }>;
+  onReportMessage: (input: {
+    messageId: string;
+    reportedParentId: string;
+    reasonCode: ReportReason;
+    notes: string | null;
+  }) => Promise<{ ok: boolean; duplicate?: boolean }>;
 }
 
 function formatSubtleTime(iso: string): string {
@@ -71,10 +81,13 @@ export function CircleMessageFeed({
   onRetry,
   sendingClientKey,
   viewerParentId,
+  circleId,
   reactionsByMessage,
   firstUnreadIndex,
   onToggleReaction,
   onReadObservation,
+  onHideMessage,
+  onReportMessage,
 }: CircleMessageFeedProps) {
   const reduceMotion = useGlowReducedMotion();
   const scrollerRef = useRef<HTMLDivElement>(null);
@@ -391,6 +404,22 @@ export function CircleMessageFeed({
                       isRetrying={sendingClientKey === message.clientKey}
                       aggregates={reactionsByMessage[message.id] ?? []}
                       onToggleReaction={onToggleReaction}
+                      canReport={canReportMessage({
+                        messageId: message.id,
+                        circleId: message.circleId,
+                        activeCircleId: circleId,
+                        status: message.status,
+                        isOwn: message.isOwn,
+                      })}
+                      onHide={() => onHideMessage(message.id)}
+                      onReport={(input) =>
+                        onReportMessage({
+                          messageId: message.id,
+                          reportedParentId: message.parentId,
+                          reasonCode: input.reasonCode,
+                          notes: input.notes,
+                        })
+                      }
                     />
                   </li>
                 );
@@ -432,6 +461,9 @@ const MessageRow = memo(function MessageRow({
   isRetrying,
   aggregates,
   onToggleReaction,
+  canReport,
+  onHide,
+  onReport,
 }: {
   message: CircleFeedMessage;
   grouped: boolean;
@@ -442,6 +474,12 @@ const MessageRow = memo(function MessageRow({
     messageId: string,
     reactionType: CircleReactionType,
   ) => Promise<{ ok: boolean }>;
+  canReport: boolean;
+  onHide: () => Promise<{ ok: boolean }>;
+  onReport: (input: {
+    reasonCode: ReportReason;
+    notes: string | null;
+  }) => Promise<{ ok: boolean; duplicate?: boolean }>;
 }) {
   const own = message.isOwn;
   const name = own ? "You" : firstName(message.authorName);
@@ -460,18 +498,23 @@ const MessageRow = memo(function MessageRow({
     >
       {!grouped ? (
         <div className="mb-1 flex items-baseline justify-between gap-3">
-          <p
-            className={cn(
-              "text-xs font-medium tracking-wide",
-              own ? "text-glow-primary/80" : "text-glow-text-tertiary",
-            )}
-          >
-            {name}
-          </p>
+          <div className="flex min-w-0 items-baseline gap-2">
+            <p
+              className={cn(
+                "text-xs font-medium tracking-wide",
+                own ? "text-glow-primary/80" : "text-glow-text-tertiary",
+              )}
+            >
+              {name}
+            </p>
+            {message.promptId ? (
+              <span className="text-[10px] text-glow-accent/70">prompt</span>
+            ) : null}
+          </div>
           {time ? (
             <time
               dateTime={message.createdAt}
-              className="text-[11px] text-glow-text-tertiary/80"
+              className="shrink-0 text-[11px] text-glow-text-tertiary/80"
             >
               {time}
             </time>
@@ -527,6 +570,16 @@ const MessageRow = memo(function MessageRow({
           />
         ) : null}
       </div>
+
+      {!own && canReport ? (
+        <MessageSafetyMenu
+          messageId={message.id}
+          reportedParentId={message.parentId}
+          canReport={canReport}
+          onHide={onHide}
+          onReport={onReport}
+        />
+      ) : null}
     </article>
   );
 });

@@ -1,6 +1,7 @@
 import { Shield } from "lucide-react";
 
 import { GlowCard } from "@/components/ui";
+import { CircleSafetyNote } from "@/features/circles/components/CircleSafetyNote";
 import {
   isFormingCircle,
   isSmallCircle,
@@ -19,6 +20,7 @@ export interface CircleHeaderProps {
   onlinePreviewNames?: string[];
   connection?: CircleConnectionState;
   unreadHint?: string | null;
+  showSafetyNote?: boolean;
 }
 
 export function CircleHeader({
@@ -27,6 +29,7 @@ export function CircleHeader({
   onlinePreviewNames = [],
   connection = "idle",
   unreadHint = null,
+  showSafetyNote = false,
 }: CircleHeaderProps) {
   const { circle, memberCount } = data;
   const description =
@@ -95,6 +98,8 @@ export function CircleHeader({
           </p>
         </div>
       </GlowCard>
+
+      {showSafetyNote ? <CircleSafetyNote className="mt-4" /> : null}
     </header>
   );
 }

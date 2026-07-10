@@ -3,9 +3,6 @@ import type {
   CircleStatus,
 } from "@/lib/supabase/database.types";
 
-/** Static prompt placeholder until Sprint 4.x persistence. */
-export const TONIGHT_PROMPT_PLACEHOLDER = "What's one tiny win from today?";
-
 export type CircleSummary = Pick<
   CircleRow,
   "id" | "name" | "description" | "status" | "max_members"
