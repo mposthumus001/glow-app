@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import { motion } from "framer-motion";
 
 import { GlowAtlasSVG } from "./GlowAtlasSVG";
@@ -19,8 +20,9 @@ export type BaseMapLayerProps = {
 
 /**
  * SVG geography only — the only layer that inherits map scale/translate.
+ * Memoised so count-only updates skip SVG subtree re-renders.
  */
-export function BaseMapLayer({
+function BaseMapLayerInner({
   scale,
   originX,
   originY,
@@ -62,3 +64,5 @@ export function BaseMapLayer({
     </motion.div>
   );
 }
+
+export const BaseMapLayer = memo(BaseMapLayerInner);

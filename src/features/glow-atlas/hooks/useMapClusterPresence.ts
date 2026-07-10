@@ -11,10 +11,14 @@ import {
 } from "../data/mapClustersToPresence";
 import type { AtlasPresence } from "../types";
 
+export type MapClusterConnection = "live" | "reconnecting" | "idle";
+
 export type UseMapClusterPresenceResult = {
   presence: AtlasPresence;
   countryCount: number;
   status: "loading" | "live" | "error";
+  connection: MapClusterConnection;
+  lastUpdatedAt: number | null;
   error: string | null;
   refresh: () => Promise<void>;
 };
@@ -41,6 +45,20 @@ async function fetchMapClusters(): Promise<ClusterFetchResult> {
   return { ok: true, rows: (data ?? []) as MapClusterPublicRow[] };
 }
 
+function mapChannelStatus(
+  status: string,
+): MapClusterConnection {
+  if (status === "SUBSCRIBED") return "live";
+  if (
+    status === "CLOSED" ||
+    status === "CHANNEL_ERROR" ||
+    status === "TIMED_OUT"
+  ) {
+    return "reconnecting";
+  }
+  return "idle";
+}
+
 /**
  * Live Atlas counts from map_cluster_public.
  *
@@ -57,6 +75,9 @@ export function useMapClusterPresence(
   const [countryCount, setCountryCount] = useState(0);
   const [status, setStatus] =
     useState<UseMapClusterPresenceResult["status"]>("loading");
+  const [connection, setConnection] =
+    useState<MapClusterConnection>("idle");
+  const [lastUpdatedAt, setLastUpdatedAt] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const disposedRef = useRef(false);
 
@@ -72,6 +93,7 @@ export function useMapClusterPresence(
     const mapped = mapClustersToPresence(result.rows);
     setPresence(mapped.presence);
     setCountryCount(mapped.countryCount);
+    setLastUpdatedAt(Date.now());
     setError(null);
     setStatus("live");
   }, []);
@@ -103,7 +125,10 @@ export function useMapClusterPresence(
           void fetchMapClusters().then(applyFetchResult);
         },
       )
-      .subscribe();
+      .subscribe((subscribeStatus) => {
+        if (disposedRef.current) return;
+        setConnection(mapChannelStatus(subscribeStatus));
+      });
 
     return () => {
       disposedRef.current = true;
@@ -112,11 +137,14 @@ export function useMapClusterPresence(
   }, [applyFetchResult, enabled]);
 
   const effectiveStatus = enabled ? status : "live";
+  const effectiveConnection = enabled ? connection : "live";
 
   return {
     presence,
     countryCount,
     status: effectiveStatus,
+    connection: effectiveConnection,
+    lastUpdatedAt,
     error,
     refresh,
   };

@@ -58,3 +58,25 @@ Automatic reconnect
 Privacy-safe aggregation
 
 Supabase realtime pipeline
+
+## Unreleased
+
+### Added
+
+* Animated Glow Atlas headline presence count.
+* Animated state presence badge transitions.
+* Realtime connection status indicator.
+* Empty-state and low-user-state messaging.
+* Reduced-motion support for Atlas animations.
+
+### Improved
+
+* Refined Glow Atlas lighting, glow, and transition behaviour.
+* Improved accessibility labels, focus behaviour, and motion preferences.
+* Improved realtime visual updates to reduce flicker.
+* Optimised Atlas rendering and animation performance.
+
+### Technical
+
+* Completed Sprint 3.6 without database or schema changes.
+* Confirmed `npm run lint` passes.

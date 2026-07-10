@@ -1,4 +1,6 @@
 export { GlowAtlas } from "./components/GlowAtlas";
+export { GlowAtlasLiveStatus } from "./components/GlowAtlasLiveStatus";
+export type { GlowAtlasLiveStatusProps } from "./components/GlowAtlasLiveStatus";
 export { GlowAtlasSVG, ATLAS_SVG_VIEWBOX } from "./components/GlowAtlasSVG";
 export { BaseMapLayer } from "./components/BaseMapLayer";
 export { GlowLightLayer } from "./components/GlowLightLayer";
@@ -22,6 +24,7 @@ export { useMapClusterPresence } from "./hooks/useMapClusterPresence";
 export type {
   UseMapClusterPresenceResult,
   UseMapClusterPresenceOptions,
+  MapClusterConnection,
 } from "./hooks/useMapClusterPresence";
 
 export {

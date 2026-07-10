@@ -6,6 +6,7 @@ import { emptyAtlasPresence } from "@/features/presence";
 
 import { australiaMeta, COUNTRY_FOCUS } from "../data/australia";
 import { atlasCities, getCitiesForState, getCity } from "../data/cities";
+import { atlasStates } from "../data/states";
 import { getState } from "../data/states";
 import { getSuburb, getSuburbsForCity } from "../data/suburbs";
 import { buildClusterLights, buildNeighbourhoodLights } from "../utils/cluster";
@@ -285,7 +286,25 @@ export function useGlowAtlas(
       ];
     }
 
-    if (selection.currentLevel === "state") {
+    if (selection.currentLevel === "state" && selectedStateData) {
+      const hasCityClusters = cities.some(
+        (c) => (presence.cityCounts[c.id] ?? 0) > 0,
+      );
+
+      if (!hasCityClusters) {
+        const stateCount =
+          presence.stateCounts[selectedStateData.code] ?? 0;
+        if (stateCount <= 0) return [];
+        const count = Math.max(3, Math.min(12, Math.round(stateCount * 0.18)));
+        return buildClusterLights({
+          id: `state-only-${selectedStateData.code}`,
+          x: selectedStateData.x,
+          y: selectedStateData.y,
+          count,
+          spread: 1.4,
+        });
+      }
+
       const labeledIds = new Set(
         cityBadges.map((b) => resolveBadgeTargetId(b.id)),
       );
@@ -310,7 +329,7 @@ export function useGlowAtlas(
       ];
     }
 
-    return atlasCities.flatMap((city) => {
+    const cityLights = atlasCities.flatMap((city) => {
       const awake = presence.cityCounts[city.id] ?? 0;
       if (awake <= 0) return [];
       const count = Math.max(2, Math.round(awake * 0.22));
@@ -322,13 +341,30 @@ export function useGlowAtlas(
         spread: city.spread,
       });
     });
+
+    if (cityLights.length > 0) return cityLights;
+
+    return atlasStates.flatMap((state) => {
+      const awake = presence.stateCounts[state.code] ?? 0;
+      if (awake <= 0) return [];
+      const count = Math.max(2, Math.min(8, Math.round(awake * 0.12)));
+      return buildClusterLights({
+        id: `country-state-${state.code}`,
+        x: state.x,
+        y: state.y,
+        count,
+        spread: 1.0,
+      });
+    });
   }, [
     cities,
     cityBadges,
     cityDisclosure.lightOnly,
     presence.cityCounts,
+    presence.stateCounts,
     presence.suburbCounts,
     presence.suburbParents,
+    selectedStateData,
     selectedSuburbData,
     selection.currentLevel,
     suburbBadges,

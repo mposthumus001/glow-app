@@ -1,7 +1,10 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { useMemo } from "react";
+import { memo, useMemo } from "react";
+
+import { useGlowReducedMotion } from "@/lib/hooks/useGlowReducedMotion";
+import { cn } from "@/lib/utils/cn";
 
 import {
   breatheDuration,
@@ -19,7 +22,6 @@ import {
   zoomTransition,
 } from "../utils/zoom";
 import type { AtlasLight, FocusBounds } from "../types";
-import { cn } from "@/lib/utils/cn";
 
 const kindStyles = {
   cluster: {
@@ -41,11 +43,13 @@ function LightDot({
   x,
   y,
   size,
+  reducedMotion,
 }: {
   light: AtlasLight;
   x: number;
   y: number;
   size: number;
+  reducedMotion: boolean;
 }) {
   const style = kindStyles[light.kind];
   const duration =
@@ -62,14 +66,17 @@ function LightDot({
         ? parentTwinkle
         : clusterTwinkle;
 
+  const enterDelay = reducedMotion ? 0 : (light.enterStagger ?? 0);
+  const targetOpacity = light.baseOpacity ?? 1;
+
   return (
     <motion.div
       layout={false}
       className="pointer-events-none absolute"
       style={{ width: size, height: size }}
-      initial={{ opacity: 0, scale: 0.55 }}
+      initial={{ opacity: 0, scale: reducedMotion ? 1 : 0.55 }}
       animate={{
-        opacity: 1,
+        opacity: targetOpacity,
         scale: 1,
         left: `${x}%`,
         top: `${y}%`,
@@ -78,12 +85,24 @@ function LightDot({
       }}
       exit={{
         opacity: 0,
-        scale: 0.45,
-        transition: presenceExitTransition,
+        scale: reducedMotion ? 1 : 0.45,
+        transition: reducedMotion
+          ? { duration: 0 }
+          : presenceExitTransition,
       }}
       transition={{
-        opacity: presenceEnterTransition,
-        scale: presenceEnterTransition,
+        opacity: {
+          ...(reducedMotion
+            ? { duration: 0 }
+            : presenceEnterTransition),
+          delay: enterDelay,
+        },
+        scale: {
+          ...(reducedMotion
+            ? { duration: 0 }
+            : presenceEnterTransition),
+          delay: enterDelay,
+        },
         left: zoomTransition,
         top: zoomTransition,
         x: zoomTransition,
@@ -94,13 +113,17 @@ function LightDot({
       <motion.div
         className={cn("h-full w-full rounded-full", style.bg)}
         style={{ boxShadow: style.shadow }}
-        animate={keyframes}
-        transition={{
-          duration,
-          repeat: Infinity,
-          delay: light.delay,
-          ease: "easeInOut",
-        }}
+        animate={reducedMotion ? { opacity: targetOpacity } : keyframes}
+        transition={
+          reducedMotion
+            ? { duration: 0 }
+            : {
+                duration,
+                repeat: Infinity,
+                delay: light.delay + enterDelay,
+                ease: "easeInOut",
+              }
+        }
       />
     </motion.div>
   );
@@ -113,9 +136,10 @@ export type GlowLightLayerProps = {
 
 /**
  * Presence lights in viewport space.
- * New lights fade in; offline lights fade out — calm, subtle.
+ * New lights fade in with stagger; offline lights fade out — calm, subtle.
  */
-export function GlowLightLayer({ lights, focus }: GlowLightLayerProps) {
+function GlowLightLayerInner({ lights, focus }: GlowLightLayerProps) {
+  const reducedMotion = useGlowReducedMotion();
   const sizeMul = lightSizeFactor(focus.scale);
 
   const projected = useMemo(
@@ -136,9 +160,18 @@ export function GlowLightLayer({ lights, focus }: GlowLightLayerProps) {
     <div className="pointer-events-none absolute inset-0 z-[5]" aria-hidden="true">
       <AnimatePresence initial={false}>
         {projected.map(({ light, x, y, size }) => (
-          <LightDot key={light.id} light={light} x={x} y={y} size={size} />
+          <LightDot
+            key={light.id}
+            light={light}
+            x={x}
+            y={y}
+            size={size}
+            reducedMotion={reducedMotion}
+          />
         ))}
       </AnimatePresence>
     </div>
   );
 }
+
+export const GlowLightLayer = memo(GlowLightLayerInner);

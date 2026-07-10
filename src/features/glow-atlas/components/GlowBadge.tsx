@@ -1,17 +1,21 @@
 "use client";
 
-import { AnimatePresence, motion, useAnimationControls } from "framer-motion";
+import { motion, useAnimationControls } from "framer-motion";
 import { useEffect, useRef } from "react";
 
+import { AnimatedCount } from "@/components/ui/AnimatedCount";
+import { useGlowReducedMotion } from "@/lib/hooks/useGlowReducedMotion";
+import { cn } from "@/lib/utils/cn";
+
 import {
-  badgeCountTransition,
   badgePulseTransition,
   presenceEnterTransition,
   presenceExitTransition,
+  stateBadgeEnterTransition,
+  stateBadgePulseTransition,
 } from "../utils/animation";
 import type { AtlasBadge } from "../types";
 import { zoomTransition } from "../utils/zoom";
-import { cn } from "@/lib/utils/cn";
 
 export type GlowBadgeSize = "state" | "city" | "suburb";
 
@@ -25,31 +29,28 @@ export type GlowBadgeProps = {
 
 const sizeStyles: Record<
   GlowBadgeSize,
-  { maxWidth: string; pad: string; font: string; gap: string }
+  { maxWidth: string; pad: string; gap: string }
 > = {
   state: {
     maxWidth: "92px",
     pad: "px-2 py-[3px]",
-    font: "10px",
     gap: "gap-1",
   },
   city: {
     maxWidth: "92px",
     pad: "px-1.5 py-[2px]",
-    font: "10px",
     gap: "gap-1",
   },
   suburb: {
     maxWidth: "88px",
     pad: "px-1.5 py-[2px]",
-    font: "10px",
     gap: "gap-0.5",
   },
 };
 
 /**
  * Compact glass capsule — fixed screen size, never inherits map scale.
- * Pulses gently when live presence counts change.
+ * State badges pulse with a soft lavender/gold glow when counts change.
  */
 export function GlowBadge({
   badge,
@@ -59,8 +60,15 @@ export function GlowBadge({
 }: GlowBadgeProps) {
   const interactive = Boolean(onSelect);
   const styles = sizeStyles[size];
+  const reducedMotion = useGlowReducedMotion();
   const pulse = useAnimationControls();
   const isFirstCount = useRef(true);
+  const isState = size === "state";
+
+  const defaultShadow =
+    "0 2px 8px rgba(0,0,0,0.28), 0 0 0 0.5px rgba(255,255,255,0.04)";
+  const activeShadow =
+    "0 2px 8px rgba(0,0,0,0.28), 0 0 14px rgba(182,148,255,0.35), 0 0 10px rgba(255,216,122,0.22)";
 
   useEffect(() => {
     if (isFirstCount.current) {
@@ -68,11 +76,38 @@ export function GlowBadge({
       return;
     }
 
-    void pulse.start({
-      scale: [1, 1.045, 1],
-      transition: badgePulseTransition,
-    });
-  }, [badge.count, pulse]);
+    if (reducedMotion) return;
+
+    const pulseTransition = isState
+      ? stateBadgePulseTransition
+      : badgePulseTransition;
+    const peakScale = isState ? 1.06 : 1.045;
+
+    if (isState) {
+      void pulse.start({
+        scale: [1, peakScale, 1],
+        boxShadow: [defaultShadow, activeShadow, defaultShadow],
+        transition: pulseTransition,
+      });
+    } else {
+      void pulse.start({
+        scale: [1, peakScale, 1],
+        transition: pulseTransition,
+      });
+    }
+  }, [
+    activeShadow,
+    badge.count,
+    defaultShadow,
+    isState,
+    pulse,
+    reducedMotion,
+  ]);
+
+  const enterScale = isState ? 0.96 : 0.94;
+  const enterTransition = isState
+    ? stateBadgeEnterTransition
+    : presenceEnterTransition;
 
   return (
     <motion.button
@@ -86,7 +121,7 @@ export function GlowBadge({
       style={{
         maxWidth: styles.maxWidth,
       }}
-      initial={{ opacity: 0, scale: 0.94 }}
+      initial={{ opacity: 0, scale: enterScale }}
       animate={{
         opacity: 1,
         scale: 1,
@@ -97,12 +132,12 @@ export function GlowBadge({
       }}
       exit={{
         opacity: 0,
-        scale: 0.96,
+        scale: isState ? 0.96 : 0.96,
         transition: presenceExitTransition,
       }}
       transition={{
-        opacity: presenceEnterTransition,
-        scale: presenceEnterTransition,
+        opacity: enterTransition,
+        scale: enterTransition,
         left: zoomTransition,
         top: zoomTransition,
         x: zoomTransition,
@@ -112,43 +147,33 @@ export function GlowBadge({
         e.stopPropagation();
         onSelect?.(badge.id);
       }}
-      whileTap={interactive ? { scale: 0.96 } : undefined}
-      aria-label={`${badge.label}: ${badge.count} parents awake`}
+      whileTap={interactive && !reducedMotion ? { scale: 0.96 } : undefined}
+      aria-label={`${badge.label}: ${badge.count} ${badge.count === 1 ? "parent" : "parents"} awake`}
     >
       <motion.span
         animate={pulse}
+        initial={{ boxShadow: defaultShadow }}
         className={cn(
           "flex max-w-full items-center rounded-full border border-white/[0.12]",
-          "bg-[rgba(8,12,28,0.8)]",
-          "shadow-[0_2px_8px_rgba(0,0,0,0.28),0_0_0_0.5px_rgba(255,255,255,0.04)]",
-          "backdrop-blur-md",
+          "bg-[rgba(8,12,28,0.8)] backdrop-blur-md",
           styles.pad,
           styles.gap,
         )}
+        style={{ boxShadow: defaultShadow }}
       >
         <span
           className="min-w-0 truncate font-semibold tracking-[0.02em] text-glow-text"
-          style={{ fontSize: `clamp(10px, 2.5vw, 11px)` }}
+          style={{ fontSize: "clamp(10px, 2.5vw, 11px)" }}
         >
           {badge.label}
         </span>
-        <span
-          className="relative inline-flex h-[1.1em] min-w-[1ch] shrink-0 items-center overflow-hidden"
-          style={{ fontSize: `clamp(10px, 2.5vw, 11px)` }}
-        >
-          <AnimatePresence mode="popLayout" initial={false}>
-            <motion.span
-              key={badge.count}
-              className="font-medium tabular-nums text-glow-text-secondary"
-              initial={{ opacity: 0, y: 5 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -5 }}
-              transition={badgeCountTransition}
-            >
-              {badge.count.toLocaleString()}
-            </motion.span>
-          </AnimatePresence>
-        </span>
+        <AnimatedCount
+          value={badge.count}
+          duration={550}
+          className="shrink-0 font-medium text-glow-text-secondary"
+          style={{ fontSize: "clamp(10px, 2.5vw, 11px)" }}
+          aria-label={`${badge.count} awake`}
+        />
       </motion.span>
     </motion.button>
   );

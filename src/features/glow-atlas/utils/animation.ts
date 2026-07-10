@@ -54,3 +54,15 @@ export const badgePulseTransition = {
   duration: 0.75,
   ease: PRESENCE_EASE,
 } as const;
+
+/** State badge count-change pulse — calm, no bounce */
+export const stateBadgePulseTransition = {
+  duration: 0.5,
+  ease: PRESENCE_EASE,
+} as const;
+
+/** State badge enter */
+export const stateBadgeEnterTransition = {
+  duration: 0.55,
+  ease: PRESENCE_EASE,
+} as const;

@@ -3,6 +3,7 @@
 import { Heart } from "lucide-react";
 import { motion } from "framer-motion";
 import { LogoutButton } from "@/components/auth/LogoutButton";
+import { AnimatedCount } from "@/components/ui/AnimatedCount";
 import { GlowButton, GlowCard } from "@/components/ui";
 import { GlowPage, GlowContainer, BottomNavigation } from "@/components/layout";
 import { GlowAtlas, useMapClusterPresence } from "@/features/glow-atlas";
@@ -21,13 +22,42 @@ const fadeUp = {
   }),
 };
 
+function AwakeHeadline({ count }: { count: number }) {
+  if (count === 0) {
+    return (
+      <span>You&apos;re the first light here right now.</span>
+    );
+  }
+
+  if (count === 1) {
+    return (
+      <span>
+        You&apos;re not alone in Glow, even when the map is quiet.
+      </span>
+    );
+  }
+
+  const noun = count === 1 ? "parent" : "parents";
+
+  return (
+    <span>
+      <AnimatedCount value={count} duration={650} aria-label={`${count} ${noun} awake`} />{" "}
+      {noun} are awake with you tonight.
+    </span>
+  );
+}
+
 export function TonightScreen({ displayName }: { displayName?: string }) {
   const { user, awakeTogether, circle, reminder } = tonightMock;
-  // PresenceService keeps DB presence alive (Realtime lifecycle).
   usePresence();
-  // Single map_cluster_public subscription shared with Atlas (unique parents).
-  const { presence, countryCount, status: clusterStatus } =
-    useMapClusterPresence();
+  const {
+    presence,
+    countryCount,
+    connection,
+    lastUpdatedAt,
+    status: clusterStatus,
+  } = useMapClusterPresence();
+
   const name = displayName?.trim() || user.name;
   const greeting = getTimeOfDayGreeting();
   const awakeCount = clusterStatus === "live" ? countryCount : 0;
@@ -36,7 +66,6 @@ export function TonightScreen({ displayName }: { displayName?: string }) {
     <GlowPage withBottomNav>
       <main className="overflow-y-auto pt-safe">
         <GlowContainer size="md" as="div" className="pb-10">
-          {/* ── Header ── */}
           <motion.header
             custom={0}
             initial="hidden"
@@ -50,7 +79,6 @@ export function TonightScreen({ displayName }: { displayName?: string }) {
             <LogoutButton />
           </motion.header>
 
-          {/* ── Greeting ── */}
           <motion.section
             custom={1}
             initial="hidden"
@@ -62,13 +90,15 @@ export function TonightScreen({ displayName }: { displayName?: string }) {
               {greeting}, {name}{" "}
               <span aria-hidden="true">🌙</span>
             </h1>
-            <p className="mt-3 text-[1.05rem] leading-relaxed text-glow-text-secondary">
+            <p
+              className="mt-3 text-[1.05rem] leading-relaxed text-glow-text-secondary"
+              aria-live="polite"
+            >
               <span aria-hidden="true">💜 </span>
-              {awakeCount.toLocaleString()} parents are awake with you tonight.
+              <AwakeHeadline count={awakeCount} />
             </p>
           </motion.section>
 
-          {/* ── Hero map ── */}
           <motion.div
             custom={2}
             initial="hidden"
@@ -76,10 +106,14 @@ export function TonightScreen({ displayName }: { displayName?: string }) {
             variants={fadeUp}
             className="mb-8"
           >
-            <GlowAtlas presence={presence} />
+            <GlowAtlas
+              presence={presence}
+              countryCount={countryCount}
+              connection={connection}
+              lastUpdatedAt={lastUpdatedAt}
+            />
           </motion.div>
 
-          {/* ── Awake Together ── */}
           <motion.section
             custom={3}
             initial="hidden"
@@ -97,7 +131,6 @@ export function TonightScreen({ displayName }: { displayName?: string }) {
             </GlowButton>
           </motion.section>
 
-          {/* ── Glow Circle ── */}
           <motion.div
             custom={4}
             initial="hidden"
@@ -139,7 +172,6 @@ export function TonightScreen({ displayName }: { displayName?: string }) {
             </GlowCard>
           </motion.div>
 
-          {/* ── Tonight's Reminder ── */}
           <motion.div
             custom={5}
             initial="hidden"

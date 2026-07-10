@@ -27,6 +27,10 @@ export type AtlasLight = {
   delay: number;
   duration?: number;
   breathe?: boolean;
+  /** Stagger for fade-in when cluster count grows */
+  enterStagger?: number;
+  /** Slight opacity variation (0–1) for visual depth */
+  baseOpacity?: number;
 };
 
 export type AtlasBadge = {

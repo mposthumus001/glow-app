@@ -17,3 +17,6 @@ export type { GlowInputProps } from "./GlowInput";
 
 export { GlowSelect } from "./GlowSelect";
 export type { GlowSelectProps } from "./GlowSelect";
+
+export { AnimatedCount } from "./AnimatedCount";
+export type { AnimatedCountProps } from "./AnimatedCount";

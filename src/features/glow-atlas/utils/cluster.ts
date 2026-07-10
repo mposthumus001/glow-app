@@ -43,6 +43,8 @@ export function buildClusterLights(seed: ClusterSeed): AtlasLight[] {
       delay: seededRandom(`${seed.id}-d-${i}`) * 4.2,
       duration: 2.2 + seededRandom(`${seed.id}-dur-${i}`) * 3.4,
       breathe: kind !== "circle" && seededRandom(`${seed.id}-br-${i}`) > 0.7,
+      enterStagger: i * 0.07,
+      baseOpacity: 0.72 + seededRandom(`${seed.id}-op-${i}`) * 0.28,
     });
   }
 
