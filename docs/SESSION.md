@@ -20,46 +20,45 @@
 
 ✅ Sprint 4.3 — Circle Presence & Typing Indicators
 
-✅ Sprint 4.4 — Circle Assignment Engine (implementation complete; verification pending)
+✅ Sprint 4.4 — Circle Assignment Engine
+
+✅ Sprint 4.5 — Reactions & Read State (implementation complete; verification pending)
 
 ## Current Version
 
-v0.4 (pending verification)
+v0.5 (pending verification)
 
 ## Active Sprint
 
-Sprint 4.4 — Circle Assignment Engine
+Sprint 4.5 — Reactions and Read State
 
 ### Implemented
 
-* `assign_parent_to_circle` SECURITY DEFINER RPC (migration `0004_circle_assignment.sql`)
-* Idempotent assignment with per-parent advisory lock and circle row lock
-* Rule-based matching via `circle_rules` (wildcards, priority, baby age)
-* Prefer existing active circles with capacity before creating new circles
-* Onboarding integration (`completeOnboarding`) + `/circle` backfill retry
-* RLS tightened: parents cannot self-insert `circle_members` or `circles`
-* Pure TS matching helpers + unit tests (`assignmentLogic.test.ts`)
-* Docs updated (GlowCircles, Database, DECISIONS, CHANGELOG)
+* Curated reactions (`support`, `with_you`, `tiny_win`, `sending_care`) with calm pill UI
+* Reaction persistence in `circle_message_reactions` + realtime on existing `circle:{id}` channel
+* Private read marker on `circle_members.last_read_message_id` with monotonic RPC
+* Unread count, first-unread divider, scroll positioning, nav hint
+* Debounced read updates (1500ms) gated on visibility + scroll position
+* Unit tests for reaction and read-state logic
 
 ### Current Status
 
-Sprint 4.4 is implemented. Awaiting `npm run lint`, `npm run build`, `npm run test`, migration apply, and manual QA.
+Sprint 4.5 is implemented. Awaiting migration apply, `npm run lint`, `npm run build`, `npm run test`, manual QA, commit, push, and deployment.
 
 ### Remaining Checks
 
-* Apply migration `0004_circle_assignment.sql` to Supabase
-* Two-user matching manual check (similar onboarded parents land in same circle when rules align)
-* Backfill: sign in as unassigned QA parent and open `/circle`
+* Apply migration `0005_reactions_read_state.sql`
+* Two-user reaction + unread manual check
+* Multi-tab / multi-device read marker sync
+* Reduced-motion reaction presentation
 * Commit, push, and deploy after verification
 
 ## Next Sprint
 
-Sprint 4.5 — Reactions / read receipts (planned; out of scope for 4.4)
+TBD — persistent daily prompts / moderation (out of scope for 4.5)
 
 ## Known Issues
 
 * Atlas still using temporary clustered demo data in some areas
-* Production Australia SVG refinement
-* Need Circle integration into Atlas
 * Circle Realtime Presence/Broadcast not private-channel authorized yet
-* Reactions and read receipts not yet implemented
+* Persistent daily prompts not implemented

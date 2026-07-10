@@ -48,7 +48,13 @@ function AwakeHeadline({ count }: { count: number }) {
   );
 }
 
-export function TonightScreen({ displayName }: { displayName?: string }) {
+export function TonightScreen({
+  displayName,
+  circleNavHint = null,
+}: {
+  displayName?: string;
+  circleNavHint?: string | null;
+}) {
   const { user, awakeTogether, circle, reminder } = tonightMock;
   usePresence();
   const {
@@ -205,7 +211,7 @@ export function TonightScreen({ displayName }: { displayName?: string }) {
         </GlowContainer>
       </main>
 
-      <BottomNavigation activeId="tonight" />
+      <BottomNavigation activeId="tonight" circleUnreadHint={circleNavHint} />
     </GlowPage>
   );
 }

@@ -66,7 +66,54 @@ Generated circle names use state + age band only. Matching details are never sho
 
 * No manual circle picker in app.
 * Realtime channel authorization still client-gated (see Sprint 4.3).
-* Reactions, read receipts, unread counts, persistent prompts — not in this sprint.
+* Persistent daily prompts not implemented.
+
+---
+
+## Reactions & read state (Sprint 4.5)
+
+### Allowed reaction types
+
+| Type | Emoji | Label |
+|------|-------|-------|
+| `support` | 💜 | Support |
+| `with_you` | 🌙 | With you |
+| `tiny_win` | ✨ | Tiny win |
+| `sending_care` | 🤍 | Sending care |
+
+No arbitrary emoji picker. Aggregate counts only — never who reacted.
+
+### Reactions
+
+* Persisted in `circle_message_reactions` (unique per message + parent + type).
+* Realtime via existing `circle:{circleId}` channel (`postgres_changes` INSERT/DELETE).
+* Optimistic toggle with rollback on failure; dedupe by reaction row id.
+
+### Read state (private)
+
+* One marker per parent per circle: `circle_members.last_read_message_id` (+ `last_read_at`).
+* Message-id primary for deterministic tie-breaks; timestamp fallback when marker message missing.
+* Never exposes who read what or when to other members.
+
+### Unread derivation
+
+Count confirmed messages strictly after the read marker (`created_at`, then `id`).
+
+### Marking read
+
+Only when tab is visible **and** (near newest messages **or** newest unread message observed). Debounced **1500ms** (`READ_STATE_DEBOUNCE_MS`). Page load alone does not mark read.
+
+### First unread
+
+On open, scroll to first unread with a calm “New since you were here” divider; fully-read circles scroll to latest.
+
+### Multi-device
+
+`advance_circle_read_state` RPC + realtime membership UPDATE merge markers monotonically forward only.
+
+### Nav hint
+
+Calm text on Circles tab (e.g. “2 new”) — no red badges or urgency language.
 
 ---
 

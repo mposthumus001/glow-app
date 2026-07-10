@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 
+import type { CircleReactionType } from "@/lib/supabase/database.types";
+
 import {
   CircleMessagingService,
   type MessagingSnapshot,
@@ -18,6 +20,10 @@ const emptySnapshot: MessagingSnapshot = {
   onlineCount: 0,
   onlinePreviewNames: [],
   typingLabel: null,
+  reactionsByMessage: {},
+  unreadCount: 0,
+  firstUnreadIndex: null,
+  readMarker: null,
 };
 
 export type UseCircleMessagesResult = MessagingSnapshot & {
@@ -26,6 +32,15 @@ export type UseCircleMessagesResult = MessagingSnapshot & {
   loadEarlier: () => Promise<void>;
   notifyTypingActivity: () => void;
   stopTyping: () => Promise<void>;
+  toggleReaction: (
+    messageId: string,
+    reactionType: CircleReactionType,
+  ) => Promise<{ ok: boolean }>;
+  updateReadObservation: (input: {
+    isNearBottom: boolean;
+    isPageVisible: boolean;
+    observedMessageId: string | null;
+  }) => void;
 };
 
 /**
@@ -67,5 +82,8 @@ export function useCircleMessages(input: {
     loadEarlier: () => service.loadEarlier(),
     notifyTypingActivity: () => service.notifyTypingActivity(),
     stopTyping: () => service.stopTyping(),
+    toggleReaction: (messageId, reactionType) =>
+      service.toggleReaction({ messageId, reactionType }),
+    updateReadObservation: (input) => service.updateReadObservation(input),
   };
 }

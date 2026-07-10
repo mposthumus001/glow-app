@@ -1,17 +1,22 @@
 "use client";
 
 import {
+  memo,
   useCallback,
+  useEffect,
   useLayoutEffect,
   useRef,
   useState,
 } from "react";
 
+import { CircleMessageReactions } from "@/features/circles/components/CircleMessageReactions";
 import type { CircleFeedMessage } from "@/features/circles/messaging/messageLogic";
 import { shouldAutoScrollForIncoming } from "@/features/circles/messaging/messageLogic";
+import type { ReactionAggregate } from "@/features/circles/reactions/reactionLogic";
+import type { CircleReactionType } from "@/lib/supabase/database.types";
+import { useGlowReducedMotion } from "@/lib/hooks/useGlowReducedMotion";
 import { textStyles } from "@/lib/theme";
 import { cn } from "@/lib/utils/cn";
-import { useGlowReducedMotion } from "@/lib/hooks/useGlowReducedMotion";
 
 const NEAR_BOTTOM_PX = 96;
 
@@ -25,6 +30,17 @@ export interface CircleMessageFeedProps {
   onRetry: (clientKey: string) => void;
   sendingClientKey: string | null;
   viewerParentId: string;
+  reactionsByMessage: Record<string, ReactionAggregate[]>;
+  firstUnreadIndex: number | null;
+  onToggleReaction: (
+    messageId: string,
+    reactionType: CircleReactionType,
+  ) => Promise<{ ok: boolean }>;
+  onReadObservation: (input: {
+    isNearBottom: boolean;
+    isPageVisible: boolean;
+    observedMessageId: string | null;
+  }) => void;
 }
 
 function formatSubtleTime(iso: string): string {
@@ -55,6 +71,10 @@ export function CircleMessageFeed({
   onRetry,
   sendingClientKey,
   viewerParentId,
+  reactionsByMessage,
+  firstUnreadIndex,
+  onToggleReaction,
+  onReadObservation,
 }: CircleMessageFeedProps) {
   const reduceMotion = useGlowReducedMotion();
   const scrollerRef = useRef<HTMLDivElement>(null);
@@ -66,6 +86,10 @@ export function CircleMessageFeed({
     null,
   );
   const [showNewAffordance, setShowNewAffordance] = useState(false);
+  const [pageVisible, setPageVisible] = useState(true);
+  const [observedMessageId, setObservedMessageId] = useState<string | null>(
+    null,
+  );
 
   const isNearBottom = useCallback(() => {
     const el = scrollerRef.current;
@@ -98,12 +122,63 @@ export function CircleMessageFeed({
     });
   }, []);
 
+  const publishReadObservation = useCallback(() => {
+    onReadObservation({
+      isNearBottom: nearBottomRef.current,
+      isPageVisible: pageVisible,
+      observedMessageId,
+    });
+  }, [observedMessageId, onReadObservation, pageVisible]);
+
   const onScroll = () => {
     nearBottomRef.current = isNearBottom();
     if (nearBottomRef.current && showNewAffordance) {
       setShowNewAffordance(false);
     }
+    publishReadObservation();
   };
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+
+    const onVisibility = () => {
+      setPageVisible(document.visibilityState === "visible");
+    };
+
+    onVisibility();
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => document.removeEventListener("visibilitychange", onVisibility);
+  }, []);
+
+  useEffect(() => {
+    publishReadObservation();
+  }, [publishReadObservation]);
+
+  useEffect(() => {
+    const root = scrollerRef.current;
+    if (!root || status !== "ready") return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((entry) => entry.isIntersecting)
+          .map((entry) => entry.target.getAttribute("data-message-id"))
+          .filter((value): value is string => Boolean(value));
+
+        if (visible.length === 0) return;
+
+        const lastVisible = visible[visible.length - 1];
+        setObservedMessageId(lastVisible);
+      },
+      { root, threshold: 0.6 },
+    );
+
+    for (const node of root.querySelectorAll("[data-message-id]")) {
+      observer.observe(node);
+    }
+
+    return () => observer.disconnect();
+  }, [messages, status]);
 
   useLayoutEffect(() => {
     if (loadingEarlier) return;
@@ -121,11 +196,28 @@ export function CircleMessageFeed({
 
     if (!didInitialScroll.current) {
       if (el) {
-        el.scrollTop = el.scrollHeight;
+        if (firstUnreadIndex != null && firstUnreadIndex >= 0) {
+          const target = el.querySelector(
+            `[data-message-id="${messages[firstUnreadIndex]?.id}"]`,
+          );
+          if (target instanceof HTMLElement) {
+            target.scrollIntoView({
+              block: "center",
+              behavior: reduceMotion ? "auto" : "auto",
+            });
+            nearBottomRef.current = false;
+          } else {
+            el.scrollTop = el.scrollHeight;
+            nearBottomRef.current = true;
+          }
+        } else {
+          el.scrollTop = el.scrollHeight;
+          nearBottomRef.current = true;
+        }
       }
-      nearBottomRef.current = true;
       didInitialScroll.current = true;
       prevMessageIdsRef.current = messages.map((m) => m.clientKey).join("|");
+      publishReadObservation();
       return;
     }
 
@@ -171,7 +263,15 @@ export function CircleMessageFeed({
       queueMicrotask(() => setShowNewAffordance(true));
       announce("New messages in your Circle");
     }
-  }, [messages, status, viewerParentId, reduceMotion, announce]);
+  }, [
+    messages,
+    status,
+    viewerParentId,
+    reduceMotion,
+    announce,
+    firstUnreadIndex,
+    publishReadObservation,
+  ]);
 
   const handleLoadEarlier = () => {
     const el = scrollerRef.current;
@@ -266,15 +366,33 @@ export function CircleMessageFeed({
                   prev &&
                   prev.parentId === message.parentId &&
                   prev.status === message.status;
+                const showUnreadDivider =
+                  firstUnreadIndex != null && index === firstUnreadIndex;
 
                 return (
-                  <MessageRow
-                    key={message.clientKey}
-                    message={message}
-                    grouped={Boolean(grouped)}
-                    onRetry={onRetry}
-                    isRetrying={sendingClientKey === message.clientKey}
-                  />
+                  <li key={message.clientKey} className="list-none">
+                    {showUnreadDivider ? (
+                      <div
+                        className="my-4 flex items-center gap-3"
+                        role="separator"
+                        aria-label="New since you were here"
+                      >
+                        <span className="h-px flex-1 bg-glow-primary/20" />
+                        <span className="text-xs text-glow-text-tertiary">
+                          New since you were here
+                        </span>
+                        <span className="h-px flex-1 bg-glow-primary/20" />
+                      </div>
+                    ) : null}
+                    <MessageRow
+                      message={message}
+                      grouped={Boolean(grouped)}
+                      onRetry={onRetry}
+                      isRetrying={sendingClientKey === message.clientKey}
+                      aggregates={reactionsByMessage[message.id] ?? []}
+                      onToggleReaction={onToggleReaction}
+                    />
+                  </li>
                 );
               })}
             </ul>
@@ -307,23 +425,32 @@ export function CircleMessageFeed({
   );
 }
 
-function MessageRow({
+const MessageRow = memo(function MessageRow({
   message,
   grouped,
   onRetry,
   isRetrying,
+  aggregates,
+  onToggleReaction,
 }: {
   message: CircleFeedMessage;
   grouped: boolean;
   onRetry: (clientKey: string) => void;
   isRetrying: boolean;
+  aggregates: ReactionAggregate[];
+  onToggleReaction: (
+    messageId: string,
+    reactionType: CircleReactionType,
+  ) => Promise<{ ok: boolean }>;
 }) {
   const own = message.isOwn;
   const name = own ? "You" : firstName(message.authorName);
   const time = formatSubtleTime(message.createdAt);
+  const canReact = message.status === "confirmed";
 
   return (
-    <li
+    <article
+      data-message-id={message.id}
       className={cn(
         "min-w-0",
         grouped ? "mt-1" : "mt-4 first:mt-0",
@@ -390,7 +517,16 @@ function MessageRow({
             </button>
           </div>
         ) : null}
+
+        {canReact ? (
+          <CircleMessageReactions
+            messageId={message.id}
+            aggregates={aggregates}
+            canReact={canReact}
+            onToggle={(type) => onToggleReaction(message.id, type)}
+          />
+        ) : null}
       </div>
-    </li>
+    </article>
   );
-}
+});

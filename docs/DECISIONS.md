@@ -57,3 +57,19 @@ Selection order:
 
 Limitations:
 No exact suburb matching; no cross-state assignment; template-less parents get a state + age-band circle; Realtime channel auth unchanged from 4.3.
+
+---
+
+## 2026-07-11 — Circle reactions & private read state (Sprint 4.5)
+
+Decision:
+Use existing `circle_message_reactions` with a migrated curated enum (`support`, `with_you`, `tiny_win`, `sending_care`). Extend the unified `circle:{id}` channel with reaction `postgres_changes`. Store private read state on `circle_members.last_read_message_id` with monotonic `advance_circle_read_state` RPC. Show aggregate reaction counts only — never reactor lists or per-message seen-by.
+
+Reason:
+Calm, supportive engagement without social pressure. Read state answers “where do I resume?” for the authenticated parent only.
+
+Debounce:
+Read writes debounced at 1500ms; require visible tab + observed/near-bottom messages.
+
+Limitation:
+Unread counts on nav are server-rendered on page load; live count updates inside Circle session only until next navigation.

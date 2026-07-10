@@ -1,6 +1,7 @@
 import { LoginForm } from "@/components/auth/LoginForm";
 import { OnboardingForm } from "@/components/onboarding/OnboardingForm";
 import { TonightScreen } from "@/components/tonight";
+import { loadCircleNavUnreadHint } from "@/features/circles/service/ReadStateRepository";
 import { isParentOnboarded } from "@/lib/auth/onboarding";
 import { createClient } from "@/lib/supabase/server";
 
@@ -29,5 +30,12 @@ export default async function Home() {
     );
   }
 
-  return <TonightScreen displayName={parent.display_name} />;
+  const circleNavHint = await loadCircleNavUnreadHint(user.id);
+
+  return (
+    <TonightScreen
+      displayName={parent.display_name}
+      circleNavHint={circleNavHint}
+    />
+  );
 }

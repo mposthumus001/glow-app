@@ -37,12 +37,14 @@ export interface CircleScreenProps {
   result: CircleLoadResult;
   parentId: string;
   displayName: string;
+  circleNavHint?: string | null;
 }
 
 export function CircleScreen({
   result,
   parentId,
   displayName,
+  circleNavHint = null,
 }: CircleScreenProps) {
   const reduceMotion = useGlowReducedMotion();
 
@@ -110,7 +112,7 @@ export function CircleScreen({
         </GlowContainer>
       </main>
 
-      <BottomNavigation activeId="circle" />
+      <BottomNavigation activeId="circle" circleUnreadHint={circleNavHint} />
     </GlowPage>
   );
 }
@@ -145,6 +147,13 @@ function AssignedCircleSession({
           onlineCount={messaging.onlineCount}
           onlinePreviewNames={messaging.onlinePreviewNames}
           connection={messaging.connection}
+          unreadHint={
+            messaging.unreadCount > 0
+              ? messaging.unreadCount === 1
+                ? "1 new message"
+                : `${messaging.unreadCount} new messages`
+              : null
+          }
         />
       </motion.div>
 
@@ -178,6 +187,10 @@ function AssignedCircleSession({
           }}
           sendingClientKey={messaging.sendingClientKey}
           viewerParentId={parentId}
+          reactionsByMessage={messaging.reactionsByMessage}
+          firstUnreadIndex={messaging.firstUnreadIndex}
+          onToggleReaction={messaging.toggleReaction}
+          onReadObservation={messaging.updateReadObservation}
         />
       </motion.div>
 

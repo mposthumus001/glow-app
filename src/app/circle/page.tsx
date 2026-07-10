@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 
 import { CircleScreen } from "@/features/circles/components/CircleScreen";
 import { loadAssignedCircleWithAssignment } from "@/features/circles/service/CircleRepository";
+import { loadCircleNavUnreadHint } from "@/features/circles/service/ReadStateRepository";
 import { isParentOnboarded } from "@/lib/auth/onboarding";
 import { createClient } from "@/lib/supabase/server";
 
@@ -26,12 +27,14 @@ export default async function CirclePage() {
   }
 
   const result = await loadAssignedCircleWithAssignment(user.id);
+  const circleNavHint = await loadCircleNavUnreadHint(user.id);
 
   return (
     <CircleScreen
       result={result}
       parentId={user.id}
       displayName={parent.display_name}
+      circleNavHint={circleNavHint}
     />
   );
 }

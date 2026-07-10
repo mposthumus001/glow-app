@@ -9,6 +9,34 @@ import {
   insertCircleMessage,
 } from "./messageApi";
 import {
+  deleteReaction,
+  insertReaction,
+} from "../reactions/reactionApi";
+import {
+  aggregateReactions,
+  canReactToMessage,
+  findViewerReactionRow,
+  removeReactionRow,
+  replaceReactionRowId,
+  type ReactionAggregate,
+  type ReactionRow,
+  upsertReactionRow,
+} from "../reactions/reactionLogic";
+import {
+  advanceCircleReadState,
+  fetchCircleReadMembership,
+} from "../reactions/readStateApi";
+import {
+  countUnreadMessages,
+  findFirstUnreadIndex,
+  markerFromMembership,
+  mergeReadMarkerMonotonic,
+  READ_STATE_DEBOUNCE_MS,
+  shouldAdvanceReadMarker,
+  type ReadMarker,
+} from "../reactions/readStateLogic";
+import type { CircleReactionType } from "@/lib/supabase/database.types";
+import {
   createOptimisticMessage,
   markMessageFailed,
   markMessageOptimistic,
@@ -54,9 +82,37 @@ export type MessagingSnapshot = {
   onlinePreviewNames: string[];
   /** Calm typing line for others only; null when quiet. */
   typingLabel: string | null;
+  /** Aggregate reactions keyed by message id. */
+  reactionsByMessage: Record<string, ReactionAggregate[]>;
+  unreadCount: number;
+  firstUnreadIndex: number | null;
+  readMarker: ReadMarker | null;
 };
 
 type Listener = (snapshot: MessagingSnapshot) => void;
+
+type ReactionRealtimePayload = {
+  new?: {
+    id?: string;
+    message_id?: string;
+    parent_id?: string;
+    reaction_type?: CircleReactionType;
+  };
+  old?: {
+    id?: string;
+    message_id?: string;
+    parent_id?: string;
+    reaction_type?: CircleReactionType;
+  };
+};
+
+type MembershipUpdatePayload = {
+  new?: {
+    circle_id?: string;
+    parent_id?: string;
+    last_read_message_id?: string | null;
+  };
+};
 
 type RealtimeInsertPayload = {
   new: {
@@ -68,6 +124,12 @@ type RealtimeInsertPayload = {
     deleted_at?: string | null;
     moderation_status?: string;
   };
+};
+
+type ReadObservation = {
+  isNearBottom: boolean;
+  isPageVisible: boolean;
+  observedMessageId: string | null;
 };
 
 const TYPING_EVENT = "typing";
@@ -100,6 +162,18 @@ export class CircleMessagingService {
   private presencePeers: CirclePresencePayload[] = [];
   private typingPeers: CircleTypingPeer[] = [];
   private locallyTyping = false;
+
+  private reactionRows: ReactionRow[] = [];
+  private knownReactionIds = new Set<string>();
+  private readMarker: ReadMarker | null = null;
+  private readObservation: ReadObservation = {
+    isNearBottom: false,
+    isPageVisible: true,
+    observedMessageId: null,
+  };
+  private readPersistTimer: ReturnType<typeof setTimeout> | null = null;
+  private pendingReadMessageId: string | null = null;
+  private togglingReactionKey: string | null = null;
 
   private listeners = new Set<Listener>();
   private started = false;
@@ -153,6 +227,17 @@ export class CircleMessagingService {
     this.presencePeers = [];
     this.typingPeers = [];
     this.locallyTyping = false;
+    this.reactionRows = [];
+    this.knownReactionIds = new Set();
+    this.readMarker = null;
+    this.readObservation = {
+      isNearBottom: false,
+      isPageVisible: true,
+      observedMessageId: null,
+    };
+    this.clearReadPersistTimer();
+    this.pendingReadMessageId = null;
+    this.togglingReactionKey = null;
     this.connection = "connecting";
     this.reconnectAttempt = 0;
     this.bindNetwork();
@@ -184,6 +269,115 @@ export class CircleMessagingService {
     this.presencePeers = [];
     this.typingPeers = [];
     this.locallyTyping = false;
+    this.reactionRows = [];
+    this.knownReactionIds = new Set();
+    this.readMarker = null;
+    this.clearReadPersistTimer();
+  }
+
+  updateReadObservation(input: ReadObservation): void {
+    if (!this.started) return;
+    this.readObservation = input;
+    this.scheduleReadPersist();
+  }
+
+  async toggleReaction(input: {
+    messageId: string;
+    reactionType: CircleReactionType;
+  }): Promise<{ ok: boolean }> {
+    if (
+      !this.started ||
+      !this.supabase ||
+      !this.circleId ||
+      !this.parentId ||
+      this.togglingReactionKey
+    ) {
+      return { ok: false };
+    }
+
+    const message = this.messages.find((m) => m.id === input.messageId);
+    if (
+      !message ||
+      !canReactToMessage({
+        messageId: message.id,
+        circleId: message.circleId,
+        activeCircleId: this.circleId,
+        status: message.status,
+      })
+    ) {
+      return { ok: false };
+    }
+
+    const toggleKey = `${input.messageId}:${input.reactionType}`;
+    this.togglingReactionKey = toggleKey;
+
+    const existing = findViewerReactionRow(this.reactionRows, {
+      messageId: input.messageId,
+      parentId: this.parentId,
+      reactionType: input.reactionType,
+    });
+
+    const previousRows = [...this.reactionRows];
+
+    if (existing) {
+      this.reactionRows = removeReactionRow(
+        this.reactionRows,
+        (row) => row.id === existing.id,
+      );
+      this.knownReactionIds.delete(existing.id);
+      this.emit();
+
+      const result = await deleteReaction(this.supabase, {
+        messageId: input.messageId,
+        parentId: this.parentId,
+        reactionType: input.reactionType,
+      });
+
+      this.togglingReactionKey = null;
+      if (!this.started) return { ok: false };
+
+      if (result.error) {
+        this.reactionRows = previousRows;
+        this.knownReactionIds.add(existing.id);
+        this.emit();
+        return { ok: false };
+      }
+
+      return { ok: true };
+    }
+
+    const optimisticId = `optimistic:${toggleKey}`;
+    this.reactionRows = upsertReactionRow(this.reactionRows, {
+      id: optimisticId,
+      messageId: input.messageId,
+      parentId: this.parentId,
+      reactionType: input.reactionType,
+    });
+    this.emit();
+
+    const result = await insertReaction(this.supabase, {
+      messageId: input.messageId,
+      parentId: this.parentId,
+      reactionType: input.reactionType,
+    });
+
+    this.togglingReactionKey = null;
+    if (!this.started) return { ok: false };
+
+    if (result.error || !result.row) {
+      this.reactionRows = previousRows;
+      this.emit();
+      return { ok: false };
+    }
+
+    this.reactionRows = replaceReactionRowId(
+      this.reactionRows,
+      optimisticId,
+      result.row,
+    );
+    this.knownReactionIds.add(result.row.id);
+    this.emit();
+    return { ok: true };
   }
 
   /**
@@ -251,6 +445,9 @@ export class CircleMessagingService {
     );
     this.hasEarlier = page.hasMore;
     this.error = null;
+    await this.loadReactionsForMessageIds(
+      page.messages.filter((m) => m.status === "confirmed").map((m) => m.id),
+    );
     this.emit();
   }
 
@@ -385,7 +582,79 @@ export class CircleMessagingService {
     this.hasEarlier = page.hasMore;
     this.status = "ready";
     this.error = null;
+
+    await this.hydrateReactionsAndReadState();
     this.emit();
+  }
+
+  private async hydrateReactionsAndReadState(): Promise<void> {
+    if (!this.supabase || !this.circleId || !this.parentId) return;
+
+    const confirmedIds = this.messages
+      .filter((m) => m.status === "confirmed")
+      .map((m) => m.id);
+
+    const membershipPromise = fetchCircleReadMembership(this.supabase, {
+      circleId: this.circleId,
+      parentId: this.parentId,
+    });
+
+    if (confirmedIds.length === 0) {
+      this.reactionRows = [];
+      this.knownReactionIds = new Set();
+    } else {
+      const { data } = await this.supabase
+        .from("circle_message_reactions")
+        .select("id, message_id, parent_id, reaction_type")
+        .in("message_id", confirmedIds);
+
+      this.reactionRows = ((data ?? []) as Array<{
+        id: string;
+        message_id: string;
+        parent_id: string;
+        reaction_type: CircleReactionType;
+      }>).map((row) => ({
+        id: row.id,
+        messageId: row.message_id,
+        parentId: row.parent_id,
+        reactionType: row.reaction_type,
+      }));
+      this.knownReactionIds = new Set(this.reactionRows.map((row) => row.id));
+    }
+
+    const membership = await membershipPromise;
+    this.readMarker = markerFromMembership({
+      lastReadMessageId: membership?.lastReadMessageId ?? null,
+      lastReadAt: membership?.lastReadAt ?? null,
+      messages: this.messages,
+    });
+  }
+
+  private async loadReactionsForMessageIds(messageIds: string[]): Promise<void> {
+    if (!this.supabase || !this.parentId || messageIds.length === 0) return;
+
+    const { data } = await this.supabase
+      .from("circle_message_reactions")
+      .select("id, message_id, parent_id, reaction_type")
+      .in("message_id", messageIds);
+
+    if (!data) return;
+
+    for (const row of data as Array<{
+      id: string;
+      message_id: string;
+      parent_id: string;
+      reaction_type: CircleReactionType;
+    }>) {
+      if (this.knownReactionIds.has(row.id)) continue;
+      this.reactionRows = upsertReactionRow(this.reactionRows, {
+        id: row.id,
+        messageId: row.message_id,
+        parentId: row.parent_id,
+        reactionType: row.reaction_type,
+      });
+      this.knownReactionIds.add(row.id);
+    }
   }
 
   private bindRealtime(): void {
@@ -412,6 +681,46 @@ export class CircleMessagingService {
       (payload) => {
         void this.handleRealtimeInsert(
           payload as unknown as RealtimeInsertPayload,
+        );
+      },
+    );
+
+    channel.on(
+      "postgres_changes",
+      {
+        event: "INSERT",
+        schema: "public",
+        table: "circle_message_reactions",
+      },
+      (payload) => {
+        this.handleReactionInsert(payload as unknown as ReactionRealtimePayload);
+      },
+    );
+
+    channel.on(
+      "postgres_changes",
+      {
+        event: "DELETE",
+        schema: "public",
+        table: "circle_message_reactions",
+      },
+      (payload) => {
+        this.handleReactionDelete(payload as unknown as ReactionRealtimePayload);
+      },
+    );
+
+    channel.on(
+      "postgres_changes",
+      {
+        event: "UPDATE",
+        schema: "public",
+        table: "circle_members",
+        filter: `parent_id=eq.${parentId}`,
+      },
+      (payload) => {
+        this.handleMembershipReadUpdate(
+          payload as unknown as MembershipUpdatePayload,
+          circleId,
         );
       },
     );
@@ -682,6 +991,156 @@ export class CircleMessagingService {
     this.emit();
   }
 
+  private handleReactionInsert(payload: ReactionRealtimePayload): void {
+    if (!this.started || !this.parentId || !this.circleId) return;
+
+    const row = payload.new;
+    if (!row?.id || !row.message_id || !row.parent_id || !row.reaction_type) {
+      return;
+    }
+
+    if (this.knownReactionIds.has(row.id)) return;
+
+    const messageLoaded = this.messages.some(
+      (m) => m.id === row.message_id && m.status === "confirmed",
+    );
+    if (!messageLoaded) return;
+
+    if (row.parent_id === this.parentId) {
+      this.reactionRows = removeReactionRow(
+        this.reactionRows,
+        (existing) =>
+          existing.id.startsWith("optimistic:") &&
+          existing.messageId === row.message_id &&
+          existing.reactionType === row.reaction_type &&
+          existing.parentId === this.parentId,
+      );
+    }
+
+    this.reactionRows = upsertReactionRow(this.reactionRows, {
+      id: row.id,
+      messageId: row.message_id,
+      parentId: row.parent_id,
+      reactionType: row.reaction_type,
+    });
+    this.knownReactionIds.add(row.id);
+    this.emit();
+  }
+
+  private handleReactionDelete(payload: ReactionRealtimePayload): void {
+    if (!this.started || !this.parentId) return;
+
+    const row = payload.old;
+    if (!row?.id) return;
+
+    this.reactionRows = removeReactionRow(
+      this.reactionRows,
+      (existing) => existing.id === row.id,
+    );
+    this.knownReactionIds.delete(row.id);
+    this.emit();
+  }
+
+  private handleMembershipReadUpdate(
+    payload: MembershipUpdatePayload,
+    circleId: string,
+  ): void {
+    if (!this.started || !this.parentId) return;
+
+    const update = payload.new;
+    if (!update?.last_read_message_id || update.circle_id !== circleId) {
+      return;
+    }
+
+    const message = this.messages.find(
+      (m) => m.id === update.last_read_message_id && m.status === "confirmed",
+    );
+    if (!message) return;
+
+    const incoming: ReadMarker = {
+      messageId: message.id,
+      createdAt: message.createdAt,
+    };
+    this.readMarker = mergeReadMarkerMonotonic(this.readMarker, incoming);
+    this.emit();
+  }
+
+  private scheduleReadPersist(): void {
+    this.clearReadPersistTimer();
+    this.readPersistTimer = setTimeout(() => {
+      this.readPersistTimer = null;
+      void this.persistReadStateIfNeeded();
+    }, READ_STATE_DEBOUNCE_MS);
+  }
+
+  private clearReadPersistTimer(): void {
+    if (this.readPersistTimer) {
+      clearTimeout(this.readPersistTimer);
+      this.readPersistTimer = null;
+    }
+  }
+
+  private async persistReadStateIfNeeded(): Promise<void> {
+    if (!this.started || !this.supabase || !this.circleId || !this.parentId) {
+      return;
+    }
+
+    const observedMessage = this.readObservation.observedMessageId
+      ? this.messages.find(
+          (m) =>
+            m.id === this.readObservation.observedMessageId &&
+            m.status === "confirmed",
+        ) ?? null
+      : null;
+
+    const bottomMessage = this.readObservation.isNearBottom
+      ? this.messages.filter((m) => m.status === "confirmed").at(-1) ?? null
+      : null;
+
+    const candidate = bottomMessage ?? observedMessage;
+
+    if (
+      !shouldAdvanceReadMarker({
+        candidate,
+        currentMarker: this.readMarker,
+        isNearBottom: this.readObservation.isNearBottom,
+        isPageVisible: this.readObservation.isPageVisible,
+        observedNewestUnread:
+          observedMessage != null &&
+          observedMessage.id ===
+            this.messages.filter((m) => m.status === "confirmed").at(-1)?.id,
+      })
+    ) {
+      return;
+    }
+
+    if (!candidate || this.pendingReadMessageId === candidate.id) return;
+    this.pendingReadMessageId = candidate.id;
+
+    const result = await advanceCircleReadState(this.supabase, {
+      circleId: this.circleId,
+      messageId: candidate.id,
+    });
+
+    this.pendingReadMessageId = null;
+    if (!this.started || result.error || !result.advanced) return;
+
+    this.readMarker = mergeReadMarkerMonotonic(this.readMarker, {
+      messageId: candidate.id,
+      createdAt: candidate.createdAt,
+    });
+    this.emit();
+  }
+
+  private reactionsSnapshot(): Record<string, ReactionAggregate[]> {
+    const map = aggregateReactions(this.reactionRows, this.parentId ?? "");
+    const record: Record<string, ReactionAggregate[]> = {};
+    for (const [messageId, entry] of map) {
+      record[messageId] = entry.aggregates;
+    }
+    return record;
+  }
+
   private async teardownChannel(): Promise<void> {
     if (this.channel && this.supabase) {
       try {
@@ -706,6 +1165,9 @@ export class CircleMessagingService {
       ? formatTypingIndicatorCopy(this.typingPeers, this.parentId)
       : null;
 
+    const unreadCount = countUnreadMessages(this.messages, this.readMarker);
+    const firstUnreadIndex = findFirstUnreadIndex(this.messages, this.readMarker);
+
     return {
       messages: this.messages,
       status: this.status,
@@ -717,6 +1179,10 @@ export class CircleMessagingService {
       onlineCount,
       onlinePreviewNames,
       typingLabel,
+      reactionsByMessage: this.reactionsSnapshot(),
+      unreadCount,
+      firstUnreadIndex,
+      readMarker: this.readMarker,
     };
   }
 

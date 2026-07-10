@@ -63,6 +63,9 @@ Supabase realtime pipeline
 
 ### Added
 
+* Sprint 4.5 curated Circle reactions with aggregate counts and optimistic toggle.
+* Private read markers, unread counts, first-unread positioning, and calm nav hints.
+* Migration `0005_reactions_read_state.sql` (reaction enum + read marker + RPC).
 * Sprint 4.4 automatic Circle assignment engine via `assign_parent_to_circle` SECURITY DEFINER RPC.
 * Rule-based matching (`circle_rules`), baby-age calculation, capacity checks, and deterministic tie-breaking.
 * Onboarding hook and `/circle` backfill retry for previously unassigned parents.
@@ -97,6 +100,7 @@ Supabase realtime pipeline
 
 ### Technical
 
+* Sprint 4.5: reaction realtime on existing circle channel; read-state debounce 1500ms; unit tests for reaction/read logic.
 * Sprint 4.4 migration `0004_circle_assignment.sql`: assignment RPC, baby-age helper, RLS tightening on `circle_members` and `circles` inserts.
 * Completed Sprint 4.3 without database or schema changes; presence/typing are ephemeral only.
 * Sprint 4.3 `npm run lint`, `npm run build`, and `npm run test` passed; still awaiting final manual verification, commit, push, and deployment.

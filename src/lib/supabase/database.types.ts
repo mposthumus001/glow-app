@@ -40,6 +40,12 @@ export type CircleStatus = "forming" | "active" | "paused" | "archived";
 
 export type CircleMemberStatus = "active" | "left" | "removed" | "muted";
 
+export type CircleReactionType =
+  | "support"
+  | "with_you"
+  | "tiny_win"
+  | "sending_care";
+
 export type ModerationStatus = "clean" | "flagged" | "removed";
 
 export type ParentRow = {
@@ -80,6 +86,7 @@ export type CircleMemberRow = {
   status: CircleMemberStatus;
   joined_at: string;
   last_read_at: string | null;
+  last_read_message_id: string | null;
   deleted_at: string | null;
 };
 
@@ -225,6 +232,24 @@ export type Database = {
         Update: Partial<CircleMessageRow>;
         Relationships: [];
       };
+      circle_message_reactions: {
+        Row: {
+          id: string;
+          message_id: string;
+          parent_id: string;
+          reaction_type: CircleReactionType;
+          created_at: string;
+        };
+        Insert: {
+          message_id: string;
+          parent_id: string;
+          reaction_type: CircleReactionType;
+        };
+        Update: Partial<{
+          reaction_type: CircleReactionType;
+        }>;
+        Relationships: [];
+      };
     };
     Views: {
       map_presence: {
@@ -265,6 +290,10 @@ export type Database = {
         Args: { p_parent_id: string };
         Returns: number;
       };
+      advance_circle_read_state: {
+        Args: { p_circle_id: string; p_message_id: string };
+        Returns: Json;
+      };
     };
     Enums: {
       au_state: AuState;
@@ -275,6 +304,7 @@ export type Database = {
       circle_status: CircleStatus;
       circle_member_status: CircleMemberStatus;
       moderation_status: ModerationStatus;
+      reaction_type: CircleReactionType;
     };
     CompositeTypes: Record<string, never>;
   };

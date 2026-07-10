@@ -18,6 +18,7 @@ export interface CircleHeaderProps {
   onlineCount?: number;
   onlinePreviewNames?: string[];
   connection?: CircleConnectionState;
+  unreadHint?: string | null;
 }
 
 export function CircleHeader({
@@ -25,6 +26,7 @@ export function CircleHeader({
   onlineCount = 0,
   onlinePreviewNames = [],
   connection = "idle",
+  unreadHint = null,
 }: CircleHeaderProps) {
   const { circle, memberCount } = data;
   const description =
@@ -58,6 +60,7 @@ export function CircleHeader({
 
       <p className="mt-4 text-sm text-glow-text-tertiary">
         <span aria-live="off">{presenceLine}</span>
+        {unreadHint ? ` · ${unreadHint}` : null}
         {isFormingCircle(circle.status) ? " · still gathering" : null}
         {isSmallCircle(memberCount)
           ? " · a small circle is still a strong one"

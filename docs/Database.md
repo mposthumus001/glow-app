@@ -83,3 +83,22 @@ Read/update policies for members unchanged. Message isolation unchanged (`circle
 ### Backfill
 
 Unassigned onboarded parents: sign in and visit `/circle` — one assignment attempt per page load (idempotent).
+
+---
+
+## Reactions & read state (Sprint 4.5)
+
+### Tables
+
+* `circle_message_reactions` — curated enum `reaction_type`
+* `circle_members.last_read_message_id` — private read marker (added in 0005)
+
+### RPC
+
+`advance_circle_read_state(circle_id, message_id)` — monotonic read advance for `auth.uid()`.
+
+### RLS
+
+Reactions: existing policies from 0001 (members read/insert own delete). Read marker: `circle_members_update_self` (own row only).
+
+---

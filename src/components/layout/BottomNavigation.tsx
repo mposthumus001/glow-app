@@ -19,6 +19,8 @@ export type BottomNavId = (typeof navItems)[number]["id"];
 export interface BottomNavigationProps {
   activeId?: BottomNavId;
   className?: string;
+  /** Calm unread hint for Circles nav item, e.g. "2 new". */
+  circleUnreadHint?: string | null;
 }
 
 /**
@@ -27,6 +29,7 @@ export interface BottomNavigationProps {
 export function BottomNavigation({
   activeId = "tonight",
   className,
+  circleUnreadHint = null,
 }: BottomNavigationProps) {
   return (
     <nav
@@ -75,6 +78,11 @@ export function BottomNavigation({
               <span className="relative z-[1] w-full truncate text-center text-[9px] font-medium leading-none tracking-wide">
                 {item.label}
               </span>
+              {item.id === "circle" && circleUnreadHint ? (
+                <span className="relative z-[1] mt-0.5 w-full truncate text-center text-[8px] text-glow-text-tertiary">
+                  {circleUnreadHint}
+                </span>
+              ) : null}
             </>
           );
 
