@@ -21,6 +21,7 @@ import { emptyAtlasPresence } from "../utils/emptyAtlasPresence";
 import {
   peersToAtlasPresence,
   totalAwakeFromPeers,
+  uniquePeersByParentId,
 } from "../utils/peersToAtlasPresence";
 import {
   toAtlasPresence,
@@ -273,12 +274,12 @@ export class PresenceService {
 
   private ingestPresenceState(channel: RealtimeChannel): void {
     const state = channel.presenceState<PresenceTrackPayload>();
-    const peers: PresenceTrackPayload[] = [];
+    const raw: PresenceTrackPayload[] = [];
 
     for (const metas of Object.values(state)) {
       for (const meta of metas) {
         if (!meta?.parent_id || !meta.status || !meta.state) continue;
-        peers.push({
+        raw.push({
           parent_id: meta.parent_id,
           status: meta.status,
           state: meta.state,
@@ -289,6 +290,8 @@ export class PresenceService {
       }
     }
 
+    // Realtime Presence can retain multiple metas per key after re-tracks.
+    const peers = uniquePeersByParentId(raw);
     this.peers = peers;
     this.atlasPresence = peersToAtlasPresence(peers);
     this.totalAwake = totalAwakeFromPeers(peers);

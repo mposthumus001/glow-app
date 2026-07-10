@@ -9,16 +9,33 @@ function isAuState(value: string): value is AuStateCode {
   return ["NSW", "VIC", "QLD", "WA", "SA", "TAS", "NT", "ACT"].includes(value);
 }
 
+/** Keep one payload per parent_id (latest updated_at wins). */
+export function uniquePeersByParentId(
+  peers: PresenceTrackPayload[],
+): PresenceTrackPayload[] {
+  const byId = new Map<string, PresenceTrackPayload>();
+
+  for (const peer of peers) {
+    const existing = byId.get(peer.parent_id);
+    if (!existing || peer.updated_at >= existing.updated_at) {
+      byId.set(peer.parent_id, peer);
+    }
+  }
+
+  return [...byId.values()];
+}
+
 /**
  * Aggregate Realtime Presence peers into Atlas overlay counts.
  * No GPS — state + optional suburb_area only.
+ * Counts unique parent_id only.
  */
 export function peersToAtlasPresence(
   peers: PresenceTrackPayload[],
 ): AtlasPresence {
   const presence = emptyAtlasPresence();
 
-  for (const peer of peers) {
+  for (const peer of uniquePeersByParentId(peers)) {
     if (!isAwakeOnMap(peer.status)) continue;
     if (!isAuState(peer.state)) continue;
     if (peer.map_visibility === "hidden") continue;
@@ -45,7 +62,7 @@ export function peersToAtlasPresence(
 }
 
 export function totalAwakeFromPeers(peers: PresenceTrackPayload[]): number {
-  return peers.filter(
+  return uniquePeersByParentId(peers).filter(
     (p) => isAwakeOnMap(p.status) && p.map_visibility !== "hidden",
   ).length;
 }

@@ -36,3 +36,25 @@
 ### Fixed
 - React hook state management
 - Presence hook lifecycle
+
+## v0.3
+
+### Added
+
+Realtime Presence Engine
+
+Presence aggregation
+
+Country clusters
+
+State clusters
+
+Realtime Glow Atlas
+
+Automatic heartbeat
+
+Automatic reconnect
+
+Privacy-safe aggregation
+
+Supabase realtime pipeline

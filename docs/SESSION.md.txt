@@ -33,3 +33,17 @@ Milestone 4
 - Atlas still using temporary clustered demo data in some areas
 - Production Australia SVG refinement
 - Need Circle integration into Atlas
+
+## Completed
+
+✅ Milestone 3
+
+Realtime Presence Engine
+
+Realtime Aggregation
+
+Realtime Glow Atlas
+
+Current Version
+
+v0.3

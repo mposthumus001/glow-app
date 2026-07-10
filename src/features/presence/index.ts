@@ -6,7 +6,7 @@ export {
 export { markPresenceOffline, fetchMapPresence } from "./api";
 export { emptyAtlasPresence } from "./utils/emptyAtlasPresence";
 export { toAtlasPresence } from "./utils/toAtlasPresence";
-export { peersToAtlasPresence } from "./utils/peersToAtlasPresence";
+export { peersToAtlasPresence, uniquePeersByParentId } from "./utils/peersToAtlasPresence";
 export { matchAtlasSuburb } from "./utils/matchSuburb";
 export {
   lifecycleToAppState,

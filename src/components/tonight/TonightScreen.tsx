@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { LogoutButton } from "@/components/auth/LogoutButton";
 import { GlowButton, GlowCard } from "@/components/ui";
 import { GlowPage, GlowContainer, BottomNavigation } from "@/components/layout";
-import { GlowAtlas } from "@/features/glow-atlas";
+import { GlowAtlas, useMapClusterPresence } from "@/features/glow-atlas";
 import { usePresence } from "@/features/presence";
 import { tonightMock } from "@/lib/mock/tonight";
 import { getTimeOfDayGreeting } from "@/lib/utils/greeting";
@@ -23,11 +23,14 @@ const fadeUp = {
 
 export function TonightScreen({ displayName }: { displayName?: string }) {
   const { user, awakeTogether, circle, reminder } = tonightMock;
-  // PresenceService: online/away/background/offline via Realtime (no poll).
-  const { totalAwake } = usePresence();
+  // PresenceService keeps DB presence alive (Realtime lifecycle).
+  usePresence();
+  // Single map_cluster_public subscription shared with Atlas (unique parents).
+  const { presence, countryCount, status: clusterStatus } =
+    useMapClusterPresence();
   const name = displayName?.trim() || user.name;
   const greeting = getTimeOfDayGreeting();
-  const awakeCount = totalAwake;
+  const awakeCount = clusterStatus === "live" ? countryCount : 0;
 
   return (
     <GlowPage withBottomNav>
@@ -73,7 +76,7 @@ export function TonightScreen({ displayName }: { displayName?: string }) {
             variants={fadeUp}
             className="mb-8"
           >
-            <GlowAtlas />
+            <GlowAtlas presence={presence} />
           </motion.div>
 
           {/* ── Awake Together ── */}
