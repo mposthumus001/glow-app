@@ -8,6 +8,7 @@ import type {
   FeedingMethod,
   MapVisibility,
 } from "@/lib/supabase/database.types";
+import { assignParentToCircle } from "@/features/circles/service/CircleAssignmentRepository";
 import { createClient } from "@/lib/supabase/server";
 
 export type OnboardingState = {
@@ -169,6 +170,9 @@ export async function completeOnboarding(
     }
   }
 
+  await assignParentToCircle(supabase, user.id);
+
   revalidatePath("/");
+  revalidatePath("/circle");
   redirect("/");
 }

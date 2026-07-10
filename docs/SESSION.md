@@ -18,44 +18,48 @@
 
 ✅ Sprint 4.2 — Realtime Messaging
 
+✅ Sprint 4.3 — Circle Presence & Typing Indicators
+
+✅ Sprint 4.4 — Circle Assignment Engine (implementation complete; verification pending)
+
 ## Current Version
 
 v0.4 (pending verification)
 
 ## Active Sprint
 
-Sprint 4.2 — Realtime Messaging
+Sprint 4.4 — Circle Assignment Engine
 
 ### Implemented
 
-* Enabled Circle composer with trim, empty rejection, length cap, and send locking
-* Optimistic send with confirmed / failed reconciliation (no duplicates)
-* Supabase Realtime subscription scoped to the assigned circle
-* Backwards pagination via “Earlier messages”
-* Calm scroll behaviour + subtle “New messages” affordance
-* Failed-send inline retry without toast spam
-* Unit tests for message prepare/merge/dedupe/retry/lifecycle helpers
-* No schema or RLS changes
+* `assign_parent_to_circle` SECURITY DEFINER RPC (migration `0004_circle_assignment.sql`)
+* Idempotent assignment with per-parent advisory lock and circle row lock
+* Rule-based matching via `circle_rules` (wildcards, priority, baby age)
+* Prefer existing active circles with capacity before creating new circles
+* Onboarding integration (`completeOnboarding`) + `/circle` backfill retry
+* RLS tightened: parents cannot self-insert `circle_members` or `circles`
+* Pure TS matching helpers + unit tests (`assignmentLogic.test.ts`)
+* Docs updated (GlowCircles, Database, DECISIONS, CHANGELOG)
 
 ### Current Status
 
-Sprint 4.2 is implemented. `npm run lint`, `npm run build`, and `npm run test` passed. Still awaiting final manual verification, commit, push, and deployment.
+Sprint 4.4 is implemented. Awaiting `npm run lint`, `npm run build`, `npm run test`, migration apply, and manual QA.
 
 ### Remaining Checks
 
-* Manual two-user realtime send/receive
-* Verify pagination scroll preservation
-* Verify failed send + retry
-* Confirm reduced-motion behaviour
+* Apply migration `0004_circle_assignment.sql` to Supabase
+* Two-user matching manual check (similar onboarded parents land in same circle when rules align)
+* Backfill: sign in as unassigned QA parent and open `/circle`
 * Commit, push, and deploy after verification
 
 ## Next Sprint
 
-Sprint 4.3 — Typing indicators / reactions / read receipts (planned)
+Sprint 4.5 — Reactions / read receipts (planned; out of scope for 4.4)
 
 ## Known Issues
 
 * Atlas still using temporary clustered demo data in some areas
 * Production Australia SVG refinement
 * Need Circle integration into Atlas
-* Typing indicators, reactions, and read receipts not yet implemented
+* Circle Realtime Presence/Broadcast not private-channel authorized yet
+* Reactions and read receipts not yet implemented

@@ -1,3 +1,11 @@
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[];
+
 export type AuState =
   | "NSW"
   | "VIC"
@@ -248,7 +256,16 @@ export type Database = {
         Relationships: [];
       };
     };
-    Functions: Record<string, never>;
+    Functions: {
+      assign_parent_to_circle: {
+        Args: { p_parent_id?: string };
+        Returns: Json;
+      };
+      parent_baby_age_months: {
+        Args: { p_parent_id: string };
+        Returns: number;
+      };
+    };
     Enums: {
       au_state: AuState;
       feeding_method: FeedingMethod;

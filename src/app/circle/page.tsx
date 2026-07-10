@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { CircleScreen } from "@/features/circles/components/CircleScreen";
-import { loadAssignedCircleForParent } from "@/features/circles/service/CircleRepository";
+import { loadAssignedCircleWithAssignment } from "@/features/circles/service/CircleRepository";
 import { isParentOnboarded } from "@/lib/auth/onboarding";
 import { createClient } from "@/lib/supabase/server";
 
@@ -25,7 +25,7 @@ export default async function CirclePage() {
     redirect("/onboarding");
   }
 
-  const result = await loadAssignedCircleForParent(user.id);
+  const result = await loadAssignedCircleWithAssignment(user.id);
 
   return (
     <CircleScreen

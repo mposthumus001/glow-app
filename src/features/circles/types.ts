@@ -36,7 +36,7 @@ export type CircleLoadStatus =
 
 export type CircleLoadResult =
   | { status: "assigned"; data: AssignedCircleView }
-  | { status: "unassigned" }
+  | { status: "unassigned"; message?: string }
   | { status: "error"; message: string };
 
 export type MessageAreaStatus =

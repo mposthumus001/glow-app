@@ -6,37 +6,43 @@ import {
   isSmallCircle,
   type AssignedCircleView,
 } from "@/features/circles/types";
+import {
+  formatOnlinePresenceCopy,
+  type CircleConnectionState,
+} from "@/features/circles/messaging/presenceLogic";
 import { textStyles } from "@/lib/theme";
 import { cn } from "@/lib/utils/cn";
 
 export interface CircleHeaderProps {
   data: AssignedCircleView;
+  onlineCount?: number;
+  onlinePreviewNames?: string[];
+  connection?: CircleConnectionState;
 }
 
-function memberSummary(data: AssignedCircleView): string {
-  const { memberCount, onlineCount } = data;
-  const memberLabel =
-    memberCount === 1 ? "1 parent" : `${memberCount} parents`;
-
-  if (onlineCount == null) {
-    return memberLabel;
-  }
-
-  if (onlineCount === 0) {
-    return `${memberLabel} · quiet right now`;
-  }
-
-  const onlineLabel =
-    onlineCount === 1 ? "1 here now" : `${onlineCount} here now`;
-
-  return `${memberLabel} · ${onlineLabel}`;
-}
-
-export function CircleHeader({ data }: CircleHeaderProps) {
+export function CircleHeader({
+  data,
+  onlineCount = 0,
+  onlinePreviewNames = [],
+  connection = "idle",
+}: CircleHeaderProps) {
   const { circle, memberCount } = data;
   const description =
     circle.description?.trim() ||
     "A small, trusted space for parents who understand.";
+
+  const presenceLine = formatOnlinePresenceCopy({
+    onlineCount,
+    memberCount,
+    previewNames: onlinePreviewNames,
+  });
+
+  const connectionLabel =
+    connection === "reconnecting"
+      ? "Reconnecting quietly…"
+      : connection === "disconnected"
+        ? "Connection paused — your words are still here"
+        : null;
 
   return (
     <header className="mb-6">
@@ -50,16 +56,23 @@ export function CircleHeader({ data }: CircleHeaderProps) {
         {description}
       </p>
 
-      <p
-        className="mt-4 text-sm text-glow-text-tertiary"
-        aria-live="polite"
-      >
-        {memberSummary(data)}
+      <p className="mt-4 text-sm text-glow-text-tertiary">
+        <span aria-live="off">{presenceLine}</span>
         {isFormingCircle(circle.status) ? " · still gathering" : null}
         {isSmallCircle(memberCount)
           ? " · a small circle is still a strong one"
           : null}
       </p>
+
+      {connectionLabel ? (
+        <p
+          className="mt-2 text-xs text-glow-text-tertiary"
+          role="status"
+          aria-live="polite"
+        >
+          {connectionLabel}
+        </p>
+      ) : null}
 
       <GlowCard
         padding="sm"

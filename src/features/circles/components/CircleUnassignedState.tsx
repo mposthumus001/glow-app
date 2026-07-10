@@ -4,7 +4,13 @@ import { GlowCard } from "@/components/ui";
 import { textStyles } from "@/lib/theme";
 import { cn } from "@/lib/utils/cn";
 
-export function CircleUnassignedState() {
+export interface CircleUnassignedStateProps {
+  message?: string;
+}
+
+export function CircleUnassignedState({
+  message = "We're matching you with a small, trusted group of parents. You'll land here when your Circle is ready — no searching required.",
+}: CircleUnassignedStateProps) {
   return (
     <section
       aria-labelledby="circle-unassigned-heading"
@@ -24,9 +30,7 @@ export function CircleUnassignedState() {
           Your Circle is on its way
         </h1>
         <p className="mt-3 text-base leading-relaxed text-glow-text-secondary">
-          We&apos;re matching you with a small, trusted group of parents.
-          You&apos;ll land here when your Circle is ready — no searching
-          required.
+          {message}
         </p>
         <p className="mt-4 text-sm text-glow-text-tertiary">
           Private · Supportive · Never more than twelve

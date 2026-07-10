@@ -63,6 +63,14 @@ Supabase realtime pipeline
 
 ### Added
 
+* Sprint 4.4 automatic Circle assignment engine via `assign_parent_to_circle` SECURITY DEFINER RPC.
+* Rule-based matching (`circle_rules`), baby-age calculation, capacity checks, and deterministic tie-breaking.
+* Onboarding hook and `/circle` backfill retry for previously unassigned parents.
+* Unit tests for assignment matching logic.
+* Sprint 4.3 circle presence and typing indicators on a unified `circle:{id}` channel.
+* Ephemeral Realtime Presence with unique-parent online counts and calm copy.
+* Debounced typing Broadcast with expiry, self-exclusion, and restrained live region.
+* Unit tests for presence/typing helpers and circle scoping.
 * Sprint 4.2 realtime Circle messaging: send, optimistic UI, live inserts, pagination, retry.
 * CircleMessagingService with circle-scoped Supabase Realtime subscription and dedupe.
 * Unit tests for message preparation, ordering, reconciliation, and subscription helpers.
@@ -78,6 +86,8 @@ Supabase realtime pipeline
 
 ### Improved
 
+* Circle header online count now uses live circle Presence instead of map_presence fallback.
+* Quiet reconnect status without alarming full-screen errors.
 * Circle composer is active with accessible keyboard send (Enter / Shift+Enter).
 * Message feed distinguishes own messages calmly without a noisy chat-bubble layout.
 * Refined Glow Atlas lighting, glow, and transition behaviour.
@@ -87,6 +97,9 @@ Supabase realtime pipeline
 
 ### Technical
 
+* Sprint 4.4 migration `0004_circle_assignment.sql`: assignment RPC, baby-age helper, RLS tightening on `circle_members` and `circles` inserts.
+* Completed Sprint 4.3 without database or schema changes; presence/typing are ephemeral only.
+* Sprint 4.3 `npm run lint`, `npm run build`, and `npm run test` passed; still awaiting final manual verification, commit, push, and deployment.
 * Completed Sprint 4.2 without database or schema changes; relies on existing circle_messages RLS.
 * Sprint 4.2 `npm run lint`, `npm run build`, and `npm run test` passed; still awaiting final manual verification, commit, push, and deployment.
 * Completed Sprint 4.1 without database or schema changes.

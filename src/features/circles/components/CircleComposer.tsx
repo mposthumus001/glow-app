@@ -12,6 +12,8 @@ import { cn } from "@/lib/utils/cn";
 
 export interface CircleComposerProps {
   onSend: (body: string) => Promise<{ ok: boolean; reason?: string }>;
+  onTypingActivity?: () => void;
+  onStopTyping?: () => void;
   disabled?: boolean;
   isSending?: boolean;
 }
@@ -21,6 +23,8 @@ export interface CircleComposerProps {
  */
 export function CircleComposer({
   onSend,
+  onTypingActivity,
+  onStopTyping,
   disabled = false,
   isSending = false,
 }: CircleComposerProps) {
@@ -45,6 +49,7 @@ export function CircleComposer({
     }
 
     setLocalError(null);
+    onStopTyping?.();
     const result = await onSend(prepared.body);
     if (result.ok) {
       setDraft("");
@@ -60,7 +65,6 @@ export function CircleComposer({
       return;
     }
 
-    // Failed network send keeps draft; optimistic row owns retry.
     if (result.reason === "send_failed") {
       setDraft("");
     }
@@ -96,6 +100,14 @@ export function CircleComposer({
           onChange={(event) => {
             setDraft(event.target.value);
             if (localError) setLocalError(null);
+            if (event.target.value.trim()) {
+              onTypingActivity?.();
+            } else {
+              onStopTyping?.();
+            }
+          }}
+          onBlur={() => {
+            onStopTyping?.();
           }}
           onKeyDown={(event) => {
             if (event.key === "Enter" && !event.shiftKey) {

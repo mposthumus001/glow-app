@@ -15,12 +15,17 @@ const emptySnapshot: MessagingSnapshot = {
   loadingEarlier: false,
   sendingClientKey: null,
   connection: "idle",
+  onlineCount: 0,
+  onlinePreviewNames: [],
+  typingLabel: null,
 };
 
 export type UseCircleMessagesResult = MessagingSnapshot & {
   send: (body: string) => Promise<{ ok: boolean; reason?: string }>;
   retry: (clientKey: string) => Promise<{ ok: boolean }>;
   loadEarlier: () => Promise<void>;
+  notifyTypingActivity: () => void;
+  stopTyping: () => Promise<void>;
 };
 
 /**
@@ -60,5 +65,7 @@ export function useCircleMessages(input: {
     send: (body: string) => service.send(body),
     retry: (clientKey: string) => service.retry(clientKey),
     loadEarlier: () => service.loadEarlier(),
+    notifyTypingActivity: () => service.notifyTypingActivity(),
+    stopTyping: () => service.stopTyping(),
   };
 }

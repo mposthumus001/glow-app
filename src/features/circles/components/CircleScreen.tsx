@@ -16,6 +16,7 @@ import { CircleComposer } from "./CircleComposer";
 import { CircleErrorState } from "./CircleErrorState";
 import { CircleHeader } from "./CircleHeader";
 import { CircleMessageFeed } from "./CircleMessageFeed";
+import { CircleTypingIndicator } from "./CircleTypingIndicator";
 import { CircleUnassignedState } from "./CircleUnassignedState";
 import { TonightPromptCard } from "./TonightPromptCard";
 
@@ -82,7 +83,7 @@ export function CircleScreen({
               variants={reduceMotion ? undefined : fadeUp}
               className="flex flex-1 flex-col"
             >
-              <CircleUnassignedState />
+              <CircleUnassignedState message={result.message} />
             </motion.div>
           ) : null}
 
@@ -139,7 +140,12 @@ function AssignedCircleSession({
         animate={reduceMotion ? undefined : "visible"}
         variants={reduceMotion ? undefined : fadeUp}
       >
-        <CircleHeader data={data} />
+        <CircleHeader
+          data={data}
+          onlineCount={messaging.onlineCount}
+          onlinePreviewNames={messaging.onlinePreviewNames}
+          connection={messaging.connection}
+        />
       </motion.div>
 
       <motion.div
@@ -180,9 +186,15 @@ function AssignedCircleSession({
         initial={reduceMotion ? false : "hidden"}
         animate={reduceMotion ? undefined : "visible"}
         variants={reduceMotion ? undefined : fadeUp}
+        className="space-y-2"
       >
+        <CircleTypingIndicator label={messaging.typingLabel} />
         <CircleComposer
           onSend={messaging.send}
+          onTypingActivity={messaging.notifyTypingActivity}
+          onStopTyping={() => {
+            void messaging.stopTyping();
+          }}
           isSending={messaging.sendingClientKey != null}
         />
       </motion.div>
