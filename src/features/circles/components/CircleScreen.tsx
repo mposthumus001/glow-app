@@ -4,14 +4,18 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 
 import { BottomNavigation, GlowContainer, GlowPage } from "@/components/layout";
-import type { CircleLoadResult, MessageAreaStatus } from "@/features/circles/types";
+import type {
+  AssignedCircleView,
+  CircleLoadResult,
+} from "@/features/circles/types";
+import { useCircleMessages } from "@/features/circles/messaging/useCircleMessages";
 import { useGlowReducedMotion } from "@/lib/hooks/useGlowReducedMotion";
 import { cn } from "@/lib/utils/cn";
 
 import { CircleComposer } from "./CircleComposer";
 import { CircleErrorState } from "./CircleErrorState";
 import { CircleHeader } from "./CircleHeader";
-import { CircleMessageArea } from "./CircleMessageArea";
+import { CircleMessageFeed } from "./CircleMessageFeed";
 import { CircleUnassignedState } from "./CircleUnassignedState";
 import { TonightPromptCard } from "./TonightPromptCard";
 
@@ -30,15 +34,15 @@ const fadeUp = {
 
 export interface CircleScreenProps {
   result: CircleLoadResult;
+  parentId: string;
+  displayName: string;
 }
 
-function messageAreaStatus(result: CircleLoadResult): MessageAreaStatus {
-  if (result.status === "error") return "error";
-  if (result.status !== "assigned") return "empty";
-  return result.data.messages.length === 0 ? "empty" : "ready";
-}
-
-export function CircleScreen({ result }: CircleScreenProps) {
+export function CircleScreen({
+  result,
+  parentId,
+  displayName,
+}: CircleScreenProps) {
   const reduceMotion = useGlowReducedMotion();
 
   return (
@@ -95,52 +99,93 @@ export function CircleScreen({ result }: CircleScreenProps) {
           ) : null}
 
           {result.status === "assigned" ? (
-            <>
-              <motion.div
-                custom={1}
-                initial={reduceMotion ? false : "hidden"}
-                animate={reduceMotion ? undefined : "visible"}
-                variants={reduceMotion ? undefined : fadeUp}
-              >
-                <CircleHeader data={result.data} />
-              </motion.div>
-
-              <motion.div
-                custom={2}
-                initial={reduceMotion ? false : "hidden"}
-                animate={reduceMotion ? undefined : "visible"}
-                variants={reduceMotion ? undefined : fadeUp}
-              >
-                <TonightPromptCard />
-              </motion.div>
-
-              <motion.div
-                custom={3}
-                initial={reduceMotion ? false : "hidden"}
-                animate={reduceMotion ? undefined : "visible"}
-                variants={reduceMotion ? undefined : fadeUp}
-                className="flex flex-1 flex-col"
-              >
-                <CircleMessageArea
-                  status={messageAreaStatus(result)}
-                  messages={result.data.messages}
-                />
-              </motion.div>
-
-              <motion.div
-                custom={4}
-                initial={reduceMotion ? false : "hidden"}
-                animate={reduceMotion ? undefined : "visible"}
-                variants={reduceMotion ? undefined : fadeUp}
-              >
-                <CircleComposer />
-              </motion.div>
-            </>
+            <AssignedCircleSession
+              data={result.data}
+              parentId={parentId}
+              displayName={displayName}
+              reduceMotion={reduceMotion}
+            />
           ) : null}
         </GlowContainer>
       </main>
 
       <BottomNavigation activeId="circle" />
     </GlowPage>
+  );
+}
+
+function AssignedCircleSession({
+  data,
+  parentId,
+  displayName,
+  reduceMotion,
+}: {
+  data: AssignedCircleView;
+  parentId: string;
+  displayName: string;
+  reduceMotion: boolean;
+}) {
+  const messaging = useCircleMessages({
+    circleId: data.circle.id,
+    parentId,
+    authorName: displayName,
+  });
+
+  return (
+    <>
+      <motion.div
+        custom={1}
+        initial={reduceMotion ? false : "hidden"}
+        animate={reduceMotion ? undefined : "visible"}
+        variants={reduceMotion ? undefined : fadeUp}
+      >
+        <CircleHeader data={data} />
+      </motion.div>
+
+      <motion.div
+        custom={2}
+        initial={reduceMotion ? false : "hidden"}
+        animate={reduceMotion ? undefined : "visible"}
+        variants={reduceMotion ? undefined : fadeUp}
+      >
+        <TonightPromptCard />
+      </motion.div>
+
+      <motion.div
+        custom={3}
+        initial={reduceMotion ? false : "hidden"}
+        animate={reduceMotion ? undefined : "visible"}
+        variants={reduceMotion ? undefined : fadeUp}
+        className="flex flex-1 flex-col"
+      >
+        <CircleMessageFeed
+          messages={messaging.messages}
+          status={messaging.status}
+          errorMessage={messaging.error}
+          hasEarlier={messaging.hasEarlier}
+          loadingEarlier={messaging.loadingEarlier}
+          onLoadEarlier={() => {
+            void messaging.loadEarlier();
+          }}
+          onRetry={(clientKey) => {
+            void messaging.retry(clientKey);
+          }}
+          sendingClientKey={messaging.sendingClientKey}
+          viewerParentId={parentId}
+        />
+      </motion.div>
+
+      <motion.div
+        custom={4}
+        initial={reduceMotion ? false : "hidden"}
+        animate={reduceMotion ? undefined : "visible"}
+        variants={reduceMotion ? undefined : fadeUp}
+      >
+        <CircleComposer
+          onSend={messaging.send}
+          isSending={messaging.sendingClientKey != null}
+        />
+      </motion.div>
+    </>
   );
 }

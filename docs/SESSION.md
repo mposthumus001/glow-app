@@ -16,44 +16,46 @@
 
 ✅ Sprint 4.1 — Circle Foundation
 
+✅ Sprint 4.2 — Realtime Messaging
+
 ## Current Version
 
 v0.4 (pending verification)
 
 ## Active Sprint
 
-Sprint 4.1 — Circle Foundation
+Sprint 4.2 — Realtime Messaging
 
 ### Implemented
 
-* Your Circle route (`/circle`) with auth + onboarding gates
-* Assigned-circle load via existing `circles` / `circle_members` schema
-* Calm circle header (name, description, member counts, privacy reassurance)
-* Tonight’s Prompt card with static placeholder content
-* Message area foundation (loading / empty / error / ready layout)
-* Disabled composer shell (awaiting Sprint 4.2)
-* Bottom nav + Home “Enter Circle” wired to `/circle`
-* No database migrations, RLS changes, or realtime subscriptions
+* Enabled Circle composer with trim, empty rejection, length cap, and send locking
+* Optimistic send with confirmed / failed reconciliation (no duplicates)
+* Supabase Realtime subscription scoped to the assigned circle
+* Backwards pagination via “Earlier messages”
+* Calm scroll behaviour + subtle “New messages” affordance
+* Failed-send inline retry without toast spam
+* Unit tests for message prepare/merge/dedupe/retry/lifecycle helpers
+* No schema or RLS changes
 
 ### Current Status
 
-Sprint 4.1 is implemented. `npm run lint` and `npm run build` both passed. Still awaiting manual testing, commit, and deployment.
+Sprint 4.2 is implemented. `npm run lint`, `npm run build`, and `npm run test` passed. Still awaiting final manual verification, commit, push, and deployment.
 
 ### Remaining Checks
 
-* Manually verify assigned / unassigned / error / empty-message states
-* Confirm composer remains disabled
+* Manual two-user realtime send/receive
+* Verify pagination scroll preservation
+* Verify failed send + retry
 * Confirm reduced-motion behaviour
-* Commit and deploy after verification
+* Commit, push, and deploy after verification
 
 ## Next Sprint
 
-Sprint 4.2 — Realtime circle messaging (send + live updates)
+Sprint 4.3 — Typing indicators / reactions / read receipts (planned)
 
 ## Known Issues
 
 * Atlas still using temporary clustered demo data in some areas
 * Production Australia SVG refinement
 * Need Circle integration into Atlas
-* Circle messaging not yet realtime
-* Composer intentionally inactive until Sprint 4.2
+* Typing indicators, reactions, and read receipts not yet implemented

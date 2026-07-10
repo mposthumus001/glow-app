@@ -2,10 +2,10 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { Database } from "@/lib/supabase/database.types";
 
+import { fetchCircleMessagesPage } from "./messaging/messageApi";
 import type {
   AssignedCircleView,
   CircleLoadResult,
-  CircleMessagePreview,
   CircleSummary,
 } from "./types";
 
@@ -16,31 +16,14 @@ type MembershipRow = {
   circles: CircleSummary | CircleSummary[] | null;
 };
 
-type MessageJoinRow = {
-  id: string;
-  body: string;
-  created_at: string;
-  parents: { display_name: string } | { display_name: string }[] | null;
-};
-
 function asSingle<T>(value: T | T[] | null | undefined): T | null {
   if (value == null) return null;
   return Array.isArray(value) ? (value[0] ?? null) : value;
 }
 
-function toMessagePreview(row: MessageJoinRow): CircleMessagePreview {
-  const parent = asSingle(row.parents);
-  return {
-    id: row.id,
-    body: row.body,
-    createdAt: row.created_at,
-    authorName: parent?.display_name?.trim() || "A parent",
-  };
-}
-
 /**
- * Load the authenticated parent's active circle, member counts, and a
- * one-shot message snapshot. No realtime subscriptions.
+ * Load the authenticated parent's active circle and member counts.
+ * Message history is owned by the client messaging service (Sprint 4.2).
  */
 export async function fetchAssignedCircle(
   supabase: GlowSupabaseClient,
@@ -87,12 +70,9 @@ export async function fetchAssignedCircle(
 
   const circleId = circle.id;
 
-  const [membersResult, messagesResult] = await Promise.all([
-    fetchActiveMemberIds(supabase, circleId),
-    fetchRecentMessages(supabase, circleId),
-  ]);
+  const membersResult = await fetchActiveMemberIds(supabase, circleId);
 
-  if (membersResult.error || messagesResult.error) {
+  if (membersResult.error) {
     return {
       status: "error",
       message: "We couldn't load your Circle just now. Please try again.",
@@ -114,7 +94,7 @@ export async function fetchAssignedCircle(
     },
     memberCount: membersResult.parentIds.length,
     onlineCount,
-    messages: messagesResult.messages,
+    messages: [],
   };
 
   return { status: "assigned", data: view };
@@ -141,38 +121,6 @@ async function fetchActiveMemberIds(
   };
 }
 
-async function fetchRecentMessages(
-  supabase: GlowSupabaseClient,
-  circleId: string,
-): Promise<{ messages: CircleMessagePreview[]; error: string | null }> {
-  const { data, error } = await supabase
-    .from("circle_messages")
-    .select(
-      `
-      id,
-      body,
-      created_at,
-      parents (
-        display_name
-      )
-    `,
-    )
-    .eq("circle_id", circleId)
-    .is("deleted_at", null)
-    .neq("moderation_status", "removed")
-    .order("created_at", { ascending: true })
-    .limit(40);
-
-  if (error) {
-    return { messages: [], error: error.message };
-  }
-
-  const messages = ((data ?? []) as unknown as MessageJoinRow[]).map(
-    toMessagePreview,
-  );
-  return { messages, error: null };
-}
-
 /**
  * Best-effort online count via privacy-safe map_presence.
  * Returns null when the count cannot be resolved.
@@ -197,3 +145,5 @@ async function countOnlineAmongParents(
   const unique = new Set((onlineRows ?? []).map((row) => row.parent_id));
   return unique.size;
 }
+
+export { fetchCircleMessagesPage };

@@ -27,5 +27,11 @@ export default async function CirclePage() {
 
   const result = await loadAssignedCircleForParent(user.id);
 
-  return <CircleScreen result={result} />;
+  return (
+    <CircleScreen
+      result={result}
+      parentId={user.id}
+      displayName={parent.display_name}
+    />
+  );
 }

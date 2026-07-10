@@ -16,6 +16,8 @@ export type CircleMessagePreview = {
   body: string;
   createdAt: string;
   authorName: string;
+  parentId: string;
+  circleId: string;
 };
 
 export type AssignedCircleView = {

@@ -14,3 +14,12 @@ export type {
 
 export { CircleScreen } from "./components/CircleScreen";
 export { CircleLoadingState } from "./components/CircleLoadingState";
+
+export {
+  MESSAGE_MAX_LENGTH,
+  MESSAGE_PAGE_SIZE,
+  prepareMessageBody,
+  upsertConfirmedMessage,
+  replaceOptimisticWithConfirmed,
+} from "./messaging/messageLogic";
+export type { CircleFeedMessage } from "./messaging/messageLogic";

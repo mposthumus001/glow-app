@@ -63,6 +63,9 @@ Supabase realtime pipeline
 
 ### Added
 
+* Sprint 4.2 realtime Circle messaging: send, optimistic UI, live inserts, pagination, retry.
+* CircleMessagingService with circle-scoped Supabase Realtime subscription and dedupe.
+* Unit tests for message preparation, ordering, reconciliation, and subscription helpers.
 * Your Circle foundation screen (`/circle`) for Milestone 4 / Sprint 4.1.
 * Circle feature module with typed repository reads over existing Circle schema.
 * Calm circle header, Tonight’s Prompt placeholder, message-area states, and disabled composer shell.
@@ -75,6 +78,8 @@ Supabase realtime pipeline
 
 ### Improved
 
+* Circle composer is active with accessible keyboard send (Enter / Shift+Enter).
+* Message feed distinguishes own messages calmly without a noisy chat-bubble layout.
 * Refined Glow Atlas lighting, glow, and transition behaviour.
 * Improved accessibility labels, focus behaviour, and motion preferences.
 * Improved realtime visual updates to reduce flicker.
@@ -82,6 +87,8 @@ Supabase realtime pipeline
 
 ### Technical
 
+* Completed Sprint 4.2 without database or schema changes; relies on existing circle_messages RLS.
+* Sprint 4.2 `npm run lint`, `npm run build`, and `npm run test` passed; still awaiting final manual verification, commit, push, and deployment.
 * Completed Sprint 4.1 without database or schema changes.
 * Sprint 4.1 `npm run lint` and `npm run build` passed; still awaiting manual testing, commit, and deployment.
 * Completed Sprint 3.6 without database or schema changes.
