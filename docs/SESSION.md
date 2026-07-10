@@ -14,81 +14,46 @@
 
 ✅ Realtime Presence Engine
 
+✅ Sprint 4.1 — Circle Foundation
+
 ## Current Version
 
-v0.3
+v0.4 (pending verification)
 
-## Next Sprint
+## Active Sprint
 
-Milestone 4
+Sprint 4.1 — Circle Foundation
 
-- Glow Circles
-- Realtime Chat
-- Typing Indicators
-- Emoji Reactions
-- Read Receipts
+### Implemented
 
-## Known Issues
-
-- Atlas still using temporary clustered demo data in some areas
-- Production Australia SVG refinement
-- Need Circle integration into Atlas
-
-## Completed
-
-✅ Milestone 3
-
-Realtime Presence Engine
-
-Realtime Aggregation
-
-Realtime Glow Atlas
-
-Current Version
-
-v0.3
-
-## Session — 10 July 2026
-
-### Active Sprint
-
-Sprint 3.6 — Glow Atlas Polish
-
-### Completed
-
-* Implemented animated headline presence count.
-* Added animated state badge transitions.
-* Added softer fade and lighting transitions across Glow Atlas.
-* Added realtime connection status feedback.
-* Added reduced-motion support.
-* Improved accessibility behaviour and labelling.
-* Added empty-state and low-user-state handling.
-* Reviewed Atlas rendering and realtime update performance.
-* Confirmed no database or schema changes were required.
-* `npm run lint` passed successfully.
+* Your Circle route (`/circle`) with auth + onboarding gates
+* Assigned-circle load via existing `circles` / `circle_members` schema
+* Calm circle header (name, description, member counts, privacy reassurance)
+* Tonight’s Prompt card with static placeholder content
+* Message area foundation (loading / empty / error / ready layout)
+* Disabled composer shell (awaiting Sprint 4.2)
+* Bottom nav + Home “Enter Circle” wired to `/circle`
+* No database migrations, RLS changes, or realtime subscriptions
 
 ### Current Status
 
-Sprint 3.6 implementation is complete and undergoing final verification.
+Sprint 4.1 is implemented. `npm run lint` and `npm run build` both passed. Still awaiting manual testing, commit, and deployment.
 
 ### Remaining Checks
 
-* Run `npm run build`.
-* Manually verify the Atlas with multiple logged-in users.
-* Test realtime count changes and reconnect behaviour.
-* Verify reduced-motion behaviour.
-* Review empty and low-user states.
-* Deploy to Vercel and review the production build.
+* Manually verify assigned / unassigned / error / empty-message states
+* Confirm composer remains disabled
+* Confirm reduced-motion behaviour
+* Commit and deploy after verification
 
-### Next Milestone
+## Next Sprint
 
-Milestone 4 — Your Circle
+Sprint 4.2 — Realtime circle messaging (send + live updates)
 
-Planned scope:
+## Known Issues
 
-* Realtime circle messaging
-* Circle presence
-* Typing indicators
-* Read receipts
-* Reactions
-* Daily prompts
+* Atlas still using temporary clustered demo data in some areas
+* Production Australia SVG refinement
+* Need Circle integration into Atlas
+* Circle messaging not yet realtime
+* Composer intentionally inactive until Sprint 4.2

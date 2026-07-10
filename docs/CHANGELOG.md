@@ -63,6 +63,10 @@ Supabase realtime pipeline
 
 ### Added
 
+* Your Circle foundation screen (`/circle`) for Milestone 4 / Sprint 4.1.
+* Circle feature module with typed repository reads over existing Circle schema.
+* Calm circle header, Tonight’s Prompt placeholder, message-area states, and disabled composer shell.
+* Navigation into Your Circle from bottom nav and Home “Enter Circle”.
 * Animated Glow Atlas headline presence count.
 * Animated state presence badge transitions.
 * Realtime connection status indicator.
@@ -78,5 +82,7 @@ Supabase realtime pipeline
 
 ### Technical
 
+* Completed Sprint 4.1 without database or schema changes.
+* Sprint 4.1 `npm run lint` and `npm run build` passed; still awaiting manual testing, commit, and deployment.
 * Completed Sprint 3.6 without database or schema changes.
 * Confirmed `npm run lint` passes.

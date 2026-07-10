@@ -15,6 +15,9 @@ export type {
 export { GlowInput } from "./GlowInput";
 export type { GlowInputProps } from "./GlowInput";
 
+export { GlowTextarea } from "./GlowTextarea";
+export type { GlowTextareaProps } from "./GlowTextarea";
+
 export { GlowSelect } from "./GlowSelect";
 export type { GlowSelectProps } from "./GlowSelect";
 

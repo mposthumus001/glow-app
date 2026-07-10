@@ -19,6 +19,21 @@ export type MapVisibility = "hidden" | "state_only" | "suburb_area";
 
 export type AppState = "active" | "background" | "offline";
 
+export type CircleType =
+  | "general"
+  | "birth_month"
+  | "age_band"
+  | "feeding_method"
+  | "nicu"
+  | "twins"
+  | "local";
+
+export type CircleStatus = "forming" | "active" | "paused" | "archived";
+
+export type CircleMemberStatus = "active" | "left" | "removed" | "muted";
+
+export type ModerationStatus = "clean" | "flagged" | "removed";
+
 export type ParentRow = {
   id: string;
   family_id: string | null;
@@ -32,6 +47,42 @@ export type ParentRow = {
   subscription_status: string;
   created_at: string;
   updated_at: string;
+  deleted_at: string | null;
+};
+
+export type CircleRow = {
+  id: string;
+  name: string;
+  description: string | null;
+  primary_state: AuState;
+  baby_age_min_months: number;
+  baby_age_max_months: number;
+  circle_type: CircleType;
+  status: CircleStatus;
+  max_members: number;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+};
+
+export type CircleMemberRow = {
+  id: string;
+  circle_id: string;
+  parent_id: string;
+  status: CircleMemberStatus;
+  joined_at: string;
+  last_read_at: string | null;
+  deleted_at: string | null;
+};
+
+export type CircleMessageRow = {
+  id: string;
+  circle_id: string;
+  parent_id: string;
+  body: string;
+  moderation_status: ModerationStatus;
+  created_at: string;
+  edited_at: string | null;
   deleted_at: string | null;
 };
 
@@ -138,6 +189,34 @@ export type Database = {
         }>;
         Relationships: [];
       };
+      circles: {
+        Row: CircleRow;
+        Insert: Partial<CircleRow> & {
+          name: string;
+          primary_state: AuState;
+        };
+        Update: Partial<CircleRow>;
+        Relationships: [];
+      };
+      circle_members: {
+        Row: CircleMemberRow;
+        Insert: Partial<CircleMemberRow> & {
+          circle_id: string;
+          parent_id: string;
+        };
+        Update: Partial<CircleMemberRow>;
+        Relationships: [];
+      };
+      circle_messages: {
+        Row: CircleMessageRow;
+        Insert: Partial<CircleMessageRow> & {
+          circle_id: string;
+          parent_id: string;
+          body: string;
+        };
+        Update: Partial<CircleMessageRow>;
+        Relationships: [];
+      };
     };
     Views: {
       map_presence: {
@@ -175,6 +254,10 @@ export type Database = {
       feeding_method: FeedingMethod;
       map_visibility: MapVisibility;
       app_state: AppState;
+      circle_type: CircleType;
+      circle_status: CircleStatus;
+      circle_member_status: CircleMemberStatus;
+      moderation_status: ModerationStatus;
     };
     CompositeTypes: Record<string, never>;
   };

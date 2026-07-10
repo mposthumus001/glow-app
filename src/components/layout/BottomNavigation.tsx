@@ -1,15 +1,17 @@
 "use client";
 
+import Link from "next/link";
 import { Baby, Leaf, Moon, User, Users, Globe } from "lucide-react";
+
 import { cn } from "@/lib/utils/cn";
 
 const navItems = [
-  { id: "tonight", label: "Tonight", icon: Moon },
-  { id: "circle", label: "Circles", icon: Users },
-  { id: "community", label: "Community", icon: Globe },
-  { id: "calm", label: "Calm", icon: Leaf },
-  { id: "baby", label: "Baby", icon: Baby },
-  { id: "profile", label: "Profile", icon: User },
+  { id: "tonight", label: "Tonight", icon: Moon, href: "/" },
+  { id: "circle", label: "Circles", icon: Users, href: "/circle" },
+  { id: "community", label: "Community", icon: Globe, href: null },
+  { id: "calm", label: "Calm", icon: Leaf, href: null },
+  { id: "baby", label: "Baby", icon: Baby, href: null },
+  { id: "profile", label: "Profile", icon: User, href: null },
 ] as const;
 
 export type BottomNavId = (typeof navItems)[number]["id"];
@@ -45,20 +47,17 @@ export function BottomNavigation({
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = item.id === activeId;
+          const classNameForItem = cn(
+            "relative flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-2xl py-1.5",
+            "transition-colors duration-200",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-glow-primary/40",
+            isActive
+              ? "text-glow-primary"
+              : "text-glow-text-tertiary hover:text-glow-text-secondary",
+          );
 
-          return (
-            <button
-              key={item.id}
-              type="button"
-              aria-current={isActive ? "page" : undefined}
-              className={cn(
-                "relative flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-2xl py-1.5",
-                "transition-colors duration-200",
-                isActive
-                  ? "text-glow-primary"
-                  : "text-glow-text-tertiary hover:text-glow-text-secondary",
-              )}
-            >
+          const content = (
+            <>
               {isActive ? (
                 <span
                   className="absolute inset-x-1 inset-y-0.5 rounded-2xl bg-glow-primary/10"
@@ -76,6 +75,33 @@ export function BottomNavigation({
               <span className="relative z-[1] w-full truncate text-center text-[9px] font-medium leading-none tracking-wide">
                 {item.label}
               </span>
+            </>
+          );
+
+          if (item.href) {
+            return (
+              <Link
+                key={item.id}
+                href={item.href}
+                aria-current={isActive ? "page" : undefined}
+                aria-label={item.label}
+                className={classNameForItem}
+              >
+                {content}
+              </Link>
+            );
+          }
+
+          return (
+            <button
+              key={item.id}
+              type="button"
+              aria-current={isActive ? "page" : undefined}
+              aria-label={`${item.label} (coming soon)`}
+              disabled
+              className={cn(classNameForItem, "disabled:opacity-45")}
+            >
+              {content}
             </button>
           );
         })}

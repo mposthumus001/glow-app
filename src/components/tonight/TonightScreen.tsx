@@ -2,6 +2,7 @@
 
 import { Heart } from "lucide-react";
 import { motion } from "framer-motion";
+import Link from "next/link";
 import { LogoutButton } from "@/components/auth/LogoutButton";
 import { AnimatedCount } from "@/components/ui/AnimatedCount";
 import { GlowButton, GlowCard } from "@/components/ui";
@@ -161,14 +162,18 @@ export function TonightScreen({ displayName }: { displayName?: string }) {
                 Babies: {circle.babies} · {circle.location}
               </p>
 
-              <GlowButton
-                variant="ghost"
-                size="md"
-                fullWidth
-                className="mt-6 border-white/[0.1]"
+              <Link
+                href="/circle"
+                className={cn(
+                  "mt-6 inline-flex h-12 w-full items-center justify-center rounded-glow-button",
+                  "border border-white/[0.1] bg-transparent text-base font-medium text-glow-text",
+                  "transition-colors duration-200 hover:bg-glow-card hover:border-glow-card-border-hover",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-glow-primary/50",
+                  "focus-visible:ring-offset-2 focus-visible:ring-offset-glow-background",
+                )}
               >
                 {circle.cta}
-              </GlowButton>
+              </Link>
             </GlowCard>
           </motion.div>
 
