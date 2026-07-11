@@ -23,6 +23,40 @@ export type FeedingMethod =
   | "solids"
   | "other";
 
+export type BabyEventType =
+  | "breastfeed"
+  | "bottle_feed"
+  | "pump"
+  | "formula"
+  | "expressed_milk"
+  | "solids"
+  | "sleep"
+  | "nappy"
+  | "medication"
+  | "milestone"
+  | "note";
+
+export type FeedSide = "left" | "right" | "both" | "none";
+
+export type NappyType = "wet" | "dirty" | "both";
+
+export type BabyEventRow = {
+  id: string;
+  parent_id: string;
+  baby_id: string;
+  family_id: string;
+  event_type: BabyEventType;
+  started_at: string;
+  ended_at: string | null;
+  amount_ml: number | null;
+  side: FeedSide | null;
+  notes: string | null;
+  metadata: Json;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+};
+
 export type MapVisibility = "hidden" | "state_only" | "suburb_area";
 
 export type AppState = "active" | "background" | "offline";
@@ -213,6 +247,32 @@ export type Database = {
         }>;
         Relationships: [];
       };
+      baby_events: {
+        Row: BabyEventRow;
+        Insert: {
+          parent_id: string;
+          baby_id: string;
+          family_id: string;
+          event_type: BabyEventType;
+          started_at?: string;
+          ended_at?: string | null;
+          amount_ml?: number | null;
+          side?: FeedSide | null;
+          notes?: string | null;
+          metadata?: Json;
+        };
+        Update: Partial<{
+          event_type: BabyEventType;
+          started_at: string;
+          ended_at: string | null;
+          amount_ml: number | null;
+          side: FeedSide | null;
+          notes: string | null;
+          metadata: Json;
+          deleted_at: string | null;
+        }>;
+        Relationships: [];
+      };
       circles: {
         Row: CircleRow;
         Insert: Partial<CircleRow> & {
@@ -381,6 +441,8 @@ export type Database = {
     Enums: {
       au_state: AuState;
       feeding_method: FeedingMethod;
+      baby_event_type: BabyEventType;
+      feed_side: FeedSide;
       map_visibility: MapVisibility;
       app_state: AppState;
       circle_type: CircleType;

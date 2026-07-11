@@ -15,6 +15,9 @@ export const GlowTextarea = forwardRef<HTMLTextAreaElement, GlowTextareaProps>(
     ref,
   ) {
   const textareaId = id ?? props.name;
+  const hintId = textareaId ? `${textareaId}-hint` : undefined;
+  const errorId = textareaId ? `${textareaId}-error` : undefined;
+  const describedBy = error ? errorId : hint ? hintId : undefined;
 
   return (
     <label className="flex flex-col gap-1.5" htmlFor={textareaId}>
@@ -25,6 +28,8 @@ export const GlowTextarea = forwardRef<HTMLTextAreaElement, GlowTextareaProps>(
         ref={ref}
         id={textareaId}
         rows={rows}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={describedBy}
         className={cn(
           "w-full resize-none rounded-glow-input border bg-glow-card px-4 py-3 text-base text-glow-text",
           "placeholder:text-glow-text-tertiary",
@@ -36,9 +41,15 @@ export const GlowTextarea = forwardRef<HTMLTextAreaElement, GlowTextareaProps>(
         {...props}
       />
       {hint && !error ? (
-        <span className="text-xs text-glow-text-tertiary">{hint}</span>
+        <span id={hintId} className="text-xs text-glow-text-tertiary">
+          {hint}
+        </span>
       ) : null}
-      {error ? <span className="text-xs text-red-300">{error}</span> : null}
+      {error ? (
+        <span id={errorId} className="text-xs text-red-300" role="alert">
+          {error}
+        </span>
+      ) : null}
     </label>
   );
   },

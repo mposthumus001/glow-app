@@ -57,7 +57,7 @@ Everything should feel effortless.
 |------|---------|-------|
 | `/` | Tonight (default landing) | Yes |
 | `/circle` | Your Circle | Yes |
-| `/baby` | Baby foundation (placeholder) | Yes |
+| `/baby` | Baby tracking (profile, logs, today, recent) | Yes |
 | `/calm` | Calm foundation (placeholder) | Yes |
 | `/profile` | You / Settings | Yes |
 | `/login` | Sign in | No |
@@ -96,5 +96,10 @@ Do not start Atlas or Circle subscriptions in the shell.
 
 ### Placeholders
 
-- **Baby** — header, optional name/age, coming-next cards (Feeding, Sleep, Nappies, Growth); no tracking yet
 - **Calm** — categories + disabled player preview; no audio yet
+
+### Baby (Sprint 5.2)
+
+- Profile summary, feeding / sleep / nappy logging, today summary, recent activity
+- Feature module: `src/features/baby`
+- Details: `docs/Baby.md`

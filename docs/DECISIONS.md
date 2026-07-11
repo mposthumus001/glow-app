@@ -1,3 +1,22 @@
+## 2026-07-11 — Baby foundation & basic tracking (Sprint 5.2)
+
+Decision:
+Ship a deliberately small Baby beta on `/baby` using the existing `baby_events` table. Extend the event-type enum only for formula / expressed milk / solids. Store nappy wet/dirty/both in `metadata.nappy_type`. Prefer completed sleep entries over a live timer. Resolve “today” in Australia/Sydney. Support edit + soft-delete with confirmation. Show a calm multi-baby selector when the family has more than one baby.
+
+Reason:
+Delivers useful private tracking for beta without medical advice, charts, notifications, or gamification. Reusing `baby_events` avoids parallel tables and keeps family RLS intact.
+
+Timezone:
+Australia/Sydney calendar day for summary counts; sleep duration clipped to day overlap.
+
+Delete behaviour:
+App soft-deletes (`deleted_at`); SELECT policies already hide soft-deleted rows. Hard DELETE remains RLS-permitted but unused by the client.
+
+Limitation:
+No dedicated baby profile editor yet (link to You). No realtime subscription on baby events — reconcile with a one-shot reload after mutation. Growth charts deferred.
+
+---
+
 ## 2026-07-11 — Permanent app shell (Sprint 5.1)
 
 Decision:

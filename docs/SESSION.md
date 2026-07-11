@@ -16,42 +16,42 @@
 
 ✅ Milestone 4 — Glow Circles (Sprints 4.1–4.6)
 
-✅ Sprint 5.1 — Permanent App Shell and Core Navigation (implementation complete; verification pending)
+✅ Sprint 5.1 — Permanent App Shell and Core Navigation
+
+✅ Sprint 5.2 — Baby Foundation and Basic Tracking (implementation complete; verification pending)
 
 ## Current Version
 
-v0.7 (pending verification)
+v0.8 (pending verification)
 
 ## Active Sprint
 
-Sprint 5.1 — Permanent App Shell and Core Navigation
+Sprint 5.2 — Baby Foundation and Basic Tracking
 
 ### Implemented
 
-* Authenticated route group `src/app/(app)` with shared `AppShell`
-* Routes: `/` Tonight, `/circle`, `/baby`, `/calm`, `/profile`
-* Mobile bottom nav (Tonight, Circle, Baby, Calm, You) + desktop side nav
-* `PageHeader`, `ShellSkeleton`, `ShellError`, quiet `ReconnectBanner`
-* Presence lifecycle owned by shell (`usePresenceConnection`)
-* Atlas clusters remain Tonight-scoped; Circle messaging remains Circle-scoped
-* Baby and Calm intentional placeholders (no fake data / no audio)
-* Profile/Settings foundation with private email, sign out, entry points
-* Unit tests for nav active resolution and baby age formatting
+* Baby profile summary on `/baby` (name, age/stage, DOB/due, feeding method)
+* Feeding / sleep / nappy logging via calm Log actions + sheet
+* Today summary (Australia/Sydney day bounds)
+* Recent activity with finite “Earlier activity” pagination
+* Edit + confirmed soft-delete
+* Multi-baby selector when family has more than one baby
+* Migration `0007_baby_tracking_foundation.sql` (feeding enum variants + RLS tighten)
+* Unit tests for validation, timezone, summary, pagination, auth contract
 
 ### Current Status
 
-Sprint 5.1 implemented. `npm run lint`, `npm run build`, and `npm run test` passed. Awaiting manual QA, commit, push, and deployment.
+Sprint 5.2 implemented. `npm run lint`, `npm run build`, and `npm run test` passed. Awaiting migration application, manual QA, commit, push, and deployment.
 
 ### Remaining Checks
 
-* Manual QA across phone / tablet / desktop
-* Confirm no duplicate Circle or Atlas subscriptions when navigating
-* Confirm sign-out and unauthenticated redirects
+* Apply migration `0007_baby_tracking_foundation.sql`
+* Manual QA on phone / tablet / desktop
 * Commit, push, deploy after verification
 
 ## Next Sprint
 
-Calm audio playback foundations, or Baby tracking MVP (Milestone 6)
+Calm audio playback foundations, or Baby growth/milestones (no medical advice)
 
 ## Known Issues
 
@@ -60,3 +60,4 @@ Calm audio playback foundations, or Baby tracking MVP (Milestone 6)
 * Moderator review tooling deferred
 * Atlas privacy editing not yet on Profile (read-only summary)
 * Tonight Circle preview card still uses some mock copy
+* Baby profile editing still via You / onboarding only

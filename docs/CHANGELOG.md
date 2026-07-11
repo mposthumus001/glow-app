@@ -63,6 +63,10 @@ Supabase realtime pipeline
 
 ### Added
 
+* Sprint 5.2 Baby foundation: profile summary, feeding/sleep/nappy logging, today summary, recent activity.
+* Migration `0007_baby_tracking_foundation.sql` — `formula`, `expressed_milk`, `solids` event types; tighter baby_events update check.
+* `docs/Baby.md` documenting beta Baby scope, schema mapping, RLS, and timezone rules.
+* Unit tests for Baby validation, Australia/Sydney day bounds, summary clipping, pagination, and auth contract.
 * Sprint 5.1 permanent authenticated app shell with five-destination navigation.
 * Routes for Baby and Calm foundations plus Profile / Settings.
 * Shared `PageHeader`, shell loading skeleton, route error boundary, and quiet reconnect banner.
@@ -107,6 +111,7 @@ Supabase realtime pipeline
 
 ### Technical
 
+* Sprint 5.2: reuses `baby_events` with soft-delete; no polling; finite activity pages (20); typed feature module `src/features/baby`.
 * Sprint 5.1: `(app)` route group owns shell; PresenceService starts once in AppShell; Atlas/Circle realtime remain feature-scoped.
 * Sprint 4.6: prompt assignment server-side only; hide/report insert-only (no new realtime channels); unit tests for prompt/safety logic.
 * Sprint 4.5: reaction realtime on existing circle channel; read-state debounce 1500ms; unit tests for reaction/read logic.

@@ -1,30 +1,59 @@
-import { BabyScreen } from "@/components/baby/BabyScreen";
+import { BabyScreen } from "@/features/baby";
+import {
+  loadBabiesForFamily,
+  loadBabyTrackingBundle,
+} from "@/features/baby/tracking/eventApi";
+import { computeTodaySummary } from "@/features/baby/tracking/eventLogic";
 import { requireAppUser } from "@/lib/auth/require-app-user";
 import { createClient } from "@/lib/supabase/server";
-import { formatBabyAgeLine } from "@/lib/utils/baby-age";
 
 export default async function BabyPage() {
-  const { user } = await requireAppUser();
+  const { user, parent } = await requireAppUser();
   const supabase = await createClient();
 
-  const { data: baby } = await supabase
-    .from("babies")
-    .select("name, date_of_birth, due_date")
-    .eq("parent_id", user.id)
-    .is("deleted_at", null)
-    .order("created_at", { ascending: true })
-    .limit(1)
-    .maybeSingle();
+  if (!parent.family_id) {
+    return (
+      <BabyScreen
+        babies={[]}
+        parentId={user.id}
+        initialSummary={computeTodaySummary([])}
+        initialRecent={[]}
+        initialHasMore={false}
+        initialError={null}
+      />
+    );
+  }
 
-  const ageLine = baby
-    ? formatBabyAgeLine({
-        name: baby.name,
-        dateOfBirth: baby.date_of_birth,
-        dueDate: baby.due_date,
-      })
-    : null;
+  const { babies, error: babiesError } = await loadBabiesForFamily(
+    supabase,
+    parent.family_id,
+  );
+
+  const primary = babies[0] ?? null;
+
+  if (!primary) {
+    return (
+      <BabyScreen
+        babies={[]}
+        parentId={user.id}
+        initialSummary={computeTodaySummary([])}
+        initialRecent={[]}
+        initialHasMore={false}
+        initialError={babiesError}
+      />
+    );
+  }
+
+  const bundle = await loadBabyTrackingBundle(supabase, primary.id);
 
   return (
-    <BabyScreen babyName={baby?.name ?? null} ageLine={ageLine} />
+    <BabyScreen
+      babies={babies}
+      parentId={user.id}
+      initialSummary={bundle.summary}
+      initialRecent={bundle.recent}
+      initialHasMore={bundle.hasMore}
+      initialError={bundle.error ?? babiesError}
+    />
   );
 }

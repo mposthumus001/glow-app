@@ -20,6 +20,9 @@ export function GlowSelect({
   ...props
 }: GlowSelectProps) {
   const selectId = id ?? props.name;
+  const hintId = selectId ? `${selectId}-hint` : undefined;
+  const errorId = selectId ? `${selectId}-error` : undefined;
+  const describedBy = error ? errorId : hint ? hintId : undefined;
 
   return (
     <label className="flex flex-col gap-1.5" htmlFor={selectId}>
@@ -28,6 +31,8 @@ export function GlowSelect({
       </span>
       <select
         id={selectId}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={describedBy}
         className={cn(
           "h-12 w-full appearance-none rounded-glow-input border bg-glow-card px-4 text-base text-glow-text",
           "border-glow-card-border focus:border-glow-primary/50 focus:outline-none focus:ring-2 focus:ring-glow-primary/30",
@@ -49,9 +54,15 @@ export function GlowSelect({
         ))}
       </select>
       {hint && !error ? (
-        <span className="text-xs text-glow-text-tertiary">{hint}</span>
+        <span id={hintId} className="text-xs text-glow-text-tertiary">
+          {hint}
+        </span>
       ) : null}
-      {error ? <span className="text-xs text-red-300">{error}</span> : null}
+      {error ? (
+        <span id={errorId} className="text-xs text-red-300" role="alert">
+          {error}
+        </span>
+      ) : null}
     </label>
   );
 }

@@ -9,6 +9,24 @@ Authenticated parents land on **Tonight** inside a permanent shell:
 * Quiet reconnect banner for network interruptions
 * Soft loading skeletons and calm route errors
 
+## Baby beta scope (Sprint 5.2)
+
+`/baby` includes:
+
+* Baby profile summary (private to the authenticated family)
+* Feeding, sleep (completed), and nappy logging
+* Today summary using Australia/Sydney calendar day
+* Recent activity with finite pagination
+* Edit and confirmed soft-delete
+
+Not in beta Baby:
+
+* Growth charts, medical advice, predictions
+* Reminders, notifications, AI recommendations
+* Live background timers or gamification
+
+See `docs/Baby.md` for schema, RLS, and limitations.
+
 ## Circle beta scope (Milestone 4 complete)
 
 Your Circle includes:
@@ -41,7 +59,13 @@ Your Circle includes:
 * Realtime channels are joined client-side after assignment (private channel auth deferred)
 * Nav unread hint updates on page load; in-session counts update live
 * Moderator review is not yet in-app
+* Baby profile editing still via You / onboarding; no growth charts yet
+* Sprint 5.2 migration `0007` must be applied before new feeding enum values work in production
 
 ## Milestone 4 status
 
 Sprint 4.6 implemented — awaiting migration apply, automated checks, manual QA, and deployment approval.
+
+## Sprint 5.2 status
+
+Baby foundation implemented — awaiting migration apply, lint/build/tests, manual QA, and deployment approval.

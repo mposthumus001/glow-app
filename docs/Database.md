@@ -54,6 +54,37 @@ Presence never stores exact GPS.
 
 ---
 
+## Baby tracking (Sprint 5.2)
+
+### Table
+
+`baby_events` — family-scoped care events (existing from 0001).
+
+### Enum additions (migration 0007)
+
+`baby_event_type` gains: `formula`, `expressed_milk`, `solids`.
+
+### Metadata conventions
+
+* Nappy: `{"nappy_type":"wet"|"dirty"|"both"}`
+* Other feed: `{"tracking":"feeding_other"}` with `event_type = note`
+
+### RLS (0007)
+
+| Policy | Change |
+|--------|--------|
+| `baby_events_update_family` | WITH CHECK also requires `family_owns_baby(baby_id)` |
+| `baby_events_delete_family` | Recreated (unchanged semantics); app uses soft-delete |
+
+Soft-delete: set `deleted_at`; SELECT policies require `deleted_at is null`.
+
+### Indexes (existing)
+
+* `(baby_id, started_at desc)` where not deleted
+* `family_id`, `parent_id`, `event_type`
+
+---
+
 ## Circle assignment (Sprint 4.4)
 
 ### RPC

@@ -42,26 +42,36 @@ Glow Calm + App Shell
 
 ### Sprint 5.1 — Permanent App Shell and Core Navigation
 
-✅ Implemented (awaiting lint/build/tests/manual QA/commit/push/deploy)
+✅ Implemented (awaiting final deploy verification)
 
 - Authenticated `(app)` route group
 - Five-destination mobile + desktop navigation
 - Tonight, Circle, Baby, Calm, Profile routes
 - Shared loading / error / reconnect treatment
-- Baby and Calm production-quality placeholders
+- Baby and Calm production-quality placeholders (Baby replaced in 5.2)
+
+### Sprint 5.2 — Baby Foundation and Basic Tracking
+
+✅ Implemented (awaiting migration apply, lint/build/tests, manual QA, commit/push/deploy)
+
+- Baby profile summary
+- Feeding / sleep / nappy logging
+- Today summary (Australia/Sydney)
+- Recent activity + edit/soft-delete
+- Migration `0007_baby_tracking_foundation.sql`
 
 ### Next
 
 - Sprint 5.x — Calm audio playback
-- Baby tracking foundations (Milestone 6 alignment)
+- Later Baby: growth / milestones (no medical advice)
 
 ---
 
 ## Milestone 6
 
-Baby Tracker
+Baby Tracker (extended)
 
-⬜ Planned
+⬜ Planned — foundations delivered early in Sprint 5.2; charts/insights remain here
 
 ---
 

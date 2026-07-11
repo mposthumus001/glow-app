@@ -32,8 +32,10 @@ Never addictive.
 |-----------|-------|------|
 | Tonight | `/` | Home — Atlas, presence, gentle orientation |
 | Circle | `/circle` | Your small private group |
-| Baby | `/baby` | Family baby space (tracking coming next) |
+| Baby | `/baby` | Family baby space — profile, feeding, sleep, nappy, today summary |
 | Calm | `/calm` | Soft sound and stillness (playback coming next) |
 | You | `/profile` | Private settings and safety |
 
 Email is shown only on the authenticated user's own Profile page.
+
+Baby tracking is private to the family. See `docs/Baby.md` for beta scope and exclusions (no growth charts, medical advice, or gamification in Sprint 5.2).
