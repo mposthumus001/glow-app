@@ -69,10 +69,22 @@ Glow Calm + App Shell
 - Sleep timer, favourite/recent, volume persistence
 - Placeholder audio assets (replace before production)
 
+### Sprint 5.4 — Profile, Settings, Privacy, and Trust
+
+✅ Implemented (awaiting migrations, lint/build/tests, manual QA, legal review, commit/push/deploy)
+
+- Parent + baby profile editing
+- Atlas privacy controls
+- Circle information (no leave self-service)
+- Calm device preferences
+- Account, password reset email, deletion requests, feedback
+- Privacy / Safety / Terms beta drafts
+
 ### Next
 
 - Production Calm audio assets / optional `media_library` alignment
 - Later Baby: growth / milestones (no medical advice)
+- Legal review of Privacy/Terms before public launch
 
 ---
 

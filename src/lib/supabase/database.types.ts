@@ -385,6 +385,48 @@ export type Database = {
         }>;
         Relationships: [];
       };
+      account_deletion_requests: {
+        Row: {
+          id: string;
+          parent_id: string;
+          status: "pending" | "cancelled" | "processed";
+          reason: string | null;
+          requested_at: string;
+          processed_at: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          parent_id: string;
+          status?: "pending" | "cancelled" | "processed";
+          reason?: string | null;
+        };
+        Update: Partial<{
+          status: "pending" | "cancelled" | "processed";
+          reason: string | null;
+          processed_at: string | null;
+        }>;
+        Relationships: [];
+      };
+      app_feedback: {
+        Row: {
+          id: string;
+          parent_id: string;
+          category: "feedback" | "technical" | "safety" | "other";
+          message: string;
+          app_version: string | null;
+          route_context: string | null;
+          created_at: string;
+        };
+        Insert: {
+          parent_id: string;
+          category: "feedback" | "technical" | "safety" | "other";
+          message: string;
+          app_version?: string | null;
+          route_context?: string | null;
+        };
+        Update: Record<string, never>;
+        Relationships: [];
+      };
     };
     Views: {
       map_presence: {

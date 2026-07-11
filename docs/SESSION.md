@@ -8,60 +8,60 @@
 
 ✅ Onboarding
 
-✅ Glow Home
+✅ Glow Home / Atlas / Presence
 
-✅ Glow Atlas
+✅ Milestone 4 — Glow Circles
 
-✅ Realtime Presence Engine
+✅ Sprint 5.1 — App Shell
 
-✅ Milestone 4 — Glow Circles (Sprints 4.1–4.6)
+✅ Sprint 5.2 — Baby Foundation
 
-✅ Sprint 5.1 — Permanent App Shell and Core Navigation
+✅ Sprint 5.3 — Glow Calm Foundation
 
-✅ Sprint 5.2 — Baby Foundation and Basic Tracking (implementation complete; verification pending)
-
-✅ Sprint 5.3 — Glow Calm Foundation (implementation complete; verification pending)
+✅ Sprint 5.4 — Profile, Settings, Privacy, and Trust (lint/build/test green; awaiting migration apply, manual QA, legal review, commit, push, deploy)
 
 ## Current Version
 
-v0.9 (pending verification)
+v0.10 (pending verification)
 
 ## Active Sprint
 
-Sprint 5.3 — Glow Calm Foundation
+Sprint 5.4 — Profile, Settings, Privacy, and Trust
 
 ### Implemented
 
-* Calm home on `/calm` with curated categories and a small sound library
-* Shared `CalmPlayerService` (single audio element) owned by AppShell
-* Play / pause / resume / stop / volume / sleep timer
-* Favourite + recent sound return path (localStorage)
-* Placeholder WAV assets clearly marked for replacement
-* Calm mini player when navigating away from `/calm` while audio is active
-* Logout stops playback and clears the sleep timer
-* Unit tests for catalogue, player logic, and persistence
+* Profile landing with grouped sections
+* Parent + baby profile editing
+* Atlas privacy controls synced to parents / preferences / presence
+* Circle information page (no leave self-service)
+* Calm device preferences panel
+* Account: email, password reset email, sign out, deletion request
+* Help & feedback (`app_feedback`)
+* Privacy / Safety / Terms beta drafts + About
+* Migration `0008_profile_settings_trust.sql`
+* Auth callback `/auth/callback`
+* Unit tests for validation and trust contracts
 
 ### Current Status
 
-Sprint 5.3 implemented. `npm run lint`, `npm run build`, and `npm run test` passed. Awaiting manual QA, audio-asset approval, commit, push, and deployment.
+Sprint 5.4 implemented. `npm run lint`, `build`, and `test` passed. Awaiting migration apply, manual QA, legal-content review, commit, push, deployment.
 
 ### Remaining Checks
 
-* Manual QA on phone / tablet / desktop (playback, timer, route persistence, a11y)
-* Replace placeholder audio before production
+* Apply migration `0008`
+* Configure `NEXT_PUBLIC_SITE_URL` for password-reset redirects in deployed environments
+* Manual QA of nested Profile routes and forms
+* Legal review of draft Privacy/Terms before public launch
 * Commit, push, deploy after verification
 
 ## Next Sprint
 
-Production Calm audio assets, or Baby growth/milestones (no medical advice), or quiet listener presence if still desired
+Milestone 6 alignment (Baby growth/milestones without medical advice), production Calm audio, or Realtime Authorization hardening
 
 ## Known Issues
 
-* Atlas still using temporary clustered demo data in some areas
-* Circle Realtime Presence/Broadcast not private-channel authorized yet
-* Moderator review tooling deferred
-* Atlas privacy editing not yet on Profile (read-only summary)
-* Tonight Circle preview card still uses some mock copy
-* Baby profile editing still via You / onboarding only
-* Calm uses placeholder WAVs — not production audio
-* iOS Safari background / lock-screen playback is unreliable (documented)
+* Legal Privacy/Terms are beta drafts — not final
+* Account deletion is request-only (manual processing)
+* No official support email — in-app feedback only
+* Calm prefs remain device-local
+* Atlas demo data refinements still pending in places

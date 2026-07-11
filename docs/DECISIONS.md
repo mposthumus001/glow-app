@@ -33,6 +33,22 @@ No dedicated baby profile editor yet (link to You). No realtime subscription on 
 
 ---
 
+## 2026-07-11 — Profile, settings, privacy & trust (Sprint 5.4)
+
+Decision:
+Ship a nested `/profile/*` settings area with server actions for parent/baby/Atlas privacy edits, private feedback and deletion-request tables, password reset via Supabase Auth email, and clearly labelled beta draft Privacy/Terms/Safety copy. Circle leave/rematch remains non-self-service. Calm preferences stay device-local.
+
+Reason:
+Private beta needs trustworthy account and privacy controls without billing, public profiles, or unfinished leave flows.
+
+Legal:
+Documents are drafts — not final legal advice; review required before public launch.
+
+Limitation:
+Deletion is request + manual processing; no support mailbox yet.
+
+---
+
 ## 2026-07-11 — Permanent app shell (Sprint 5.1)
 
 Decision:

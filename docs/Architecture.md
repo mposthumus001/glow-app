@@ -112,8 +112,9 @@ Sound catalogue source of truth for beta: static `src/features/calm/catalogue.ts
 - Feature module: `src/features/baby`
 - Details: `docs/Baby.md`
 
-### Calm (Sprint 5.3)
+### Profile & settings (Sprint 5.4)
 
-- Curated sound library, shared player, sleep timer, favourite/recent
-- Feature module: `src/features/calm`
-- Details: `docs/Calm.md`
+- Feature module: `src/features/profile`
+- Nested `/profile/*` routes under the authenticated shell
+- Deletion requests + in-app feedback tables (migration `0008`)
+- Details: `docs/ProfileSettings.md`

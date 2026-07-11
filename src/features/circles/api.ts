@@ -39,7 +39,9 @@ export async function fetchAssignedCircle(
         name,
         description,
         status,
-        max_members
+        max_members,
+        circle_type,
+        primary_state
       )
     `,
     )
@@ -91,6 +93,8 @@ export async function fetchAssignedCircle(
       description: circle.description,
       status: circle.status,
       max_members: circle.max_members,
+      circle_type: circle.circle_type,
+      primary_state: circle.primary_state,
     },
     memberCount: membersResult.parentIds.length,
     onlineCount,

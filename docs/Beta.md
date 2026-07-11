@@ -1,5 +1,28 @@
 # Glow Beta
 
+## Profile & trust (Sprint 5.4)
+
+`/profile` includes:
+
+* Edit you + baby profiles
+* Atlas privacy (Hidden / State / Suburb area)
+* Circle information (no member directory)
+* Calm device preferences
+* Account email, password reset email, sign out
+* Account deletion request (manual processing in beta)
+* In-app feedback
+* Privacy, Safety, Terms (beta drafts), About
+
+Not in beta Profile:
+
+* Billing / subscriptions
+* Public profiles or directories
+* Self-service Circle leave/rematch
+* Photo avatars
+* Final legal counsel-approved policies
+
+See `docs/ProfileSettings.md`.
+
 ## App shell (Sprint 5.1)
 
 Authenticated parents land on **Tonight** inside a permanent shell:

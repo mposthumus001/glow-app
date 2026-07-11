@@ -1,16 +1,17 @@
-import { ProfileScreen } from "@/components/profile/ProfileScreen";
+import { ProfileHome } from "@/features/profile";
 import { loadAssignedCircleForParent } from "@/features/circles/service/CircleRepository";
 import { requireAppUser } from "@/lib/auth/require-app-user";
 import { createClient } from "@/lib/supabase/server";
 import type { MapVisibility } from "@/lib/supabase/database.types";
 import { formatBabyAgeLine } from "@/lib/utils/baby-age";
+import { APP_VERSION } from "@/lib/app-version";
 
 function mapVisibilityLabel(value: MapVisibility): string {
   switch (value) {
     case "hidden":
       return "Hidden from the map";
     case "state_only":
-      return "State only — approximate";
+      return "State — approximate";
     case "suburb_area":
       return "Suburb area — approximate";
     default:
@@ -50,12 +51,13 @@ export default async function ProfilePage() {
         : null;
 
   return (
-    <ProfileScreen
+    <ProfileHome
       displayName={parent.display_name}
       email={user.email ?? null}
       mapVisibilityLabel={mapVisibilityLabel(parent.map_visibility)}
       babySummary={babySummary}
       circleSummary={circleSummary}
+      appVersion={APP_VERSION}
     />
   );
 }

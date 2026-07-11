@@ -5,7 +5,7 @@ import type {
 
 export type CircleSummary = Pick<
   CircleRow,
-  "id" | "name" | "description" | "status" | "max_members"
+  "id" | "name" | "description" | "status" | "max_members" | "circle_type" | "primary_state"
 >;
 
 export type CircleMessagePreview = {

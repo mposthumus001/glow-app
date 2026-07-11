@@ -31,16 +31,18 @@ export const MAP_VISIBILITY_OPTIONS: {
   {
     value: "hidden",
     label: "Hidden",
-    description: "You won’t appear on the Glow map.",
+    description: "You won’t appear on the Glow map at all.",
   },
   {
     value: "state_only",
-    label: "State only",
-    description: "Others see your state, not your suburb.",
+    label: "State",
+    description:
+      "Others may see that someone in your state is awake — never your suburb or street.",
   },
   {
     value: "suburb_area",
     label: "Suburb area",
-    description: "Optional coarse suburb label — never a street address.",
+    description:
+      "Optional coarse suburb label for approximate clusters. Exact GPS is never shown. Suburb lights only appear when enough parents are awake nearby (at least five).",
   },
 ];

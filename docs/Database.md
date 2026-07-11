@@ -42,7 +42,9 @@ daily_activity
 
 connections
 
-circle_invites
+account_deletion_requests
+
+app_feedback
 
 ---
 
@@ -51,6 +53,28 @@ All tables use RLS.
 Supabase Auth is the source of identity.
 
 Presence never stores exact GPS.
+
+---
+
+## Profile & trust (Sprint 5.4)
+
+### Tables (migration 0008)
+
+* `account_deletion_requests` — pending / cancelled / processed; one pending per parent
+* `app_feedback` — private feedback messages
+
+### RLS
+
+| Table | User can |
+|-------|----------|
+| `account_deletion_requests` | SELECT own; INSERT pending; UPDATE own pending → cancelled |
+| `app_feedback` | SELECT / INSERT own |
+
+Staff may SELECT (and update deletion for processing). Users cannot mark deletion as processed.
+
+### Notes
+
+Exact GPS remains forbidden on presence writes. Atlas privacy edits sync `parents`, `preferences`, and `presence`.
 
 ---
 

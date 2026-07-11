@@ -34,9 +34,11 @@ Never addictive.
 | Circle | `/circle` | Your small private group |
 | Baby | `/baby` | Family baby space — profile, feeding, sleep, nappy, today summary |
 | Calm | `/calm` | Soft soundscapes — play, pause, volume, sleep timer |
-| You | `/profile` | Private settings and safety |
+| You | `/profile` | Private settings, privacy, help, and account trust |
 
-Email is shown only on the authenticated user's own Profile page.
+Email is shown only on the authenticated user's own Account settings page.
+
+Profile editing, Atlas privacy, feedback, and deletion requests: see `docs/ProfileSettings.md`.
 
 Baby tracking is private to the family. See `docs/Baby.md` for beta scope and exclusions (no growth charts, medical advice, or gamification in Sprint 5.2).
 

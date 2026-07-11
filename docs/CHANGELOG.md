@@ -63,6 +63,10 @@ Supabase realtime pipeline
 
 ### Added
 
+* Sprint 5.4 Profile / Settings: parent & baby editing, Atlas privacy, Circle info, Calm prefs, account controls, feedback, deletion requests, and beta legal drafts.
+* Migration `0008_profile_settings_trust.sql` (`account_deletion_requests`, `app_feedback`).
+* Auth callback route for password recovery redirects.
+* `docs/ProfileSettings.md`.
 * Sprint 5.3 Glow Calm foundation: curated sound library, shared shell-owned player, sleep timer, favourite/recent, Calm home UI.
 * Placeholder Calm WAV assets under `public/calm/placeholders/` (marked for replacement).
 * Unit tests for Calm catalogue, player logic, and preference persistence.
@@ -114,6 +118,7 @@ Supabase realtime pipeline
 
 ### Technical
 
+* Sprint 5.4: migration `0008` for deletion requests + feedback; server actions only; no service-role in browser; legal drafts labelled.
 * Sprint 5.3: static catalogue (not `media_library`); `CalmPlayerService` singleton + AppShell lifecycle; localStorage prefs; no new audio npm deps.
 * Sprint 5.2: reuses `baby_events` with soft-delete; no polling; finite activity pages (20); typed feature module `src/features/baby`.
 * Sprint 5.1: `(app)` route group owns shell; PresenceService starts once in AppShell; Atlas/Circle realtime remain feature-scoped.
