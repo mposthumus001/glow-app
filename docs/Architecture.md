@@ -118,3 +118,14 @@ Sound catalogue source of truth for beta: static `src/features/calm/catalogue.ts
 - Nested `/profile/*` routes under the authenticated shell
 - Deletion requests + in-app feedback tables (migration `0008`)
 - Details: `docs/ProfileSettings.md`
+
+### Private beta hardening (Sprint 6.1)
+
+- Route inventory: 20 App Router routes (see `docs/BETA_TEST_CHECKLIST.md`)
+- `not-found.tsx` at root and `(app)` for calm 404 recovery
+- Password recovery panel after email reset link
+- Tonight loads live Circle preview server-side (no mock data)
+- RLS migration `0009` — scoped parent reads, message update guard
+- Error mapping: `src/lib/errors/calm-messages.ts`
+- Monitoring: dev-only `reportClientError` — Sentry recommended separately
+- Audit docs: `SECURITY_AUDIT.md`, `RLS_ACCESS_MATRIX.md`, `KNOWN_ISSUES.md`

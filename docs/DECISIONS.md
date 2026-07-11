@@ -161,3 +161,31 @@ Limitation:
 Report review is manual/off-platform for beta; Realtime channel authorization unchanged from 4.3.
 
 ---
+
+## 2026-07-11 — Private beta audit & hardening (Sprint 6.1)
+
+Decision:
+Run Milestone 6 Sprint 6.1 as audit-only hardening for ~10 testers. Fix critical security and auth gaps (global `parents` SELECT, password-reset completion, raw error exposure). Document beta program comprehensively. Do **not** implement closed signup enforcement in-app this sprint — recommend Supabase Auth `before-user-created` hook checking `beta_testers` for Sprint 6.2.
+
+Reason:
+Private beta needs trust and operational clarity before invites. Closed signup requires Auth hook infrastructure not yet wired; manual allowlist + monitoring is acceptable for 10 known testers short-term.
+
+RLS:
+Migration `0009` scopes parent reads to self/staff/circle co-members; restricts `parent_baby_age_months`; adds message update trigger.
+
+Tonight:
+Remove mock Circle card; server-load real assignment state.
+
+Monitoring:
+Dev-only structured client error logging; recommend Sentry with PII scrubbing — no SDK until approved.
+
+Beta access (Sprint 6.2 proposal):
+```sql
+-- Supabase Auth hook (before-user-created):
+-- reject if lower(email) not in (select email from beta_testers)
+```
+
+Limitation:
+`map_presence.parent_id` deanonymization remains; Calm placeholders remain; legal docs remain drafts.
+
+---

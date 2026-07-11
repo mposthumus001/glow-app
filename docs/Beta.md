@@ -1,117 +1,128 @@
-# Glow Beta
+# Glow Beta — Private Beta Program
 
-## Profile & trust (Sprint 5.4)
+Version: **0.10.0-beta.1**  
+Target cohort: **~10 testers**  
+Sprint: **6.1 — Audit & Hardening**
 
-`/profile` includes:
+## Beta scope (included)
 
-* Edit you + baby profiles
-* Atlas privacy (Hidden / State / Suburb area)
-* Circle information (no member directory)
-* Calm device preferences
-* Account email, password reset email, sign out
-* Account deletion request (manual processing in beta)
-* In-app feedback
-* Privacy, Safety, Terms (beta drafts), About
+| Area | Routes | Status |
+|------|--------|--------|
+| Tonight + Atlas | `/` | Live clusters, realtime presence |
+| Your Circle | `/circle` | Assignment, messaging, presence, typing, reactions, prompts, safety |
+| Baby | `/baby` | Feeding, sleep, nappy, today summary, edit/delete |
+| Calm | `/calm` | Player, sleep timer, device prefs |
+| You / Settings | `/profile/*` | Profiles, privacy, feedback, deletion, legal drafts |
 
-Not in beta Profile:
+## Excluded from beta
 
-* Billing / subscriptions
-* Public profiles or directories
-* Self-service Circle leave/rematch
-* Photo avatars
-* Final legal counsel-approved policies
+- Billing / subscriptions UI
+- Push notifications
+- AI features (prompts, chat, recommendations)
+- Public profiles or member directories
+- Automated moderation dashboards
+- Growth charts / medical advice
+- Analytics capturing message, baby, or profile content
+- Self-service Circle leave/rematch
 
-See `docs/ProfileSettings.md`.
+## Tester access model (recommended)
 
-## App shell (Sprint 5.1)
+**Approach:** Staff-managed email allowlist via `beta_testers` table + manual signup monitoring.
 
-Authenticated parents land on **Tonight** inside a permanent shell:
+| Step | Action |
+|------|--------|
+| 1 | Michael adds tester emails to `beta_testers` in Supabase (staff role) |
+| 2 | Share production URL only with invited testers |
+| 3 | Monitor Auth signups in Supabase dashboard |
+| 4 | Reject/remove unexpected accounts manually |
 
-* Mobile: bottom navigation (Tonight · Circle · Baby · Calm · You)
-* Desktop/tablet: restrained side navigation
-* Quiet reconnect banner for network interruptions
-* Soft loading skeletons and calm route errors
+**Not implemented in Sprint 6.1:** Supabase Auth `before-user-created` hook to hard-block non-allowlisted emails. This is the safest simple closed-beta gate — proposed for Sprint 6.2. See `docs/DECISIONS.md`.
 
-## Calm beta scope (Sprint 5.3)
+**Alternative (not recommended):** Invitation codes in app — adds UX complexity without existing schema support.
 
-`/calm` includes:
+## Supported devices
 
-* Small curated library (Rain, White Noise, Ocean, Night Sounds)
-* Shared player: play, pause, stop, volume, sleep timer
-* Favourite + recently played return path (device-local)
-* Playback continues while navigating authenticated routes
-* Calm error / loading / empty states
+| Device | Support level |
+|--------|---------------|
+| iPhone Safari | Primary — test 390×844 |
+| Android Chrome | Primary |
+| iPad portrait/landscape | Supported |
+| Desktop Chrome/Safari/Edge | Supported |
+| iOS Safari background Calm | Limited — see `docs/Calm.md` |
 
-Not in beta Calm:
+## Feedback & support
 
-* Downloads, offline library, user uploads, AI audio
-* Playlists, recommendations, social sharing, listener counts UI
-* Subscriptions / premium gating
-* Sleep stories or guided meditation packs
+| Channel | Path | Privacy |
+|---------|------|---------|
+| General feedback | `/profile/help` | Private `app_feedback` table |
+| Bug reports | Help form — category "technical" | No auto-capture of Circle messages |
+| Safety concerns | Help form — category "safety" | Escalate via Michael; crisis: 000 / Lifeline 13 11 14 |
 
-Audio assets are placeholders until licensed production files are approved. See `docs/Calm.md`.
+Duplicate submissions: not blocked server-side; calm copy on success. Client clears form after success.
 
-## Baby beta scope (Sprint 5.2)
+## Test accounts
 
-`/baby` includes:
+Create via normal signup with allowlisted emails. For two-account testing:
 
-* Baby profile summary (private to the authenticated family)
-* Feeding, sleep (completed), and nappy logging
-* Today summary using Australia/Sydney calendar day
-* Recent activity with finite pagination
-* Edit and confirmed soft-delete
+- Use two different emails in the same Australian state + similar feeding method to increase same-Circle match probability
+- Or use staff `assign_parent_to_circle` RPC for deterministic placement
 
-Not in beta Baby:
+**Do not commit test credentials to the repo.**
 
-* Growth charts, medical advice, predictions
-* Reminders, notifications, AI recommendations
-* Live background timers or gamification
+## Production smoke test
 
-See `docs/Baby.md` for schema, RLS, and limitations.
+See `docs/BETA_TEST_CHECKLIST.md`.
 
-## Circle beta scope (Milestone 4 complete)
+## Migration status
 
-Your Circle includes:
+| Migration | Purpose | Required before beta |
+|-----------|---------|---------------------|
+| 0001–0006 | Core schema, circles, prompts | ✅ |
+| 0007 | Baby feeding enums | ✅ |
+| 0008 | Profile trust tables | ✅ |
+| 0009 | RLS hardening (Sprint 6.1) | ✅ |
 
-* Automatic assignment to a small private group (max 12)
-* Realtime messaging with calm optimistic sends
-* Presence, typing, reactions, and private unread state
-* One persisted daily prompt per circle (Australia/Sydney calendar day)
-* Message report and hide-for-me safety controls
-* Crisis disclaimer — Glow is peer support, not emergency care
+## Monitoring status
 
-## Out of scope for beta
+| Capability | Status |
+|------------|--------|
+| Vercel deploy alerts | Configure manually |
+| Supabase logs | Manual review |
+| Client error SDK | Not installed — dev-only digest logging |
+| Recommended | Sentry with PII scrubbing |
 
-* Direct messages
-* Public profiles or member directories
-* Push notifications
-* Streaks, gamification, or engagement scoring
-* AI-generated prompts at runtime
-* Automated moderation or admin dashboards
+## Legal document status
 
-## Safety during beta
+Privacy, Terms, and Safety pages are **beta drafts** — labelled in app. Not counsel-approved. Sufficient for closed beta with informed testers; review required before public launch.
 
-* **Report a message** — discreet, private, one per message per user
-* **Hide for me** — removes a message from your view only
-* **Emergency** — call **000** (Australia). Mental health support: **Lifeline 13 11 14**
-* Reports are kept on record; human review tooling comes later
+## Audio asset status
+
+Calm uses Glow-generated placeholder WAVs in `public/calm/placeholders/`. UI marks them as placeholders. Replace with licensed audio before App Store.
+
+## Data deletion process
+
+1. User submits request at `/profile/account`
+2. Request stored in `account_deletion_requests` (pending)
+3. Michael processes manually during beta
+4. User may cancel pending request in-app
+
+## Rollback plan
+
+See `docs/RELEASE_CHECKLIST.md`.
 
 ## Known limitations
 
-* Realtime channels are joined client-side after assignment (private channel auth deferred)
-* Nav unread hint updates on page load; in-session counts update live
-* Moderator review is not yet in-app
-* Baby profile editing still via You / onboarding; no growth charts yet
-* Sprint 5.2 migration `0007` must be applied before new feeding enum values work in production
+See `docs/KNOWN_ISSUES.md`.
 
-## Milestone 4 status
+## Security references
 
-Sprint 4.6 implemented — awaiting migration apply, automated checks, manual QA, and deployment approval.
+- `docs/SECURITY_AUDIT.md`
+- `docs/RLS_ACCESS_MATRIX.md`
 
-## Sprint 5.2 status
+## Pre-invite checklist
 
-Baby foundation implemented — awaiting migration apply, lint/build/tests, manual QA, and deployment approval.
-
-## Sprint 5.3 status
-
-Calm foundation implemented — awaiting lint/build/tests, manual QA, audio-asset approval, and deployment approval.
+- [ ] Migrations `0001`–`0009` applied
+- [ ] `NEXT_PUBLIC_SITE_URL` configured
+- [ ] `beta_testers` seeded
+- [ ] `BETA_TEST_CHECKLIST.md` single + two-account sections passed
+- [ ] Michael sign-off on legal draft status for beta

@@ -90,17 +90,33 @@ Glow Calm + App Shell
 
 ## Milestone 6
 
-Baby Tracker (extended)
+Private Beta
 
-⬜ Planned — foundations delivered early in Sprint 5.2; charts/insights remain here
+### Sprint 6.1 — Audit & Hardening
+
+✅ Complete (awaiting migration apply, production smoke test, tester invite)
+
+- Full route / auth / RLS / console audit
+- Migration `0009` RLS hardening
+- Password reset completion
+- Tonight live Circle preview
+- Beta documentation suite
+
+### Sprint 6.2 — Closed access + monitoring (planned)
+
+⬜ Planned
+
+- Supabase Auth hook for `beta_testers` allowlist
+- Optional Sentry integration (privacy-scrubbed)
+- CI lint/build/test workflow
 
 ---
 
 ## Milestone 7
 
-Private Beta
+Private Beta Launch
 
-⬜ Planned
+⬜ Planned — depends on Sprint 6.1 smoke test sign-off
 
 ---
 
@@ -109,3 +125,15 @@ Private Beta
 App Store Launch
 
 ⬜ Planned
+
+---
+
+## Completed milestones (summary)
+
+Milestones 1–5 ✅ — see sections above
+
+## Milestone 6 (legacy note)
+
+Baby Tracker (extended charts)
+
+⬜ Planned — foundations in Sprint 5.2

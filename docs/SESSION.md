@@ -1,67 +1,59 @@
 # Glow Current Session
 
-## Completed
+## Date
 
-✅ Database v2.0
-
-✅ Authentication
-
-✅ Onboarding
-
-✅ Glow Home / Atlas / Presence
-
-✅ Milestone 4 — Glow Circles
-
-✅ Sprint 5.1 — App Shell
-
-✅ Sprint 5.2 — Baby Foundation
-
-✅ Sprint 5.3 — Glow Calm Foundation
-
-✅ Sprint 5.4 — Profile, Settings, Privacy, and Trust (lint/build/test green; awaiting migration apply, manual QA, legal review, commit, push, deploy)
+2026-07-11
 
 ## Current Version
 
-v0.10 (pending verification)
+v0.10.0-beta.1
 
 ## Active Sprint
 
-Sprint 5.4 — Profile, Settings, Privacy, and Trust
+**Milestone 6 — Sprint 6.1: Private Beta Audit and Hardening**
 
-### Implemented
+## Sprint 6.1 completed
 
-* Profile landing with grouped sections
-* Parent + baby profile editing
-* Atlas privacy controls synced to parents / preferences / presence
-* Circle information page (no leave self-service)
-* Calm device preferences panel
-* Account: email, password reset email, sign out, deletion request
-* Help & feedback (`app_feedback`)
-* Privacy / Safety / Terms beta drafts + About
-* Migration `0008_profile_settings_trust.sql`
-* Auth callback `/auth/callback`
-* Unit tests for validation and trust contracts
+* Full route inventory (20 routes — 16 authenticated, 4 public)
+* Authentication audit + password recovery completion UI
+* Tonight mock data removed — live Circle preview
+* RLS hardening migration `0009`
+* Calm user-facing error mapping
+* `not-found.tsx` for root and `(app)`
+* Audit documentation suite
+* Targeted tests (22 unit tests)
+* `npm run lint`, `build`, `test` — awaiting final run in this session
 
-### Current Status
+## Files created (Sprint 6.1)
 
-Sprint 5.4 implemented. `npm run lint`, `build`, and `test` passed. Awaiting migration apply, manual QA, legal-content review, commit, push, deployment.
+* `supabase/migrations/0009_beta_rls_hardening.sql`
+* `docs/RLS_ACCESS_MATRIX.md`
+* `docs/SECURITY_AUDIT.md`
+* `docs/BETA_TEST_CHECKLIST.md`
+* `docs/KNOWN_ISSUES.md`
+* `docs/RELEASE_CHECKLIST.md`
+* `.env.example`
+* `src/lib/errors/calm-messages.ts`
+* `src/lib/errors/report-client-error.ts`
+* `src/features/profile/components/PasswordRecoveryPanel.tsx`
+* `src/components/auth/ForgotPasswordForm.tsx`
+* `src/app/not-found.tsx`
+* `src/app/(app)/not-found.tsx`
+* `src/components/tonight/tonightCirclePreview.ts`
 
-### Remaining Checks
+## Remaining before inviting testers
 
-* Apply migration `0008`
-* Configure `NEXT_PUBLIC_SITE_URL` for password-reset redirects in deployed environments
-* Manual QA of nested Profile routes and forms
-* Legal review of draft Privacy/Terms before public launch
-* Commit, push, deploy after verification
+* Apply migrations `0001`–`0009` to production Supabase
+* Configure `NEXT_PUBLIC_SITE_URL` on Vercel
+* Seed `beta_testers` with invited emails
+* Run `docs/BETA_TEST_CHECKLIST.md` (two-account tests)
+* Implement closed signup gate (Sprint 6.2 — Auth hook) OR accept manual monitoring
+* Legal review scheduling for public launch
 
 ## Next Sprint
 
-Milestone 6 alignment (Baby growth/milestones without medical advice), production Calm audio, or Realtime Authorization hardening
+Sprint 6.2 — Closed beta access enforcement + production monitoring setup
 
 ## Known Issues
 
-* Legal Privacy/Terms are beta drafts — not final
-* Account deletion is request-only (manual processing)
-* No official support email — in-app feedback only
-* Calm prefs remain device-local
-* Atlas demo data refinements still pending in places
+See `docs/KNOWN_ISSUES.md`

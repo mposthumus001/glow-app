@@ -7,6 +7,7 @@ import { useState, useTransition } from "react";
 import { AuthShell } from "@/components/auth/AuthShell";
 import { GlowButton, GlowInput } from "@/components/ui";
 import { createClient } from "@/lib/supabase/client";
+import { calmAuthErrorMessage } from "@/lib/errors/calm-messages";
 
 export function SignupForm() {
   const router = useRouter();
@@ -37,7 +38,7 @@ export function SignupForm() {
       });
 
       if (signUpError) {
-        setError(signUpError.message);
+        setError(calmAuthErrorMessage(signUpError.message));
         return;
       }
 

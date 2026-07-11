@@ -5,8 +5,10 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
 import { AuthShell } from "@/components/auth/AuthShell";
+import { ForgotPasswordForm } from "@/components/auth/ForgotPasswordForm";
 import { GlowButton, GlowInput } from "@/components/ui";
 import { createClient } from "@/lib/supabase/client";
+import { calmAuthErrorMessage } from "@/lib/errors/calm-messages";
 
 export function LoginForm() {
   const router = useRouter();
@@ -29,7 +31,7 @@ export function LoginForm() {
       });
 
       if (signInError) {
-        setError(signInError.message);
+        setError(calmAuthErrorMessage(signInError.message));
         return;
       }
 
@@ -81,6 +83,7 @@ export function LoginForm() {
           Sign in
         </GlowButton>
       </form>
+      <ForgotPasswordForm />
     </AuthShell>
   );
 }

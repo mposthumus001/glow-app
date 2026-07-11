@@ -8,10 +8,14 @@ import { AnimatedCount } from "@/components/ui/AnimatedCount";
 import { GlowButton, GlowCard } from "@/components/ui";
 import { GlowContainer } from "@/components/layout";
 import { GlowAtlas, useMapClusterPresence } from "@/features/glow-atlas";
-import { tonightMock } from "@/lib/mock/tonight";
 import { getTimeOfDayGreeting } from "@/lib/utils/greeting";
 import { textStyles } from "@/lib/theme";
 import { cn } from "@/lib/utils/cn";
+
+import {
+  TONIGHT_REMINDER,
+  type TonightCirclePreview,
+} from "./tonightCirclePreview";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 14 },
@@ -53,12 +57,106 @@ function AwakeHeadline({ count }: { count: number }) {
   );
 }
 
+function CirclePreviewCard({ preview }: { preview: TonightCirclePreview }) {
+  if (preview.status === "unassigned") {
+    return (
+      <GlowCard padding="md" className="border-white/[0.08]">
+        <p className="text-sm font-medium text-glow-text-secondary">
+          Your Circle
+        </p>
+        <p className="mt-3 text-base leading-relaxed text-glow-text-secondary">
+          {preview.message}
+        </p>
+      </GlowCard>
+    );
+  }
+
+  if (preview.status === "error") {
+    return (
+      <GlowCard padding="md" className="border-white/[0.08]">
+        <p className="text-sm font-medium text-glow-text-secondary">
+          Your Circle
+        </p>
+        <p className="mt-3 text-base leading-relaxed text-glow-text-secondary">
+          {preview.message ??
+            "We couldn't load your Circle just now. You can still open it directly."}
+        </p>
+        <Link
+          href="/circle"
+          className={cn(
+            "mt-6 inline-flex h-12 w-full items-center justify-center rounded-glow-button",
+            "border border-white/[0.1] bg-transparent text-base font-medium text-glow-text",
+            "transition-colors duration-200 hover:bg-glow-card hover:border-glow-card-border-hover",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-glow-primary/50",
+            "focus-visible:ring-offset-2 focus-visible:ring-offset-glow-background",
+          )}
+        >
+          Open Circle
+        </Link>
+      </GlowCard>
+    );
+  }
+
+  const onlineLine =
+    preview.onlineCount == null
+      ? `${preview.memberCount ?? 0} parents in your Circle`
+      : preview.onlineCount === 0
+        ? `${preview.memberCount ?? 0} parents in your Circle`
+        : `${preview.onlineCount} parent${preview.onlineCount === 1 ? "" : "s"} awake with you now`;
+
+  return (
+    <GlowCard padding="md" className="border-white/[0.08]">
+      <div className="flex items-start gap-3">
+        <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-glow-primary/15 text-glow-primary">
+          <Heart className="h-5 w-5" strokeWidth={1.75} aria-hidden="true" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-medium text-glow-text-secondary">
+            Tonight, your Circle is here
+          </p>
+          <h2 className="mt-1.5 text-xl font-semibold leading-snug tracking-tight">
+            {preview.name}{" "}
+            <span aria-hidden="true">🌙</span>
+          </h2>
+        </div>
+      </div>
+
+      <p className="mt-5 text-base leading-relaxed text-glow-text-secondary">
+        {onlineLine}
+      </p>
+      {preview.primaryState ? (
+        <p className="mt-1.5 text-sm text-glow-text-tertiary">
+          {preview.primaryState}
+        </p>
+      ) : null}
+
+      <Link
+        href="/circle"
+        className={cn(
+          "mt-6 inline-flex h-12 w-full items-center justify-center rounded-glow-button",
+          "border border-white/[0.1] bg-transparent text-base font-medium text-glow-text",
+          "transition-colors duration-200 hover:bg-glow-card hover:border-glow-card-border-hover",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-glow-primary/50",
+          "focus-visible:ring-offset-2 focus-visible:ring-offset-glow-background",
+        )}
+      >
+        Enter Circle
+      </Link>
+    </GlowCard>
+  );
+}
+
 /**
  * Tonight — default authenticated landing.
  * Presence lifecycle is owned by AppShell; Atlas clusters stay here.
  */
-export function TonightScreen({ displayName }: { displayName?: string }) {
-  const { user, awakeTogether, circle, reminder } = tonightMock;
+export function TonightScreen({
+  displayName,
+  circlePreview,
+}: {
+  displayName?: string;
+  circlePreview: TonightCirclePreview;
+}) {
   const {
     presence,
     countryCount,
@@ -67,7 +165,7 @@ export function TonightScreen({ displayName }: { displayName?: string }) {
     status: clusterStatus,
   } = useMapClusterPresence();
 
-  const name = displayName?.trim() || user.name;
+  const name = displayName?.trim() || "there";
   const greeting = getTimeOfDayGreeting();
   const awakeCount = clusterStatus === "live" ? countryCount : 0;
 
@@ -128,14 +226,16 @@ export function TonightScreen({ displayName }: { displayName?: string }) {
           variants={fadeUp}
           className="mb-9"
         >
-          <GlowButton
-            variant="primary"
-            size="lg"
-            fullWidth
-            className="h-[3.75rem] rounded-[1.75rem] text-[1.05rem] font-semibold shadow-[0_8px_32px_rgba(182,148,255,0.35)]"
-          >
-            {awakeTogether.label}
-          </GlowButton>
+          <Link href="/circle">
+            <GlowButton
+              variant="primary"
+              size="lg"
+              fullWidth
+              className="h-[3.75rem] rounded-[1.75rem] text-[1.05rem] font-semibold shadow-[0_8px_32px_rgba(182,148,255,0.35)]"
+            >
+              Open your Circle
+            </GlowButton>
+          </Link>
         </motion.section>
 
         <motion.div
@@ -145,46 +245,7 @@ export function TonightScreen({ displayName }: { displayName?: string }) {
           variants={fadeUp}
           className="mb-5"
         >
-          <GlowCard padding="md" className="border-white/[0.08]">
-            <div className="flex items-start gap-3">
-              <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-glow-primary/15 text-glow-primary">
-                <Heart
-                  className="h-5 w-5"
-                  strokeWidth={1.75}
-                  aria-hidden="true"
-                />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium text-glow-text-secondary">
-                  {circle.title}
-                </p>
-                <h2 className="mt-1.5 text-xl font-semibold leading-snug tracking-tight">
-                  {circle.name}{" "}
-                  <span aria-hidden="true">🌙</span>
-                </h2>
-              </div>
-            </div>
-
-            <p className="mt-5 text-base leading-relaxed text-glow-text-secondary">
-              {circle.awakeParents} parents are awake with you now
-            </p>
-            <p className="mt-1.5 text-sm text-glow-text-tertiary">
-              Babies: {circle.babies} · {circle.location}
-            </p>
-
-            <Link
-              href="/circle"
-              className={cn(
-                "mt-6 inline-flex h-12 w-full items-center justify-center rounded-glow-button",
-                "border border-white/[0.1] bg-transparent text-base font-medium text-glow-text",
-                "transition-colors duration-200 hover:bg-glow-card hover:border-glow-card-border-hover",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-glow-primary/50",
-                "focus-visible:ring-offset-2 focus-visible:ring-offset-glow-background",
-              )}
-            >
-              {circle.cta}
-            </Link>
-          </GlowCard>
+          <CirclePreviewCard preview={circlePreview} />
         </motion.div>
 
         <motion.div
@@ -198,10 +259,10 @@ export function TonightScreen({ displayName }: { displayName?: string }) {
             className="border-glow-accent/10 bg-[rgba(255,216,122,0.04)] shadow-[0_4px_24px_rgba(0,0,0,0.15)]"
           >
             <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-glow-accent/90">
-              {reminder.title}
+              {TONIGHT_REMINDER.title}
             </p>
             <div className="mt-4 space-y-2.5">
-              {reminder.lines.map((line) => (
+              {TONIGHT_REMINDER.lines.map((line) => (
                 <p
                   key={line}
                   className="text-lg font-medium leading-relaxed text-glow-text"

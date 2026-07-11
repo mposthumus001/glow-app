@@ -61,6 +61,36 @@ Supabase realtime pipeline
 
 ## Unreleased
 
+### Sprint 6.1 — Private Beta Audit & Hardening
+
+#### Added
+- Migration `0009_beta_rls_hardening.sql` — scoped `parents` SELECT, `parent_baby_age_months` auth guard, message update trigger
+- Password recovery panel on Account page + login forgot-password form
+- Calm user-facing error helper (`src/lib/errors/calm-messages.ts`)
+- Privacy-conscious client error reporting hook (dev-only)
+- `not-found.tsx` for root and authenticated shell
+- Audit docs: `RLS_ACCESS_MATRIX`, `SECURITY_AUDIT`, `BETA_TEST_CHECKLIST`, `KNOWN_ISSUES`, `RELEASE_CHECKLIST`
+- `.env.example`
+- Unit tests: calm messages, tonight circle preview, RLS contract
+
+#### Changed
+- Tonight Circle card uses live Circle data (removed `tonightMock`)
+- "Open your Circle" CTA links to `/circle`
+- App version → `0.10.0-beta.1`
+- `docs/Beta.md` — full private beta program documentation
+
+#### Fixed
+- Incomplete password-reset flow (no set-password UI after email link)
+- Raw Supabase auth errors shown on login/signup/profile actions
+- Global `parents` table enumeration (critical RLS)
+
+#### Security
+- See `docs/SECURITY_AUDIT.md` and `docs/RLS_ACCESS_MATRIX.md`
+
+---
+
+## Unreleased (prior sprints)
+
 ### Added
 
 * Sprint 5.4 Profile / Settings: parent & baby editing, Atlas privacy, Circle info, Calm prefs, account controls, feedback, deletion requests, and beta legal drafts.

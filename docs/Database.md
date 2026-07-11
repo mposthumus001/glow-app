@@ -78,6 +78,19 @@ Exact GPS remains forbidden on presence writes. Atlas privacy edits sync `parent
 
 ---
 
+## RLS hardening (Sprint 6.1 — migration 0009)
+
+| Change | Detail |
+|--------|--------|
+| `parents_select_scoped` | Replaces global SELECT — self, staff, or circle co-members only |
+| `shares_active_circle_with()` | Helper for co-membership checks |
+| `parent_baby_age_months` | Requires `auth.uid()` or staff |
+| `guard_circle_message_update` | Users cannot alter `moderation_status`, `circle_id`, `parent_id`, `prompt_id`, `deleted_at` |
+
+Full matrix: `docs/RLS_ACCESS_MATRIX.md`
+
+---
+
 ## Baby tracking (Sprint 5.2)
 
 ### Table

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { createClient } from "@/lib/supabase/server";
+import { calmAuthErrorMessage, calmUserFacingError } from "@/lib/errors/calm-messages";
 import {
   validateAtlasPrivacy,
   validateBabyProfile,
@@ -57,7 +58,9 @@ export async function updateParentProfile(
     })
     .eq("id", user.id);
 
-  if (updateError) return { error: updateError.message };
+  if (updateError) {
+    return { error: calmUserFacingError(updateError.message, "profile") };
+  }
 
   // Keep presence location fields aligned (never write GPS).
   await supabase
@@ -123,7 +126,9 @@ export async function updateBabyProfile(
     .eq("id", parsed.value.babyId)
     .eq("family_id", parent.family_id);
 
-  if (updateError) return { error: updateError.message };
+  if (updateError) {
+    return { error: calmUserFacingError(updateError.message, "profile") };
+  }
 
   revalidatePath("/profile");
   revalidatePath("/profile/baby");
@@ -278,37 +283,79 @@ export async function cancelAccountDeletion(
     .eq("parent_id", user.id)
     .eq("status", "pending");
 
-  if (updateError) return { error: updateError.message };
+  if (updateError) {
+    return { error: calmUserFacingError(updateError.message, "profile") };
+  }
 
   revalidatePath("/profile/account");
   return { success: "Your deletion request has been cancelled." };
 }
 
-export async function sendPasswordResetEmail(): Promise<ProfileActionState> {
-  const { supabase, user, error } = await requireUser();
-  if (error || !user) return { error: error ?? "Please sign in again." };
-  if (!user.email) {
-    return { error: "No email is linked to this account." };
-  }
-
+function passwordResetRedirectUrl(): string | undefined {
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "");
   const origin =
     siteUrl ??
     (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null);
 
-  const redirectTo = origin
+  return origin
     ? `${origin}/auth/callback?next=/profile/account`
     : undefined;
+}
+
+export async function sendPasswordResetEmail(
+  emailOverride?: string,
+): Promise<ProfileActionState> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const email = emailOverride?.trim() || user?.email?.trim();
+  if (!email) {
+    return { error: "Enter the email linked to your account." };
+  }
+
+  const redirectTo = passwordResetRedirectUrl();
 
   const { error: resetError } = await supabase.auth.resetPasswordForEmail(
-    user.email,
+    email,
     redirectTo ? { redirectTo } : undefined,
   );
 
-  if (resetError) return { error: resetError.message };
+  if (resetError) {
+    return { error: calmAuthErrorMessage(resetError.message) };
+  }
 
   return {
     success:
       "If this email can receive mail, a reset link is on its way. Check your inbox calmly — no rush.",
   };
+}
+
+export async function completePasswordReset(
+  _prev: ProfileActionState,
+  formData: FormData,
+): Promise<ProfileActionState> {
+  void _prev;
+  const { supabase, user, error } = await requireUser();
+  if (error || !user) return { error: error ?? "Please sign in again." };
+
+  const password = asString(formData, "password");
+  const confirm = asString(formData, "confirm_password");
+
+  if (password.length < 6) {
+    return { error: "Password needs at least 6 characters." };
+  }
+
+  if (password !== confirm) {
+    return { error: "Passwords do not match." };
+  }
+
+  const { error: updateError } = await supabase.auth.updateUser({ password });
+
+  if (updateError) {
+    return { error: calmAuthErrorMessage(updateError.message) };
+  }
+
+  return { success: "Your password has been updated." };
 }
