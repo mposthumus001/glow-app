@@ -58,7 +58,7 @@ Everything should feel effortless.
 | `/` | Tonight (default landing) | Yes |
 | `/circle` | Your Circle | Yes |
 | `/baby` | Baby tracking (profile, logs, today, recent) | Yes |
-| `/calm` | Calm foundation (placeholder) | Yes |
+| `/calm` | Calm soundscapes + player | Yes |
 | `/profile` | You / Settings | Yes |
 | `/login` | Sign in | No |
 | `/signup` | Sign up | No |
@@ -77,6 +77,7 @@ Incomplete profiles redirect to `/onboarding`.
 - Global reconnect banner (presence connection only)
 - Route `loading.tsx` / `error.tsx`
 - Presence lifecycle via `usePresenceConnection` (stable across navigations)
+- Calm player lifecycle via `useCalmPlayerLifecycle` + optional `CalmMiniPlayer`
 
 ### Realtime ownership
 
@@ -88,18 +89,31 @@ Incomplete profiles redirect to `/onboarding`.
 
 Do not start Atlas or Circle subscriptions in the shell.
 
+### Calm player ownership (Sprint 5.3)
+
+| Concern | Owner |
+|---------|-------|
+| Single `HTMLAudioElement`, play/pause/stop/volume, sleep timer | `CalmPlayerService` (singleton) |
+| Keep-alive across authenticated routes | `AppShell` → `useCalmPlayerLifecycle()` |
+| Calm home UI | `src/features/calm` (`CalmScreen`) |
+| Logout cleanup | `LogoutButton` → `handleLogout()` |
+
+Sound catalogue source of truth for beta: static `src/features/calm/catalogue.ts` (not `media_library` yet). Details: `docs/Calm.md`.
+
 ### Loading and errors
 
 - Soft skeletons (`ShellSkeleton`, Circle loading) — no large spinners
 - Route `error.tsx` → `ShellError` with retry + back to Tonight
 - Navigation remains available during page errors
 
-### Placeholders
-
-- **Calm** — categories + disabled player preview; no audio yet
-
 ### Baby (Sprint 5.2)
 
 - Profile summary, feeding / sleep / nappy logging, today summary, recent activity
 - Feature module: `src/features/baby`
 - Details: `docs/Baby.md`
+
+### Calm (Sprint 5.3)
+
+- Curated sound library, shared player, sleep timer, favourite/recent
+- Feature module: `src/features/calm`
+- Details: `docs/Calm.md`

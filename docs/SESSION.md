@@ -20,38 +20,40 @@
 
 ✅ Sprint 5.2 — Baby Foundation and Basic Tracking (implementation complete; verification pending)
 
+✅ Sprint 5.3 — Glow Calm Foundation (implementation complete; verification pending)
+
 ## Current Version
 
-v0.8 (pending verification)
+v0.9 (pending verification)
 
 ## Active Sprint
 
-Sprint 5.2 — Baby Foundation and Basic Tracking
+Sprint 5.3 — Glow Calm Foundation
 
 ### Implemented
 
-* Baby profile summary on `/baby` (name, age/stage, DOB/due, feeding method)
-* Feeding / sleep / nappy logging via calm Log actions + sheet
-* Today summary (Australia/Sydney day bounds)
-* Recent activity with finite “Earlier activity” pagination
-* Edit + confirmed soft-delete
-* Multi-baby selector when family has more than one baby
-* Migration `0007_baby_tracking_foundation.sql` (feeding enum variants + RLS tighten)
-* Unit tests for validation, timezone, summary, pagination, auth contract
+* Calm home on `/calm` with curated categories and a small sound library
+* Shared `CalmPlayerService` (single audio element) owned by AppShell
+* Play / pause / resume / stop / volume / sleep timer
+* Favourite + recent sound return path (localStorage)
+* Placeholder WAV assets clearly marked for replacement
+* Calm mini player when navigating away from `/calm` while audio is active
+* Logout stops playback and clears the sleep timer
+* Unit tests for catalogue, player logic, and persistence
 
 ### Current Status
 
-Sprint 5.2 implemented. `npm run lint`, `npm run build`, and `npm run test` passed. Awaiting migration application, manual QA, commit, push, and deployment.
+Sprint 5.3 implemented. `npm run lint`, `npm run build`, and `npm run test` passed. Awaiting manual QA, audio-asset approval, commit, push, and deployment.
 
 ### Remaining Checks
 
-* Apply migration `0007_baby_tracking_foundation.sql`
-* Manual QA on phone / tablet / desktop
+* Manual QA on phone / tablet / desktop (playback, timer, route persistence, a11y)
+* Replace placeholder audio before production
 * Commit, push, deploy after verification
 
 ## Next Sprint
 
-Calm audio playback foundations, or Baby growth/milestones (no medical advice)
+Production Calm audio assets, or Baby growth/milestones (no medical advice), or quiet listener presence if still desired
 
 ## Known Issues
 
@@ -61,3 +63,5 @@ Calm audio playback foundations, or Baby growth/milestones (no medical advice)
 * Atlas privacy editing not yet on Profile (read-only summary)
 * Tonight Circle preview card still uses some mock copy
 * Baby profile editing still via You / onboarding only
+* Calm uses placeholder WAVs — not production audio
+* iOS Safari background / lock-screen playback is unreliable (documented)

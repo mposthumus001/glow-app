@@ -1,3 +1,19 @@
+## 2026-07-11 — Glow Calm foundation (Sprint 5.3)
+
+Decision:
+Ship Calm beta with a static typed sound catalogue in `src/features/calm/catalogue.ts` and a singleton `CalmPlayerService` owned by the authenticated `AppShell`. Use one `HTMLAudioElement` for the session. Persist volume / favourite / recent / selected sound id in `localStorage`. Do not auto-resume audible playback after refresh. Do not persist sleep timers. Use Glow-generated placeholder WAVs clearly marked for replacement. Do not wire `media_library` or seed CDN URLs for playback yet.
+
+Reason:
+Delivers a useful private Calm experience without pretending a CMS/CDN exists, without fake controls, and without music-app patterns. Matches existing singleton-service ownership (Presence). Keeps Atlas untouched.
+
+Player ownership:
+`useCalmPlayerLifecycle()` in AppShell keeps the service alive across routes; `LogoutButton` calls `handleLogout()`.
+
+Limitation:
+Placeholder audio only; iOS Safari background/lock playback unreliable; no listener counts, downloads, or stories in this sprint.
+
+---
+
 ## 2026-07-11 — Baby foundation & basic tracking (Sprint 5.2)
 
 Decision:

@@ -63,6 +63,9 @@ Supabase realtime pipeline
 
 ### Added
 
+* Sprint 5.3 Glow Calm foundation: curated sound library, shared shell-owned player, sleep timer, favourite/recent, Calm home UI.
+* Placeholder Calm WAV assets under `public/calm/placeholders/` (marked for replacement).
+* Unit tests for Calm catalogue, player logic, and preference persistence.
 * Sprint 5.2 Baby foundation: profile summary, feeding/sleep/nappy logging, today summary, recent activity.
 * Migration `0007_baby_tracking_foundation.sql` — `formula`, `expressed_milk`, `solids` event types; tighter baby_events update check.
 * `docs/Baby.md` documenting beta Baby scope, schema mapping, RLS, and timezone rules.
@@ -111,6 +114,7 @@ Supabase realtime pipeline
 
 ### Technical
 
+* Sprint 5.3: static catalogue (not `media_library`); `CalmPlayerService` singleton + AppShell lifecycle; localStorage prefs; no new audio npm deps.
 * Sprint 5.2: reuses `baby_events` with soft-delete; no polling; finite activity pages (20); typed feature module `src/features/baby`.
 * Sprint 5.1: `(app)` route group owns shell; PresenceService starts once in AppShell; Atlas/Circle realtime remain feature-scoped.
 * Sprint 4.6: prompt assignment server-side only; hide/report insert-only (no new realtime channels); unit tests for prompt/safety logic.

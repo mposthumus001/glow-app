@@ -9,6 +9,25 @@ Authenticated parents land on **Tonight** inside a permanent shell:
 * Quiet reconnect banner for network interruptions
 * Soft loading skeletons and calm route errors
 
+## Calm beta scope (Sprint 5.3)
+
+`/calm` includes:
+
+* Small curated library (Rain, White Noise, Ocean, Night Sounds)
+* Shared player: play, pause, stop, volume, sleep timer
+* Favourite + recently played return path (device-local)
+* Playback continues while navigating authenticated routes
+* Calm error / loading / empty states
+
+Not in beta Calm:
+
+* Downloads, offline library, user uploads, AI audio
+* Playlists, recommendations, social sharing, listener counts UI
+* Subscriptions / premium gating
+* Sleep stories or guided meditation packs
+
+Audio assets are placeholders until licensed production files are approved. See `docs/Calm.md`.
+
 ## Baby beta scope (Sprint 5.2)
 
 `/baby` includes:
@@ -69,3 +88,7 @@ Sprint 4.6 implemented — awaiting migration apply, automated checks, manual QA
 ## Sprint 5.2 status
 
 Baby foundation implemented — awaiting migration apply, lint/build/tests, manual QA, and deployment approval.
+
+## Sprint 5.3 status
+
+Calm foundation implemented — awaiting lint/build/tests, manual QA, audio-asset approval, and deployment approval.

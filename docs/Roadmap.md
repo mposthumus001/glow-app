@@ -60,9 +60,18 @@ Glow Calm + App Shell
 - Recent activity + edit/soft-delete
 - Migration `0007_baby_tracking_foundation.sql`
 
+### Sprint 5.3 — Glow Calm Foundation
+
+✅ Implemented (awaiting lint/build/tests, manual QA, audio-asset approval, commit/push/deploy)
+
+- Curated sound library + Calm home
+- Shared shell-owned audio player
+- Sleep timer, favourite/recent, volume persistence
+- Placeholder audio assets (replace before production)
+
 ### Next
 
-- Sprint 5.x — Calm audio playback
+- Production Calm audio assets / optional `media_library` alignment
 - Later Baby: growth / milestones (no medical advice)
 
 ---
