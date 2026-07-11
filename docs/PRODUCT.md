@@ -23,3 +23,17 @@ Never overwhelming.
 Never noisy.
 
 Never addictive.
+
+---
+
+## Primary destinations (Sprint 5.1)
+
+| Nav label | Route | Role |
+|-----------|-------|------|
+| Tonight | `/` | Home — Atlas, presence, gentle orientation |
+| Circle | `/circle` | Your small private group |
+| Baby | `/baby` | Family baby space (tracking coming next) |
+| Calm | `/calm` | Soft sound and stillness (playback coming next) |
+| You | `/profile` | Private settings and safety |
+
+Email is shown only on the authenticated user's own Profile page.

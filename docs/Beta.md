@@ -1,5 +1,14 @@
 # Glow Beta
 
+## App shell (Sprint 5.1)
+
+Authenticated parents land on **Tonight** inside a permanent shell:
+
+* Mobile: bottom navigation (Tonight · Circle · Baby · Calm · You)
+* Desktop/tablet: restrained side navigation
+* Quiet reconnect banner for network interruptions
+* Soft loading skeletons and calm route errors
+
 ## Circle beta scope (Milestone 4 complete)
 
 Your Circle includes:

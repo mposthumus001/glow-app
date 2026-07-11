@@ -44,6 +44,7 @@
 
   /* Layout */
   --glow-bottom-nav-height: 4rem;
+  --glow-side-nav-width: 15.5rem;
 }
 
 @theme inline {

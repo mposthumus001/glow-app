@@ -63,6 +63,11 @@ Supabase realtime pipeline
 
 ### Added
 
+* Sprint 5.1 permanent authenticated app shell with five-destination navigation.
+* Routes for Baby and Calm foundations plus Profile / Settings.
+* Shared `PageHeader`, shell loading skeleton, route error boundary, and quiet reconnect banner.
+* Desktop side navigation and mobile bottom navigation with safe-area support.
+* Unit tests for nav active-state resolution and baby age formatting.
 * Sprint 4.6 persisted daily prompts, message reporting, per-user hide, and crisis disclaimer.
 * Migration `0006_circle_prompts_safety.sql` (`circle_prompts`, `prompt_library`, `hidden_messages`, report reason enum).
 * Sprint 4.5 curated Circle reactions with aggregate counts and optimistic toggle.
@@ -102,6 +107,7 @@ Supabase realtime pipeline
 
 ### Technical
 
+* Sprint 5.1: `(app)` route group owns shell; PresenceService starts once in AppShell; Atlas/Circle realtime remain feature-scoped.
 * Sprint 4.6: prompt assignment server-side only; hide/report insert-only (no new realtime channels); unit tests for prompt/safety logic.
 * Sprint 4.5: reaction realtime on existing circle channel; read-state debounce 1500ms; unit tests for reaction/read logic.
 * Sprint 4.4 migration `0004_circle_assignment.sql`: assignment RPC, baby-age helper, RLS tightening on `circle_members` and `circles` inserts.

@@ -1,3 +1,19 @@
+## 2026-07-11 — Permanent app shell (Sprint 5.1)
+
+Decision:
+Introduce a single authenticated route group `(app)` with `AppShell` owning mobile bottom nav, desktop side nav, safe areas, presence lifecycle, and global reconnect UI. Keep Atlas cluster realtime on Tonight and Circle messaging on `/circle` only. Primary destinations are Tonight, Circle, Baby, Calm, and You (Profile) — five maximum. Baby and Calm ship as intentional placeholders without fake data or audio.
+
+Reason:
+Gives Glow a stable consumer shell for private beta without a dashboard aesthetic, prevents duplicate realtime subscriptions across navigations, and keeps feature ownership clear.
+
+Route map:
+`/` Tonight · `/circle` · `/baby` · `/calm` · `/profile` · auth routes outside the shell.
+
+Limitation:
+Profile Atlas privacy is read-only until a dedicated settings sprint; Tonight still mixes some mock Circle preview copy.
+
+---
+
 ## 2026-07-10
 
 Decision:

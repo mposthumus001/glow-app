@@ -46,3 +46,55 @@ Privacy first.
 Realtime.
 
 Everything should feel effortless.
+
+---
+
+## Authenticated app shell (Sprint 5.1)
+
+### Route map
+
+| Path | Purpose | Shell |
+|------|---------|-------|
+| `/` | Tonight (default landing) | Yes |
+| `/circle` | Your Circle | Yes |
+| `/baby` | Baby foundation (placeholder) | Yes |
+| `/calm` | Calm foundation (placeholder) | Yes |
+| `/profile` | You / Settings | Yes |
+| `/login` | Sign in | No |
+| `/signup` | Sign up | No |
+| `/onboarding` | First-run profile | No |
+
+Unauthenticated access to shell routes redirects to `/login`.
+Incomplete profiles redirect to `/onboarding`.
+
+### Shell ownership
+
+`src/app/(app)/layout.tsx` + `AppShell`:
+
+- Mobile bottom navigation (5 destinations)
+- Desktop/tablet side navigation
+- Safe areas, background, content width via `GlowPage` / `GlowContainer`
+- Global reconnect banner (presence connection only)
+- Route `loading.tsx` / `error.tsx`
+- Presence lifecycle via `usePresenceConnection` (stable across navigations)
+
+### Realtime ownership
+
+| Concern | Owner | Channel / source |
+|---------|-------|------------------|
+| Parent presence lifecycle | AppShell (`PresenceService`) | `glow-presence` + DB `presence` |
+| Atlas map counts | Tonight (`useMapClusterPresence`) | `map_cluster_public` / `map_clusters` |
+| Circle messages, presence, typing, reactions, read | Circle (`CircleMessagingService`) | `circle:{id}` |
+
+Do not start Atlas or Circle subscriptions in the shell.
+
+### Loading and errors
+
+- Soft skeletons (`ShellSkeleton`, Circle loading) — no large spinners
+- Route `error.tsx` → `ShellError` with retry + back to Tonight
+- Navigation remains available during page errors
+
+### Placeholders
+
+- **Baby** — header, optional name/age, coming-next cards (Feeding, Sleep, Nappies, Growth); no tracking yet
+- **Calm** — categories + disabled player preview; no audio yet

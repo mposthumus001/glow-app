@@ -1,4 +1,5 @@
 export { usePresence } from "./hooks/usePresence";
+export { usePresenceConnection } from "./hooks/usePresenceConnection";
 export {
   getPresenceService,
   PresenceService,
