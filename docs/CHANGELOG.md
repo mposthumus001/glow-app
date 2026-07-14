@@ -61,6 +61,28 @@ Supabase realtime pipeline
 
 ## Unreleased
 
+### Sprint 6.2 — Closed Beta Access
+
+#### Added
+- Migration `0010_closed_beta_access.sql` — allowlist status lifecycle, Auth hook function, boolean RPC
+- Server-side `checkBetaSignupAccess` + `is_beta_email_allowed`
+- Calm private-beta denial copy on signup
+- Seed template `supabase/seed-beta-testers.template.sql` (placeholders only)
+- Env validation helpers for required public vars
+- Unit tests for email normalisation, env checks, allowlist contracts
+
+#### Changed
+- Signup/login copy — private beta, invited testers only
+- `beta_testers` RLS — staff-only (no client allowlist listing)
+- App version → `0.10.0-beta.2`
+- Docs: Beta, Security, Release/Checklists, Roadmap, DECISIONS
+
+#### Security
+- Primary gate: Supabase Before User Created hook (Dashboard enable required)
+- App check is UX fallback only — never client-only enforcement
+
+---
+
 ### Sprint 6.1 — Private Beta Audit & Hardening
 
 #### Added

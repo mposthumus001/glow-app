@@ -1,9 +1,20 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
+import { assertRequiredPublicEnv } from "@/lib/env/public-env";
 import type { Database } from "@/lib/supabase/database.types";
 
+function requirePublicEnv() {
+  const result = assertRequiredPublicEnv();
+  if (!result.ok) {
+    throw new Error(
+      `Missing required public environment variable(s): ${result.missing.join(", ")}`,
+    );
+  }
+}
+
 export async function createClient() {
+  requirePublicEnv();
   const cookieStore = await cookies();
 
   return createServerClient<Database>(

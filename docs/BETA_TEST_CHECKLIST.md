@@ -1,60 +1,76 @@
 # Beta Test Checklist — Production Smoke Test
 
-Sprint 6.1. Run against **production** (or production-like preview) after migrations `0001`–`0009` are applied.
+Run against **production** (or production-like preview) after migrations `0001`–`0010` and Auth hook enablement.
 
-Mark each item Pass / Fail / N/A. Two-account items need **Account A** and **Account B**.
+Mark each item Pass / Fail / N/A.
 
 ## Environment preflight
 
 - [ ] `NEXT_PUBLIC_SUPABASE_URL` set on Vercel
 - [ ] `NEXT_PUBLIC_SUPABASE_ANON_KEY` set on Vercel
 - [ ] `NEXT_PUBLIC_SITE_URL` set to production URL
-- [ ] Supabase redirect URLs include production + preview origins
-- [ ] Migrations `0001`–`0009` applied
-- [ ] `beta_testers` seeded with invited emails (if using allowlist workflow)
+- [ ] Supabase redirect URLs include production + preview
+- [ ] Migrations `0001`–`0010` applied
+- [ ] Before User Created hook **enabled** (`hook_before_user_created_beta_allowlist`)
+- [ ] `beta_testers` seeded with invited emails
+
+---
+
+## Closed access (Sprint 6.2)
+
+| # | Step | Expected |
+|---|------|----------|
+| C1 | Sign up with **invited** email | Account created / confirm email path |
+| C2 | Sign up with **uninvited** email | Calm denial — not on tester list |
+| C3 | Invited email with mixed case / spaces | Accepted (normalised) |
+| C4 | Email confirmation redirect | Lands in app / onboarding |
+| C5 | Password reset redirect | Account page + set password |
+| C6 | Existing tester login | Tonight (or onboarding if incomplete) |
+| C7 | Revoked email signup | Denied (same calm copy) |
+| C8 | Direct Auth signup with unknown email | Denied when hook enabled |
+| C9 | Onboarding after approved signup | Completes; Circle assignment runs |
+| C10 | Allowlist not readable from client | No `beta_testers` rows via anon key |
 
 ---
 
 ## Single account
 
-| # | Step | Device notes |
-|---|------|--------------|
-| 1 | Sign up with invited email | Mobile + desktop |
-| 2 | Confirm email (if enabled) and sign in | |
-| 3 | Complete onboarding — required fields clear, optional marked | No exact location requested |
-| 4 | Land on Tonight — Atlas loads, live count or empty state | Refresh page |
-| 5 | Tonight Circle card shows real Circle or matching state | Not mock names |
-| 6 | Open Circle — assignment completes or shows calm unassigned copy | |
-| 7 | Send a message | Composer preserves text on brief offline |
-| 8 | Add reaction to a message | |
-| 9 | Open Baby — log feeding, sleep, nappy | Today summary updates (AU/Sydney) |
-| 10 | Edit or delete a baby event | Confirmation on delete |
-| 11 | Open Calm — play, pause, switch sound, set sleep timer | |
-| 12 | Navigate Tonight → Circle → Baby → Calm → You — audio continues | |
-| 13 | Edit profile (You) and Atlas privacy | Hidden users excluded from map |
-| 14 | Submit feedback (Help) | Success confirmation |
-| 15 | Request account deletion, then cancel | |
-| 16 | Sign out — audio stops, returns to login | |
-| 17 | Sign back in — lands on Tonight, onboarding skipped | |
-| 18 | Password reset: email link → set new password on Account page | Login forgot-password path |
-| 19 | Browser back/forward across shell routes | No auth loop |
-| 20 | Unknown URL shows calm 404 with shell (when logged in) | `/profile/unknown` |
+| # | Step |
+|---|------|
+| 1 | Sign up with invited email |
+| 2 | Confirm email (if enabled) and sign in |
+| 3 | Complete onboarding |
+| 4 | Tonight — Atlas live / empty state |
+| 5 | Tonight Circle card — live data |
+| 6 | Open Circle — assignment |
+| 7 | Send a message |
+| 8 | Add reaction |
+| 9 | Baby — log feeding, sleep, nappy |
+| 10 | Edit / delete baby event |
+| 11 | Calm — play / pause / timer |
+| 12 | Navigate while Calm plays |
+| 13 | Edit profile + Atlas privacy |
+| 14 | Submit feedback |
+| 15 | Deletion request + cancel |
+| 16 | Sign out — audio stops |
+| 17 | Sign back in |
+| 18 | Password reset end-to-end |
+| 19 | Browser back/forward — no auth loop |
+| 20 | Unknown URL — calm 404 |
 
 ---
 
 ## Two accounts (same Circle)
 
-Requires **Account A** and **Account B** matched into the same Circle.
-
 | # | Step |
 |---|------|
-| 21 | A sends message — B receives in realtime |
-| 22 | B typing indicator visible to A (brief) |
-| 23 | B reaction visible to A |
-| 24 | Unread hint updates for B after A sends |
-| 25 | B hides a message — only B's feed affected |
-| 26 | B reports a message — calm confirmation, no public indicator |
-| 27 | Atlas presence count changes when both online (country/state level) |
+| 21 | A sends — B receives realtime |
+| 22 | Typing indicator |
+| 23 | Reaction visible |
+| 24 | Unread hint |
+| 25 | Hide for me |
+| 26 | Report message |
+| 27 | Atlas presence with both online |
 
 ---
 
@@ -62,9 +78,9 @@ Requires **Account A** and **Account B** matched into the same Circle.
 
 | # | Step |
 |---|------|
-| 28 | A cannot see B's Circle messages |
-| 29 | A cannot see B's baby events |
-| 30 | A cannot read B's parent row via direct query (0009) |
+| 28 | No cross-circle messages |
+| 29 | No cross-family baby events |
+| 30 | No unrelated parent SELECT (0009) |
 
 ---
 

@@ -1,8 +1,8 @@
 # Glow Beta — Private Beta Program
 
-Version: **0.10.0-beta.1**  
+Version: **0.10.0-beta.2**  
 Target cohort: **~10 testers**  
-Sprint: **6.1 — Audit & Hardening**
+Sprint: **6.2 — Closed Beta Access**
 
 ## Beta scope (included)
 
@@ -18,111 +18,118 @@ Sprint: **6.1 — Audit & Hardening**
 
 - Billing / subscriptions UI
 - Push notifications
-- AI features (prompts, chat, recommendations)
+- AI features
 - Public profiles or member directories
 - Automated moderation dashboards
 - Growth charts / medical advice
-- Analytics capturing message, baby, or profile content
-- Self-service Circle leave/rematch
+- Open public registration
+- Invitation / referral systems
+- Admin dashboards
 
-## Tester access model (recommended)
+---
 
-**Approach:** Staff-managed email allowlist via `beta_testers` table + manual signup monitoring.
+## Closed-beta access model (Sprint 6.2)
 
-| Step | Action |
-|------|--------|
-| 1 | Michael adds tester emails to `beta_testers` in Supabase (staff role) |
-| 2 | Share production URL only with invited testers |
-| 3 | Monitor Auth signups in Supabase dashboard |
-| 4 | Reject/remove unexpected accounts manually |
+**Source of truth:** `public.beta_testers` email allowlist.
 
-**Not implemented in Sprint 6.1:** Supabase Auth `before-user-created` hook to hard-block non-allowlisted emails. This is the safest simple closed-beta gate — proposed for Sprint 6.2. See `docs/DECISIONS.md`.
+**Enforcement boundary (primary):** Supabase Auth **Before User Created** hook → Postgres function `public.hook_before_user_created_beta_allowlist`.
 
-**Alternative (not recommended):** Invitation codes in app — adds UX complexity without existing schema support.
+**App fallback (UX only):** Server action `checkBetaSignupAccess` calls `is_beta_email_allowed(p_email)` (boolean RPC). Never sufficient alone — the Auth hook blocks direct Auth API signup.
+
+| Email status | May create account? | Notes |
+|--------------|---------------------|-------|
+| `invited` | Yes | Normal confirmation → onboarding |
+| `active` | Yes (idempotent) | Already activated |
+| `revoked` | No | Calm denial message |
+| Missing | No | Calm denial message |
+
+### Email normalisation
+
+`lower(trim(email))` stored in `email_normalized` (unique). Comparison is case-insensitive; whitespace ignored.
+
+### Activation
+
+On successful `auth.users` insert, `handle_new_user` sets matching allowlist row to `active`, sets `activated_at` / `accepted_at`, and links `parent_id`. Idempotent.
+
+### Revocation
+
+1. Set `status = 'revoked'` (and `revoked_at`) in SQL.
+2. Revocation **blocks new account creation** via the Auth hook.
+3. Existing sessions are **not** force-terminated by Glow.
+4. To fully remove access, Michael also **disables or deletes** the Auth user in the Supabase Dashboard.
+
+### Existing users
+
+Do **not** auto-add every `auth.users` email to the allowlist. Run the audit query in `supabase/seed-beta-testers.template.sql`, then seed approved QA emails deliberately.
+
+### Seed workflow
+
+1. Apply migration `0010_closed_beta_access.sql`.
+2. Copy `supabase/seed-beta-testers.template.sql` → local `seed-beta-testers.local.sql` (gitignored).
+3. Replace placeholder emails (~10).
+4. Run in Supabase SQL Editor (service role).
+5. **Do not commit real tester emails.**
+
+### Auth hook setup (manual — required)
+
+The database function alone does **not** activate the hook.
+
+1. Apply migration `0010`.
+2. Supabase Dashboard → **Authentication → Hooks**.
+3. Enable **Before User Created**.
+4. Select Postgres function: `public.hook_before_user_created_beta_allowlist`.
+5. Save.
+6. Test invited email (succeeds) and unknown email (rejected with calm copy).
+
+**Emergency disable:** Dashboard → Authentication → Hooks → disable Before User Created. Signups become open until re-enabled — monitor immediately.
+
+Full steps: `docs/RELEASE_CHECKLIST.md`.
+
+---
 
 ## Supported devices
 
 | Device | Support level |
 |--------|---------------|
-| iPhone Safari | Primary — test 390×844 |
+| iPhone Safari | Primary |
 | Android Chrome | Primary |
-| iPad portrait/landscape | Supported |
-| Desktop Chrome/Safari/Edge | Supported |
-| iOS Safari background Calm | Limited — see `docs/Calm.md` |
+| iPad | Supported |
+| Desktop browsers | Supported |
+| iOS Safari Calm background | Limited — see `docs/Calm.md` |
 
 ## Feedback & support
 
-| Channel | Path | Privacy |
-|---------|------|---------|
-| General feedback | `/profile/help` | Private `app_feedback` table |
-| Bug reports | Help form — category "technical" | No auto-capture of Circle messages |
-| Safety concerns | Help form — category "safety" | Escalate via Michael; crisis: 000 / Lifeline 13 11 14 |
-
-Duplicate submissions: not blocked server-side; calm copy on success. Client clears form after success.
-
-## Test accounts
-
-Create via normal signup with allowlisted emails. For two-account testing:
-
-- Use two different emails in the same Australian state + similar feeding method to increase same-Circle match probability
-- Or use staff `assign_parent_to_circle` RPC for deterministic placement
-
-**Do not commit test credentials to the repo.**
-
-## Production smoke test
-
-See `docs/BETA_TEST_CHECKLIST.md`.
+| Channel | Path |
+|---------|------|
+| Feedback / bugs / safety | `/profile/help` → private `app_feedback` |
+| Crisis | 000 / Lifeline 13 11 14 |
 
 ## Migration status
 
-| Migration | Purpose | Required before beta |
-|-----------|---------|---------------------|
-| 0001–0006 | Core schema, circles, prompts | ✅ |
-| 0007 | Baby feeding enums | ✅ |
-| 0008 | Profile trust tables | ✅ |
-| 0009 | RLS hardening (Sprint 6.1) | ✅ |
+| Migration | Purpose | Required |
+|-----------|---------|----------|
+| 0001–0009 | Core → RLS hardening | ✅ |
+| **0010** | Closed beta allowlist + Auth hook function | ✅ |
 
-## Monitoring status
+## Environment
 
-| Capability | Status |
-|------------|--------|
-| Vercel deploy alerts | Configure manually |
-| Supabase logs | Manual review |
-| Client error SDK | Not installed — dev-only digest logging |
-| Recommended | Sentry with PII scrubbing |
+| Variable | Role |
+|----------|------|
+| `NEXT_PUBLIC_SUPABASE_URL` | Required |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Required (never service-role) |
+| `NEXT_PUBLIC_SITE_URL` | Required in production (Auth redirects) |
 
-## Legal document status
+## Pre-invite checklist
 
-Privacy, Terms, and Safety pages are **beta drafts** — labelled in app. Not counsel-approved. Sufficient for closed beta with informed testers; review required before public launch.
-
-## Audio asset status
-
-Calm uses Glow-generated placeholder WAVs in `public/calm/placeholders/`. UI marks them as placeholders. Replace with licensed audio before App Store.
-
-## Data deletion process
-
-1. User submits request at `/profile/account`
-2. Request stored in `account_deletion_requests` (pending)
-3. Michael processes manually during beta
-4. User may cancel pending request in-app
-
-## Rollback plan
-
-See `docs/RELEASE_CHECKLIST.md`.
+- [ ] Migrations `0001`–`0010` applied
+- [ ] Before User Created hook **enabled** in Dashboard
+- [ ] `NEXT_PUBLIC_SITE_URL` configured
+- [ ] ~10 tester emails seeded (`invited`)
+- [ ] Existing QA emails reviewed via audit query
+- [ ] Invited + uninvited signup smoke tests passed
+- [ ] `BETA_TEST_CHECKLIST.md` completed
+- [ ] Michael sign-off on legal draft status for beta
 
 ## Known limitations
 
 See `docs/KNOWN_ISSUES.md`.
-
-## Security references
-
-- `docs/SECURITY_AUDIT.md`
-- `docs/RLS_ACCESS_MATRIX.md`
-
-## Pre-invite checklist
-
-- [ ] Migrations `0001`–`0009` applied
-- [ ] `NEXT_PUBLIC_SITE_URL` configured
-- [ ] `beta_testers` seeded
-- [ ] `BETA_TEST_CHECKLIST.md` single + two-account sections passed
-- [ ] Michael sign-off on legal draft status for beta

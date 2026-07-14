@@ -459,6 +459,10 @@ export type Database = {
       };
     };
     Functions: {
+      is_beta_email_allowed: {
+        Args: { p_email: string };
+        Returns: boolean;
+      };
       assign_parent_to_circle: {
         Args: { p_parent_id?: string };
         Returns: Json;

@@ -24,6 +24,9 @@ const AUTH_COPY: Record<string, string> = {
     "An account with this email already exists. Try signing in instead.",
 };
 
+const BETA_DENIED =
+  "Glow is currently in a small private beta. This email is not on the tester list yet.";
+
 export function calmAuthErrorMessage(raw: string | null | undefined): string {
   if (!raw?.trim()) {
     return "Something didn't work just now. Please try again.";
@@ -32,6 +35,15 @@ export function calmAuthErrorMessage(raw: string | null | undefined): string {
   const trimmed = raw.trim();
   if (AUTH_COPY[trimmed]) {
     return AUTH_COPY[trimmed];
+  }
+
+  const lower = trimmed.toLowerCase();
+  if (
+    lower.includes("private beta") ||
+    lower.includes("tester list") ||
+    lower.includes("not on the tester")
+  ) {
+    return BETA_DENIED;
   }
 
   return calmUserFacingError(trimmed, "auth");

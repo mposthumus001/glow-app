@@ -94,29 +94,30 @@ Private Beta
 
 ### Sprint 6.1 — Audit & Hardening
 
-✅ Complete (awaiting migration apply, production smoke test, tester invite)
+✅ Complete (awaiting migration apply, production smoke test)
 
-- Full route / auth / RLS / console audit
-- Migration `0009` RLS hardening
-- Password reset completion
-- Tonight live Circle preview
-- Beta documentation suite
+### Sprint 6.2 — Closed access + launch controls
 
-### Sprint 6.2 — Closed access + monitoring (planned)
+✅ Implemented (awaiting migration apply, Auth hook Dashboard enable, seed, smoke test)
 
-⬜ Planned
+- `beta_testers` allowlist lifecycle (`invited` / `active` / `revoked`)
+- Before User Created Auth hook function
+- App signup UX gate + calm denial copy
+- Seed template + release/docs updates
 
-- Supabase Auth hook for `beta_testers` allowlist
-- Optional Sentry integration (privacy-scrubbed)
-- CI lint/build/test workflow
+### Next
+
+- Ops: apply `0010`, enable Auth hook, seed ~10 emails, smoke test
+- Optional: Sentry (privacy-scrubbed)
+- Optional: CI lint/build/test
 
 ---
 
 ## Milestone 7
 
-Private Beta Launch
+Private Beta Launch (invite testers)
 
-⬜ Planned — depends on Sprint 6.1 smoke test sign-off
+⬜ Planned — depends on Sprint 6.2 ops sign-off
 
 ---
 
@@ -132,8 +133,7 @@ App Store Launch
 
 Milestones 1–5 ✅ — see sections above
 
-## Milestone 6 (legacy note)
-
-Baby Tracker (extended charts)
+## Baby Tracker (extended charts)
 
 ⬜ Planned — foundations in Sprint 5.2
+

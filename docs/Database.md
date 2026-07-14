@@ -91,6 +91,45 @@ Full matrix: `docs/RLS_ACCESS_MATRIX.md`
 
 ---
 
+## Closed beta access (Sprint 6.2 — migration 0010)
+
+### Table upgrades (`beta_testers`)
+
+| Column | Purpose |
+|--------|---------|
+| `email_normalized` | Unique allowlist key (`lower(trim(email))`) |
+| `status` | `invited` \| `active` \| `revoked` |
+| `activated_at` | Set when account created |
+| `revoked_at` | Set when revoked |
+
+### Functions
+
+| Function | Caller | Purpose |
+|----------|--------|---------|
+| `is_beta_email_allowed(email)` | anon / authenticated | Boolean UX check — no row exposure |
+| `hook_before_user_created_beta_allowlist(event)` | `supabase_auth_admin` only | Before User Created Auth hook |
+| `normalize_beta_email(email)` | helpers | Trim + lowercase |
+
+### RLS
+
+| Policy | Access |
+|--------|--------|
+| `beta_testers_select_staff` | admin/support SELECT only |
+| `beta_testers_write_staff_only` | admin/support writes |
+
+Normal clients cannot list or self-insert the allowlist. Notes stay staff/SQL-only.
+
+### Activation
+
+`handle_new_user` updates matching `invited`/`active` row → `active` + `parent_id` (idempotent).
+
+### Auth hook
+
+Enable manually in Dashboard after applying `0010`. See `docs/RELEASE_CHECKLIST.md`.
+
+
+---
+
 ## Baby tracking (Sprint 5.2)
 
 ### Table

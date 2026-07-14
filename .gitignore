@@ -34,9 +34,16 @@ yarn-error.log*
 .env*
 !.env.example
 
+# Local beta tester emails (never commit real addresses)
+supabase/seed-beta-testers.local.sql
+supabase/ops/*.local.sql
+
+
 # vercel
 .vercel
 
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+supabase/ops/*.local.sql

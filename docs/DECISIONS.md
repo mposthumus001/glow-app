@@ -189,3 +189,25 @@ Limitation:
 `map_presence.parent_id` deanonymization remains; Calm placeholders remain; legal docs remain drafts.
 
 ---
+
+## 2026-07-11 — Closed beta access (Sprint 6.2)
+
+Decision:
+Enforce private-beta signup with a staff-managed `beta_testers` allowlist. Primary gate is Supabase Auth **Before User Created** (Postgres function `hook_before_user_created_beta_allowlist`), available on Free and Pro. App-side `is_beta_email_allowed` boolean RPC + server action provide calm UX only — never client-only enforcement. Activation happens in `handle_new_user` (invited → active). Revocation blocks new signups; existing sessions require manual Auth user disable.
+
+Reason:
+~10 testers need a hard closed gate without building invitations UI or admin dashboards. Auth hook blocks direct Auth API bypass.
+
+Schema:
+`email_normalized` unique; status `invited` | `active` | `revoked`; staff-only RLS; notes never client-visible.
+
+Ops requirement:
+Migration `0010` creates the function; Michael must **enable** the hook in Dashboard → Authentication → Hooks. Disabling the hook reopens signup (emergency only).
+
+Seed:
+Template with placeholder emails; real emails never committed.
+
+Limitation:
+Revocation does not force-logout existing sessions; Auth hook enablement is manual.
+
+---

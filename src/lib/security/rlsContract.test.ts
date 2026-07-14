@@ -28,8 +28,18 @@ describe("parents RLS contract (Sprint 6.1)", () => {
 });
 
 describe("beta_testers access contract", () => {
-  it("documents staff-managed allowlist without client writes", () => {
-    const writePolicy = "beta_testers_write_staff — admin/support only";
-    assert.match(writePolicy, /staff/);
+  it("documents staff-only allowlist reads after Sprint 6.2", () => {
+    const selectPolicy = "beta_testers_select_staff — admin/support only";
+    assert.match(selectPolicy, /staff/);
+  });
+
+  it("documents boolean RPC without row exposure", () => {
+    const rpc = "is_beta_email_allowed(p_email) returns boolean only";
+    assert.match(rpc, /boolean/);
+  });
+
+  it("documents Auth hook as primary signup gate", () => {
+    const hook = "hook_before_user_created_beta_allowlist";
+    assert.match(hook, /before_user_created/);
   });
 });

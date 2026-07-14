@@ -43,15 +43,15 @@ export function LoginForm() {
   return (
     <AuthShell
       title="Welcome back"
-      subtitle="Sign in to rejoin your Circle tonight."
+      subtitle="Private beta — sign in with your invited email."
       footer={
         <>
-          New here?{" "}
+          Invited to the private beta?{" "}
           <Link
             href="/signup"
             className="font-medium text-glow-primary-light hover:underline"
           >
-            Create an account
+            Create your account
           </Link>
         </>
       }

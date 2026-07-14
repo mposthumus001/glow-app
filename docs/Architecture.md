@@ -129,3 +129,16 @@ Sound catalogue source of truth for beta: static `src/features/calm/catalogue.ts
 - Error mapping: `src/lib/errors/calm-messages.ts`
 - Monitoring: dev-only `reportClientError` — Sentry recommended separately
 - Audit docs: `SECURITY_AUDIT.md`, `RLS_ACCESS_MATRIX.md`, `KNOWN_ISSUES.md`
+
+### Closed beta access (Sprint 6.2)
+
+| Concern | Owner |
+|---------|-------|
+| Allowlist source of truth | `public.beta_testers` |
+| Signup gate (primary) | Auth Before User Created → `hook_before_user_created_beta_allowlist` |
+| App UX check | `checkBetaSignupAccess` → `is_beta_email_allowed` (boolean only) |
+| Activation | `handle_new_user` after Auth insert |
+| Tester seeding | SQL template — never client UI |
+
+Signup remains at `/signup` for invited testers. Login/signup copy states private beta. Hook must be enabled in Supabase Dashboard after migration `0010`. Details: `docs/Beta.md`.
+

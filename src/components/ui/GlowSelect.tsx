@@ -34,7 +34,8 @@ export function GlowSelect({
         aria-invalid={error ? true : undefined}
         aria-describedby={describedBy}
         className={cn(
-          "h-12 w-full appearance-none rounded-glow-input border bg-glow-card px-4 text-base text-glow-text",
+          // glow-select: option contrast for native popups (see globals.css)
+          "glow-select h-12 w-full appearance-none rounded-glow-input border bg-glow-card px-4 text-base text-glow-text",
           "border-glow-card-border focus:border-glow-primary/50 focus:outline-none focus:ring-2 focus:ring-glow-primary/30",
           "disabled:opacity-50",
           error && "border-red-400/60 focus:ring-red-400/30",

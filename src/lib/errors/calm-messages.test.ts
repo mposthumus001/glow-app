@@ -22,6 +22,15 @@ describe("calmAuthErrorMessage", () => {
       "Something didn't work just now. Please try again.",
     );
   });
+
+  it("maps private-beta allowlist rejections to calm copy", () => {
+    assert.equal(
+      calmAuthErrorMessage(
+        "Glow is currently in a small private beta. This email is not on the tester list yet.",
+      ),
+      "Glow is currently in a small private beta. This email is not on the tester list yet.",
+    );
+  });
 });
 
 describe("calmUserFacingError", () => {

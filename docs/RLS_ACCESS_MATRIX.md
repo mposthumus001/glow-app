@@ -25,7 +25,7 @@ Legend: **Staff** = moderator / support / admin. **Circle member** = active `cir
 | `reports` | Own + staff | Member w/ message access | Staff | — | RLS | `reportLogic.test.ts` |
 | `account_deletion_requests` | Own + staff | Own pending | Own cancel / staff process | — | RLS | `trustContract.test.ts` |
 | `app_feedback` | Own + staff | Own | — | — | RLS | `trustContract.test.ts` |
-| `beta_testers` | Own + staff | Staff | Staff | Staff | RLS | `rlsContract.test.ts` |
+| `beta_testers` | Staff only (0010) | Staff | Staff | Staff | RLS + Auth hook | `rlsContract.test.ts`, `beta-access.test.ts` |
 | `subscriptions` | Own | — | — | — | RLS read-only | Manual |
 | `media_library` | All authenticated | Admin/support | Admin/support | Admin/support | RLS | `catalogue.test.ts` (client catalogue) |
 | `analytics_events` | Staff | Auth (own/null parent) | — | — | RLS | Manual |
@@ -46,6 +46,8 @@ Legend: **Staff** = moderator / support / admin. **Circle member** = active `cir
 | `advance_circle_read_state` | Invoker (RLS) | Own membership row |
 | `parent_baby_age_months` | Self or staff (0009) | `auth.uid()` check |
 | `shares_active_circle_with` | Authenticated | Used in RLS only |
+| `is_beta_email_allowed` | anon / authenticated | Boolean only — no allowlist rows |
+| `hook_before_user_created_beta_allowlist` | `supabase_auth_admin` | Before User Created |
 
 ## Service-role only
 
@@ -60,6 +62,14 @@ Legend: **Staff** = moderator / support / admin. **Circle member** = active `cir
 2. Added `shares_active_circle_with()` helper.
 3. Restricted `parent_baby_age_months()` to self or staff.
 4. Added `guard_circle_message_update` trigger — users may only edit message body fields.
+
+## Sprint 6.2 changes (migration `0010`)
+
+1. `beta_testers` status lifecycle + `email_normalized` unique key.
+2. Staff-only SELECT/WRITE on allowlist (no own-row listing).
+3. `is_beta_email_allowed` boolean RPC for app UX.
+4. `hook_before_user_created_beta_allowlist` for Auth Before User Created (Dashboard enable required).
+5. `handle_new_user` activates invited → active on signup.
 
 ## Remaining risks (documented, not fixed this sprint)
 

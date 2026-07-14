@@ -6,53 +6,35 @@
 
 ## Current Version
 
-v0.10.0-beta.1
+v0.10.0-beta.2
 
 ## Active Sprint
 
-**Milestone 6 — Sprint 6.1: Private Beta Audit and Hardening**
+**Milestone 6 — Sprint 6.2: Closed Beta Access and Production Launch Controls**
 
-## Sprint 6.1 completed
+## Sprint 6.2 completed (code)
 
-* Full route inventory (20 routes — 16 authenticated, 4 public)
-* Authentication audit + password recovery completion UI
-* Tonight mock data removed — live Circle preview
-* RLS hardening migration `0009`
-* Calm user-facing error mapping
-* `not-found.tsx` for root and `(app)`
-* Audit documentation suite
-* Targeted tests (22 unit tests)
-* `npm run lint`, `build`, `test` — awaiting final run in this session
+* Migration `0010_closed_beta_access.sql` — allowlist status lifecycle + Auth hook function + boolean RPC
+* Signup UX — private beta copy + server-side allowlist check
+* Login copy — invited testers only
+* Seed template + gitignored local seed file
+* Env validation for required public vars
+* Docs + checklist updates
+* Unit tests for normalisation, env checks, RLS contracts
 
-## Files created (Sprint 6.1)
+## Remaining before inviting testers (ops)
 
-* `supabase/migrations/0009_beta_rls_hardening.sql`
-* `docs/RLS_ACCESS_MATRIX.md`
-* `docs/SECURITY_AUDIT.md`
-* `docs/BETA_TEST_CHECKLIST.md`
-* `docs/KNOWN_ISSUES.md`
-* `docs/RELEASE_CHECKLIST.md`
-* `.env.example`
-* `src/lib/errors/calm-messages.ts`
-* `src/lib/errors/report-client-error.ts`
-* `src/features/profile/components/PasswordRecoveryPanel.tsx`
-* `src/components/auth/ForgotPasswordForm.tsx`
-* `src/app/not-found.tsx`
-* `src/app/(app)/not-found.tsx`
-* `src/components/tonight/tonightCirclePreview.ts`
+1. Apply migrations `0001`–`0010` to production Supabase
+2. **Enable** Before User Created hook in Dashboard → `hook_before_user_created_beta_allowlist`
+3. Configure `NEXT_PUBLIC_SITE_URL` on Vercel
+4. Seed ~10 invited emails (local template — never commit real emails)
+5. Run audit query for existing Auth users missing from allowlist
+6. Complete `docs/BETA_TEST_CHECKLIST.md` including closed-access section
+7. Legal draft acceptance for closed beta
 
-## Remaining before inviting testers
+## Architecture note
 
-* Apply migrations `0001`–`0009` to production Supabase
-* Configure `NEXT_PUBLIC_SITE_URL` on Vercel
-* Seed `beta_testers` with invited emails
-* Run `docs/BETA_TEST_CHECKLIST.md` (two-account tests)
-* Implement closed signup gate (Sprint 6.2 — Auth hook) OR accept manual monitoring
-* Legal review scheduling for public launch
-
-## Next Sprint
-
-Sprint 6.2 — Closed beta access enforcement + production monitoring setup
+Auth hook is available on Free and Pro. Function exists after migration; **Dashboard enablement is mandatory**.
 
 ## Known Issues
 

@@ -748,17 +748,21 @@ values
 on conflict (id) do nothing;
 
 insert into public.beta_testers (
-  id, parent_id, email, invited_at, accepted_at, feedback_score, notes
+  id, parent_id, email, email_normalized, status, invited_at, accepted_at,
+  activated_at, feedback_score, notes
 )
 values
   (
     'bt111111-1111-1111-1111-111111111111',
     '11111111-1111-1111-1111-111111111111',
     'melissa@glow.dev',
+    'melissa@glow.dev',
+    'active',
     timezone('utc', now()) - interval '7 days',
     timezone('utc', now()) - interval '6 days',
+    timezone('utc', now()) - interval '6 days',
     9,
-    'Loves the overnight Circle vibe'
+    'Seed QA account — replace in production'
   )
 on conflict (id) do nothing;
 

@@ -3,6 +3,9 @@
 /* ─── Glow OS Design Tokens ─────────────────────────────────────────────── */
 
 :root {
+  /* Native form chrome matches Glow's always-dark UI */
+  color-scheme: dark;
+
   /* Colours */
   --glow-background: #060914;
   --glow-background-elevated: #0c1020;
@@ -166,6 +169,24 @@ body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/*
+ * Explicit option colours: closed select keeps glow text via the control;
+ * open native menus (esp. light OS scheme) get readable ink on white.
+ * Disabled placeholders stay muted. Mobile OS pickers may ignore these.
+ */
+.glow-select {
+  color-scheme: dark;
+}
+
+.glow-select option {
+  color: #111827;
+  background-color: #ffffff;
+}
+
+.glow-select option:disabled {
+  color: #6b7280;
 }
 
 /* Safe area utilities for mobile */

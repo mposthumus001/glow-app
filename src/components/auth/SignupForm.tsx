@@ -6,6 +6,11 @@ import { useState, useTransition } from "react";
 
 import { AuthShell } from "@/components/auth/AuthShell";
 import { GlowButton, GlowInput } from "@/components/ui";
+import { checkBetaSignupAccess } from "@/lib/auth/check-beta-access";
+import {
+  BETA_SIGNUP_DENIED_MESSAGE,
+  isBetaSignupDeniedMessage,
+} from "@/lib/auth/beta-access";
 import { createClient } from "@/lib/supabase/client";
 import { calmAuthErrorMessage } from "@/lib/errors/calm-messages";
 
@@ -31,13 +36,23 @@ export function SignupForm() {
     }
 
     startTransition(async () => {
+      const access = await checkBetaSignupAccess(email);
+      if (!access.ok) {
+        setError(access.error);
+        return;
+      }
+
       const supabase = createClient();
       const { data, error: signUpError } = await supabase.auth.signUp({
-        email,
+        email: access.email,
         password,
       });
 
       if (signUpError) {
+        if (isBetaSignupDeniedMessage(signUpError.message)) {
+          setError(BETA_SIGNUP_DENIED_MESSAGE);
+          return;
+        }
         setError(calmAuthErrorMessage(signUpError.message));
         return;
       }
@@ -58,10 +73,10 @@ export function SignupForm() {
   return (
     <AuthShell
       title="Join Glow"
-      subtitle="A calm space for parents, awake together."
+      subtitle="Private beta — invited testers only."
       footer={
         <>
-          Already have an account?{" "}
+          Already invited?{" "}
           <Link
             href="/login"
             className="font-medium text-glow-primary-light hover:underline"
@@ -71,6 +86,10 @@ export function SignupForm() {
         </>
       }
     >
+      <p className="mb-4 text-sm leading-relaxed text-glow-text-secondary">
+        Glow is in a small private beta. Use the email address you were invited
+        with.
+      </p>
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <GlowInput
           label="Email"
@@ -99,9 +118,23 @@ export function SignupForm() {
           placeholder="••••••••"
         />
         {error ? (
-          <p className="rounded-glow-input bg-red-500/10 px-3 py-2 text-sm text-red-300">
-            {error}
-          </p>
+          <div
+            className="rounded-glow-input bg-red-500/10 px-3 py-2 text-sm text-red-300"
+            role="alert"
+          >
+            <p>{error}</p>
+            {error === BETA_SIGNUP_DENIED_MESSAGE ? (
+              <p className="mt-2 text-glow-text-secondary">
+                Already have an account?{" "}
+                <Link
+                  href="/login"
+                  className="font-medium text-glow-primary-light hover:underline"
+                >
+                  Sign in
+                </Link>
+              </p>
+            ) : null}
+          </div>
         ) : null}
         {message ? (
           <p className="rounded-glow-input bg-glow-primary-muted px-3 py-2 text-sm text-glow-primary-light">
