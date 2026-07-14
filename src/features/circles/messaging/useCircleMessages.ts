@@ -41,7 +41,7 @@ export type UseCircleMessagesResult = MessagingSnapshot & {
     isPageVisible: boolean;
     observedMessageId: string | null;
   }) => void;
-  setSendPromptId: (promptId: string | null) => void;
+  setSendPromptId: (promptId: string | null, circleId?: string | null) => void;
   hideMessage: (messageId: string) => Promise<{ ok: boolean }>;
   reportMessage: (input: {
     messageId: string;
@@ -93,7 +93,8 @@ export function useCircleMessages(input: {
     toggleReaction: (messageId, reactionType) =>
       service.toggleReaction({ messageId, reactionType }),
     updateReadObservation: (input) => service.updateReadObservation(input),
-    setSendPromptId: (promptId) => service.setSendPromptId(promptId),
+    setSendPromptId: (promptId, circleId) =>
+      service.setSendPromptId(promptId, circleId),
     hideMessage: (messageId) => service.hideMessage(messageId),
     reportMessage: (input) => service.reportMessage(input),
   };

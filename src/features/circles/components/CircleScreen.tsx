@@ -140,7 +140,7 @@ function AssignedCircleSession({
 
   const handleSharePrompt = () => {
     if (dailyPrompt?.id && dailyPrompt.id !== "fallback") {
-      messaging.setSendPromptId(dailyPrompt.id);
+      messaging.setSendPromptId(dailyPrompt.id, data.circle.id);
     }
     setFocusComposerToken((value) => value + 1);
   };
@@ -222,13 +222,7 @@ function AssignedCircleSession({
       >
         <CircleTypingIndicator label={messaging.typingLabel} />
         <CircleComposer
-          onSend={async (body) => {
-            const result = await messaging.send(body);
-            if (result.ok) {
-              messaging.setSendPromptId(null);
-            }
-            return result;
-          }}
+          onSend={messaging.send}
           onTypingActivity={messaging.notifyTypingActivity}
           onStopTyping={() => {
             void messaging.stopTyping();

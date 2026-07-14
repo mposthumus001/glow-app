@@ -127,6 +127,19 @@ Normal clients cannot list or self-insert the allowlist. Notes stay staff/SQL-on
 
 Enable manually in Dashboard after applying `0010`. See `docs/RELEASE_CHECKLIST.md`.
 
+---
+
+## Hotfix — `circle_messages.prompt_id` (migration 0011)
+
+Defined originally in `0006`. Production may miss the column (PGRST204). Migration `0011_circle_messages_prompt_id.sql` is idempotent:
+
+* nullable `prompt_id uuid`
+* FK → `circle_prompts(id)` ON DELETE SET NULL
+* partial index when not null
+* no RLS changes
+
+After apply: `NOTIFY pgrst, 'reload schema';` then retest Circle send.
+
 
 ---
 

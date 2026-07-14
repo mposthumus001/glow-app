@@ -6,6 +6,15 @@ import {
   type MessageCursor,
   previewToFeedMessage,
 } from "./messageLogic";
+import {
+  buildMessageInsertPayload,
+  classifyMessageInsertError,
+  formatMessageInsertDiagnostic,
+  insertRowToFeedMessage,
+  shouldRetryInsertWithoutPrompt,
+  type MessageInsertErrorCode,
+  type MessageInsertRow,
+} from "./messageInsertLogic";
 
 type MessageJoinRow = {
   id: string;
@@ -50,6 +59,22 @@ const MESSAGE_SELECT = `
     display_name
   )
 `;
+
+/** Insert return — no embed; avoids parents RLS edge cases on RETURNING. */
+const MESSAGE_INSERT_RETURN = `
+  id,
+  circle_id,
+  parent_id,
+  body,
+  created_at,
+  prompt_id
+`;
+
+export type MessageInsertResult = {
+  message: CircleFeedMessage | null;
+  error: string | null;
+  errorCode?: MessageInsertErrorCode;
+};
 
 export type MessagePageResult = {
   messages: CircleFeedMessage[];
@@ -152,32 +177,76 @@ export async function insertCircleMessage(
   input: {
     circleId: string;
     parentId: string;
+    authorName: string;
     body: string;
     promptId?: string | null;
   },
-): Promise<{ message: CircleFeedMessage | null; error: string | null }> {
-  const { data, error } = await supabase
-    .from("circle_messages")
-    .insert({
-      circle_id: input.circleId,
-      parent_id: input.parentId,
-      body: input.body,
-      moderation_status: "clean",
-      prompt_id: input.promptId ?? null,
-    })
-    .select(MESSAGE_SELECT)
-    .single();
+): Promise<MessageInsertResult> {
+  const { data: authData, error: authError } = await supabase.auth.getUser();
 
-  if (error || !data) {
+  if (authError || !authData.user) {
     return {
       message: null,
-      error: error?.message ?? "We couldn't send that just now.",
+      error: "Not signed in.",
+      errorCode: "auth",
     };
   }
 
-  const row = data as unknown as MessageJoinRow;
+  const sessionParentId = authData.user.id;
+
+  if (sessionParentId !== input.parentId) {
+    return {
+      message: null,
+      error: "Session mismatch.",
+      errorCode: "auth_mismatch",
+    };
+  }
+
+  const runInsert = async (promptId: string | null) => {
+    const payload = buildMessageInsertPayload({
+      circleId: input.circleId,
+      parentId: sessionParentId,
+      body: input.body,
+      promptId,
+    });
+
+    return supabase
+      .from("circle_messages")
+      .insert(payload)
+      .select(MESSAGE_INSERT_RETURN)
+      .single();
+  };
+
+  let promptId = input.promptId ?? null;
+  let { data, error } = await runInsert(promptId);
+
+  if (error && promptId && shouldRetryInsertWithoutPrompt(error)) {
+    if (process.env.NODE_ENV === "development") {
+      console.warn(formatMessageInsertDiagnostic(error));
+    }
+    promptId = null;
+    ({ data, error } = await runInsert(null));
+  }
+
+  if (error || !data) {
+    if (error && process.env.NODE_ENV === "development") {
+      console.warn(formatMessageInsertDiagnostic(error));
+    }
+
+    return {
+      message: null,
+      error: error?.message ?? "We couldn't send that just now.",
+      errorCode: error ? classifyMessageInsertError(error) : "unknown",
+    };
+  }
+
+  const row = data as unknown as MessageInsertRow;
+
   return {
-    message: previewToFeedMessage(rowToPreview(row), input.parentId),
+    message: insertRowToFeedMessage(row, {
+      authorName: input.authorName,
+      viewerParentId: sessionParentId,
+    }),
     error: null,
   };
 }

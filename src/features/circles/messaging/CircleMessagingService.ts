@@ -43,6 +43,9 @@ import { submitMessageReport } from "../safety/reportApi";
 import { filterVisibleMessages } from "../safety/hideLogic";
 import type { CircleReactionType, ReportReason } from "@/lib/supabase/database.types";
 import {
+  resolveAttachPromptId,
+} from "./messageInsertLogic";
+import {
   createOptimisticMessage,
   markMessageFailed,
   markMessageOptimistic,
@@ -182,6 +185,7 @@ export class CircleMessagingService {
   private togglingReactionKey: string | null = null;
   private hiddenMessageIds = new Set<string>();
   private sendPromptId: string | null = null;
+  private sendPromptCircleId: string | null = null;
 
   private listeners = new Set<Listener>();
   private started = false;
@@ -248,6 +252,7 @@ export class CircleMessagingService {
     this.togglingReactionKey = null;
     this.hiddenMessageIds = new Set();
     this.sendPromptId = null;
+    this.sendPromptCircleId = null;
     this.connection = "connecting";
     this.reconnectAttempt = 0;
     this.bindNetwork();
@@ -285,10 +290,13 @@ export class CircleMessagingService {
     this.clearReadPersistTimer();
     this.hiddenMessageIds = new Set();
     this.sendPromptId = null;
+    this.sendPromptCircleId = null;
   }
 
-  setSendPromptId(promptId: string | null): void {
+  setSendPromptId(promptId: string | null, circleId?: string | null): void {
     this.sendPromptId = promptId;
+    this.sendPromptCircleId =
+      promptId && circleId ? circleId : null;
   }
 
   async hideMessage(messageId: string): Promise<{ ok: boolean }> {
@@ -540,13 +548,19 @@ export class CircleMessagingService {
         ? crypto.randomUUID()
         : `local-${Date.now()}`;
 
+    const attachPromptId = resolveAttachPromptId({
+      promptId: this.sendPromptId,
+      promptCircleId: this.sendPromptCircleId,
+      activeCircleId: this.circleId,
+    });
+
     const optimistic = createOptimisticMessage({
       clientKey,
       circleId: this.circleId,
       parentId: this.parentId,
       body: prepared.body,
       authorName: this.authorName,
-      promptId: this.sendPromptId,
+      promptId: attachPromptId,
     });
 
     this.messages = [...this.messages, optimistic];
@@ -557,8 +571,9 @@ export class CircleMessagingService {
     const result = await insertCircleMessage(this.supabase, {
       circleId: this.circleId,
       parentId: this.parentId,
+      authorName: this.authorName,
       body: prepared.body,
-      promptId: this.sendPromptId,
+      promptId: attachPromptId,
     });
 
     if (!this.started) return { ok: false, reason: "stopped" };
@@ -570,6 +585,9 @@ export class CircleMessagingService {
       this.emit();
       return { ok: false, reason: "send_failed" };
     }
+
+    this.sendPromptId = null;
+    this.sendPromptCircleId = null;
 
     this.messages = replaceOptimisticWithConfirmed(
       this.messages,
@@ -600,10 +618,18 @@ export class CircleMessagingService {
     this.sendingClientKey = clientKey;
     this.emit();
 
+    const attachPromptId = resolveAttachPromptId({
+      promptId: failed.promptId ?? null,
+      promptCircleId: this.sendPromptCircleId,
+      activeCircleId: this.circleId,
+    });
+
     const result = await insertCircleMessage(this.supabase, {
       circleId: this.circleId,
       parentId: this.parentId,
+      authorName: this.authorName,
       body: failed.body,
+      promptId: attachPromptId,
     });
 
     if (!this.started) return { ok: false };
