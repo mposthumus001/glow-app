@@ -10,31 +10,21 @@ v0.10.0-beta.2
 
 ## Active Sprint
 
-**Glow Atlas MapLibre Replacement — Checkpoints A–E (complete)**
+**Synthetic Atlas Preview (complete) + Glow Atlas MapLibre Replacement (A–E)**
 
-Replaced the SVG-illustration Glow Atlas with a real MapLibre GL JS map:
-local Australia states GeoJSON (Natural Earth 1:10m) as the always-present
-base layer with optional PMTiles context + graceful fallback, geography-
-derived camera/`fitBounds` hierarchy, privacy-safe presence GeoJSON with
-halo/core GL layers and realtime `source.setData` updates, disclosed
-interactive badges as real-geo `<Marker>`s (all 8 national labels visible),
-accessibility/reduced-motion/performance hardening, and retirement of the
-now-superseded SVG rendering path. See `docs/GlowAtlas.md` for the full
-architecture record and `docs/CHANGELOG.md` (Unreleased) for the itemised
-diff.
+Optional renderer-only ambient density (~5,000 deterministic lights) for
+sparse-beta visual density, kept completely separate from real presence —
+see `docs/GlowAtlas.md` → Synthetic Atlas Preview. Prior MapLibre
+replacement (Checkpoints A–E) remains the base architecture.
 
 ### Verification status
 
-Unlike the previous "Glow Atlas Redesign" sprint below, this sprint's
-`npm run lint` / `npm run build` / `npm test` and manual multi-viewport
-(360px/390px/tablet/desktop), reduced-motion, keyboard-only, and PMTiles
-success/missing-URL/failure-fallback checks **were run repeatedly across
-every checkpoint** (via the Shell tool and headless-browser screenshotting),
-not skipped. `npm test` currently passes 310/310. Two pre-existing lint
-warnings unrelated to this work remain (see `docs/KNOWN_ISSUES.md`). The one
-real-PMTiles-hosting verification used a public third-party daily build, not
-a project-controlled production host — see `docs/KNOWN_ISSUES.md` for what
-that pass did and didn't confirm before treating this as production-ready.
+Synthetic preview: unit tests cover allocation, determinism, containment,
+and isolation from `buildPresenceGeoJson`; lint/build/test re-run for this
+pass. Enable locally with `NEXT_PUBLIC_ATLAS_SYNTHETIC_PREVIEW=true` (see
+`.env.example`). MapLibre A–E verification status from the previous
+session still applies (310+ tests; PMTiles was verified against a public
+third-party build only).
 
 ## Previous sprint — Glow Atlas Redesign — Checkpoints A–E (SVG-era, complete, since replaced)
 

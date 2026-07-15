@@ -40,13 +40,18 @@ import {
   GLOW_STATES_FILL_LAYER_ID,
   GLOW_STATES_LINE_LAYER_ID,
   GLOW_STATES_SOURCE_ID,
+  GLOW_SYNTHETIC_PREVIEW_SOURCE_ID,
   stateFillOpacityExpression,
   stateLineOpacityExpression,
   stateLineWidthExpression,
+  syntheticPreviewGlowLayer,
+  syntheticPreviewHeatmapLayer,
 } from "./glowMapStyle";
 import { GlowMapBadges } from "./GlowMapBadges";
 import { GlowMapChrome } from "./GlowMapChrome";
 import { buildPresenceGeoJson } from "./presenceGeoJson";
+import { buildSyntheticPreviewGeoJson } from "./syntheticAtlasData";
+import { resolveSyntheticPreviewConfig } from "./syntheticPreviewConfig";
 import type { AtlasBadge, AtlasLevel, AtlasPresence, AuStateCode } from "../types";
 import type { ErrorEvent as GlowMapErrorEvent } from "react-map-gl/maplibre";
 
@@ -74,6 +79,13 @@ function ensurePmtilesProtocolRegistered(): void {
 ensurePmtilesProtocolRegistered();
 
 const PMTILES_URL = process.env.NEXT_PUBLIC_ATLAS_PMTILES_URL || null;
+
+// Resolved once per module load from the public env flags — see
+// syntheticPreviewConfig.ts. `GlowAtlas.tsx` calls the same pure resolver
+// independently for its outside-the-canvas disclosure text; both read the
+// identical `process.env.NEXT_PUBLIC_ATLAS_SYNTHETIC_PREVIEW*` values that
+// Next.js inlines at build time, so there is nothing to keep in sync.
+const SYNTHETIC_PREVIEW_CONFIG = resolveSyntheticPreviewConfig();
 
 /** Reject the PMTiles reachability probe if it hangs — never block the map. */
 const PMTILES_PROBE_TIMEOUT_MS = 8000;
@@ -295,6 +307,35 @@ export function GlowMap({
     citySource?.setData(presenceGeoJson.city as unknown as GeoJSON.FeatureCollection);
     suburbSource?.setData(presenceGeoJson.suburb as unknown as GeoJSON.FeatureCollection);
   }, [mapLoaded, presenceGeoJson]);
+
+  // Synthetic Atlas Preview: generation is pure but not free (~5,000 seeded,
+  // rejection-sampled points — see docs/GlowAtlas.md's perf notes), so it
+  // deliberately runs *after* `mapLoaded` rather than inside the `mapStyle`
+  // build above — the real map (basemap, state polygons, real presence)
+  // always paints first; this ambient layer fades in shortly after,
+  // never delaying the map's own first paint. Added exactly once per mount
+  // (`syntheticPreviewAddedRef`) via `addSource`/`addLayer`, never rebuilt —
+  // the config (env-resolved, static for the session) can't change without
+  // a full page reload, so there is no update path to wire beyond this.
+  // Inserted with an explicit `beforeId` so real presence (added when the
+  // style itself was built) always paints on top of these, never under.
+  const syntheticPreviewAddedRef = useRef(false);
+  useEffect(() => {
+    if (!mapLoaded || !SYNTHETIC_PREVIEW_CONFIG.enabled || syntheticPreviewAddedRef.current) {
+      return;
+    }
+    const map = mapRef.current?.getMap();
+    if (!map) return;
+    syntheticPreviewAddedRef.current = true;
+
+    const geojson = buildSyntheticPreviewGeoJson({ count: SYNTHETIC_PREVIEW_CONFIG.pointCount });
+    map.addSource(GLOW_SYNTHETIC_PREVIEW_SOURCE_ID, {
+      type: "geojson",
+      data: geojson as unknown as GeoJSON.FeatureCollection,
+    });
+    map.addLayer(syntheticPreviewHeatmapLayer(), GLOW_PRESENCE_STATE_HALO_LAYER_ID);
+    map.addLayer(syntheticPreviewGlowLayer(), GLOW_PRESENCE_STATE_HALO_LAYER_ID);
+  }, [mapLoaded]);
 
   // Logical hierarchy (Checkpoint C item 6): only the presence layer pair
   // for the current level is visible — country shows state-level presence,

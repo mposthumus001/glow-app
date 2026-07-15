@@ -1,6 +1,7 @@
 import type {
   CircleLayerSpecification,
   FillLayerSpecification,
+  HeatmapLayerSpecification,
   LineLayerSpecification,
   StyleSpecification,
 } from "maplibre-gl";
@@ -54,6 +55,25 @@ export const GLOW_PRESENCE_LAYER_IDS = [
   GLOW_PRESENCE_SUBURB_HALO_LAYER_ID,
   GLOW_PRESENCE_SUBURB_CORE_LAYER_ID,
 ] as const;
+
+/**
+ * Synthetic Atlas Preview (see syntheticAtlasData.ts). Deliberately *not*
+ * baked into `buildGlowMapStyle()` below — the ~5,000-point generation is
+ * pure but not free (see docs/GlowAtlas.md's perf notes), and folding it
+ * into the initial style would delay the very first paint of the whole map.
+ * GlowMap.tsx instead calls `map.addSource()`/`map.addLayer()` for these
+ * once, imperatively, right after `mapLoaded` — same "never rebuild the
+ * style/source for this" spirit as the presence sources' `setData` calls,
+ * just an additive one-time add instead of a repeated update. Never added
+ * to `interactiveLayerIds` anywhere, and never given a `promoteId` — there
+ * is deliberately no way to click, hover, or select a synthetic light.
+ */
+export const GLOW_SYNTHETIC_PREVIEW_SOURCE_ID = "glow-synthetic-preview";
+export const GLOW_SYNTHETIC_PREVIEW_HEATMAP_LAYER_ID = "glow-synthetic-preview-heatmap";
+export const GLOW_SYNTHETIC_PREVIEW_GLOW_LAYER_ID = "glow-synthetic-preview-glow";
+
+/** Cool, dim, distinctly *not* the warm real-presence palette (`GLOW_PRESENCE_*_COLOR` above) — a synthetic light should never be mistaken for a real one at a glance. */
+const GLOW_SYNTHETIC_PREVIEW_COLOR = "#7c8cff";
 
 const GLOW_NAVY_BACKGROUND = "#060914";
 const GLOW_STATE_FILL = "#b694ff";
@@ -233,6 +253,86 @@ function presenceCoreLayer(
         3,
         1.2,
       ) as unknown as number,
+    },
+  };
+}
+
+/**
+ * Restrained, atmospheric density at country zoom — never individual dots
+ * at this scale, per the "no numbered cluster bubbles, no giant blob" brief.
+ * Fades out (`heatmap-opacity` → 0, and a hard `maxzoom`) well before state
+ * zoom, handing off to `syntheticPreviewGlowLayer` below.
+ */
+export function syntheticPreviewHeatmapLayer(): HeatmapLayerSpecification {
+  return {
+    id: GLOW_SYNTHETIC_PREVIEW_HEATMAP_LAYER_ID,
+    type: "heatmap",
+    source: GLOW_SYNTHETIC_PREVIEW_SOURCE_ID,
+    maxzoom: 8,
+    paint: {
+      "heatmap-color": [
+        "interpolate",
+        ["linear"],
+        ["heatmap-density"],
+        0,
+        "rgba(16,20,40,0)",
+        0.3,
+        "rgba(70,90,190,0.22)",
+        0.7,
+        "rgba(110,140,255,0.32)",
+        1,
+        "rgba(150,175,255,0.42)",
+      ],
+      "heatmap-intensity": ["interpolate", ["linear"], ["zoom"], 2.5, 0.55, 6, 0.3] as unknown as number,
+      "heatmap-radius": ["interpolate", ["linear"], ["zoom"], 2.5, 10, 6, 22] as unknown as number,
+      "heatmap-opacity": [
+        "interpolate",
+        ["linear"],
+        ["zoom"],
+        2.5,
+        0.55,
+        5.5,
+        0.4,
+        7,
+        0.1,
+        8,
+        0,
+      ] as unknown as number,
+    },
+  };
+}
+
+/**
+ * Individual soft ambient lights, taking over from the heatmap once the
+ * camera moves into a state/city — dimmer, smaller, and more blurred than
+ * any real-presence halo/core circle so they read as calm background
+ * texture, never as a disclosed light. No `intensity`/count-scaling (unlike
+ * `presenceHaloLayer`/`presenceCoreLayer` above) — every synthetic point is
+ * visually identical, since there is no real aggregate behind any of them.
+ */
+export function syntheticPreviewGlowLayer(): CircleLayerSpecification {
+  return {
+    id: GLOW_SYNTHETIC_PREVIEW_GLOW_LAYER_ID,
+    type: "circle",
+    source: GLOW_SYNTHETIC_PREVIEW_SOURCE_ID,
+    minzoom: 4.5,
+    paint: {
+      "circle-color": GLOW_SYNTHETIC_PREVIEW_COLOR,
+      "circle-blur": 0.75,
+      "circle-opacity": [
+        "interpolate",
+        ["linear"],
+        ["zoom"],
+        4.5,
+        0,
+        6,
+        0.16,
+        9,
+        0.26,
+        13,
+        0.3,
+      ] as unknown as number,
+      "circle-radius": ["interpolate", ["linear"], ["zoom"], 4.5, 1.2, 8, 2, 13, 2.6] as unknown as number,
     },
   };
 }

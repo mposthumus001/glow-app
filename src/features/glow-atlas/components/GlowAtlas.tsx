@@ -9,6 +9,10 @@ import { useMapClusterPresence } from "../hooks/useMapClusterPresence";
 import type { MapClusterConnection } from "../hooks/useMapClusterPresence";
 import type { BasemapStatusResult } from "../map/basemapStatus";
 import type { CameraSelectionInput } from "../map/camera";
+import {
+  resolveSyntheticPreviewConfig,
+  SYNTHETIC_PREVIEW_DISCLOSURE_TEXT,
+} from "../map/syntheticPreviewConfig";
 import type { AtlasPresence } from "../types";
 import { cn } from "@/lib/utils/cn";
 
@@ -33,6 +37,12 @@ export type GlowAtlasProps = {
   caption?: string;
   helperText?: string;
 };
+
+// Resolved once per module load, from a direct `process.env.NEXT_PUBLIC_...`
+// literal (see syntheticPreviewConfig.ts's header for why that matters) —
+// GlowMap.tsx independently resolves the same flags for the actual point
+// generation; this copy only ever drives the outside-canvas disclosure text.
+const SYNTHETIC_PREVIEW_CONFIG = resolveSyntheticPreviewConfig();
 
 const DEFAULT_CAPTION = "Every light is another parent awake right now.";
 const EMPTY_CAPTION = "Your light still matters.";
@@ -222,6 +232,14 @@ export function GlowAtlas({
               </>
             ) : null}
           </p>
+          {SYNTHETIC_PREVIEW_CONFIG.enabled ? (
+            // Item 7: a calm, explicit disclosure — never folded into the
+            // live-count caption above, and never phrased as "parents
+            // awake" or "live users" (see syntheticPreviewConfig.ts).
+            <p className="mt-1 text-center text-[11px] italic tracking-wide text-glow-text-tertiary/80">
+              {SYNTHETIC_PREVIEW_DISCLOSURE_TEXT}
+            </p>
+          ) : null}
         </div>
       </div>
     </section>

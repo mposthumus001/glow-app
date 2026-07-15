@@ -39,6 +39,9 @@ map/stateBounds.ts              per-state camera bbox derived from the real
                                  GeoJSON polygons (see Camera below)
 map/presenceGeoJson.ts          AtlasPresence → privacy-safe GeoJSON
                                  FeatureCollections (state/city/suburb)
+map/syntheticAtlasData.ts       deterministic seeded ambient-point generator
+                                 (renderer-only; never touches real presence)
+map/syntheticPreviewConfig.ts   env flag + count parsing + disclosure copy
 hooks/useGlowAtlas.ts           selection/breadcrumb/back state machine +
                                  badge disclosure (unchanged data model from
                                  before the MapLibre migration)
@@ -47,8 +50,8 @@ hooks/useGlowAtlas.ts           selection/breadcrumb/back state machine +
 Only `map/GlowMap.tsx` and `map/GlowMapBadges.tsx` import MapLibre/
 `react-map-gl` — every other module above is plain, SSR-safe TypeScript with
 no rendering-library dependency, which is what keeps `camera.ts`,
-`stateBounds.ts`, and `presenceGeoJson.ts` directly unit-testable with the
-project's plain `node --test` runner.
+`stateBounds.ts`, `presenceGeoJson.ts`, and `syntheticAtlasData.ts`
+directly unit-testable with the project's plain `node --test` runner.
 
 ## Geographic data — source & licence
 
@@ -289,21 +292,86 @@ imports:
 shared components — all still have real, live importers (see Known risks
 below for the specific reason `zoom.ts` survives).
 
-## Performance
+## Synthetic Atlas Preview (beta ambient density)
 
-- MapLibre initializes exactly once per mounted `<GlowAtlas>` (`GlowMap.tsx`
-  creates the `Map` instance in a single `useEffect` with an empty
-  dependency array); logical selection changes and realtime presence ticks
-  never rebuild the style or reinitialize WebGL.
-- Realtime presence updates use `source.setData(...)`, never a source
-  removal/recreation or a full `setStyle()`.
-- `GlowMapBadges` is memoised (`React.memo`), and its inputs
-  (`stateBadges`/`cityBadges`/`suburbBadges`, `onSelect*` callbacks) are
-  already stable `useMemo`/`useCallback` values from `useGlowAtlas`, so
-  transient `GlowMap` re-renders (e.g. hover cursor state) don't rebuild
-  every `<Marker>`.
-- Selected-feature emphasis uses `map.setFeatureState`, never a source
-  replacement.
+When only a handful of real users are online, the map can look empty. An
+optional **Synthetic Atlas Preview** fills that visual gap with ~5,000
+deterministic ambient lights around Australian population centres — without
+ever inventing fake users, fake database rows, or fake live counts.
+
+### Truthfulness (non-negotiable)
+
+Synthetic lights are **never** real users or real live presence. The
+generator (`map/syntheticAtlasData.ts`) has zero imports from
+`AtlasPresence`, `mapClustersToPresence`, `useMapClusterPresence`,
+`useGlowAtlas`, Supabase, or any realtime/database code. It cannot see real
+data even by accident. Consequences of that separation:
+
+- Real badges, captions (`"N parents awake…"`), and state/city/suburb
+  counts are untouched — synthetic points never create badges, never alter
+  counts, and never feed `buildPresenceGeoJson`.
+- Feature properties are only `{ synthetic: true }` — no count, no label,
+  no place-name id a future style could accidentally surface as "alive".
+- Synthetic layers are **not** in `interactiveLayerIds` — clicking one is a
+  no-op by construction.
+- Whenever the preview is enabled, a calm disclosure sits **outside** the
+  canvas: `"Atlas preview · Simulated community density"`. It is never
+  labelled "parents awake", "live users", or anything implying real
+  activity.
+
+### Configuration
+
+| Env var | Meaning |
+|---------|---------|
+| `NEXT_PUBLIC_ATLAS_SYNTHETIC_PREVIEW` | Exact `"true"` or `"1"` enables; anything else (or unset) keeps it off. Same rule in every environment — local, preview/beta, and production never turn it on implicitly. |
+| `NEXT_PUBLIC_ATLAS_SYNTHETIC_PREVIEW_COUNT` | Optional override of the default **5000** points; clamped to `SYNTHETIC_PREVIEW_MAX_COUNT` (**8000**). |
+
+See `.env.example`. Disable in production once real presence is meaningful.
+
+### Generation algorithm
+
+1. Pick a state by `SYNTHETIC_STATE_WEIGHTS` (NSW 31, VIC 26, QLD 20, WA 11,
+   SA 7, TAS 2, ACT 2, NT 1 — population-proportional, configurable).
+2. Within that state, pick a center: a named city from `atlasCities`
+   (weighted by each city's catalog `weight`) or a regional/rest-of-state
+   fallback anchored on the state's landmass centroid
+   (`REGIONAL_WEIGHT_FRACTION = 0.25`).
+3. Offset with an independent 2D Gaussian (`seededGaussian`), sized by a
+   per-center spread in kilometres (tight for CBDs, wider for regional).
+4. Reject candidates outside the assigned state's real polygon (ray-cast
+   PIP against `australia-states.geojson`) and retry with a shrinking
+   spread — keeps points on land and inside the right border.
+
+Every draw is a pure hash of a versioned seed (`SYNTHETIC_PREVIEW_SEED_VERSION
+= "v1"`), so the same seed always reproduces the same point set. Generation
+is cached at module scope for the `(seed, count)` pair — never regenerated
+on render or realtime ticks. Required metros (Sydney/Newcastle/Wollongong,
+Melbourne/Geelong/Ballarat/Bendigo, Brisbane/Gold Coast/Sunshine Coast/
+Townsville/Cairns, Perth/Bunbury, Adelaide, Hobart/Launceston, Canberra,
+Darwin/Alice Springs) all come from the existing city catalog.
+
+### Visual layers (WebGL only — never 5,000 React Markers)
+
+`GlowMap.tsx` adds a dedicated source (`glow-synthetic-preview`) **once**
+after `mapLoaded`, inserting layers *below* real presence
+(`beforeId: glow-presence-state-halo`) so real lights always paint on top:
+
+- **Country zoom** — restrained cool-blue heatmap (`#7c8cff` family),
+  fading out by zoom ~8. No numbered cluster bubbles.
+- **State/city zoom** — individual soft, blurred circle lights (minzoom
+  ~4.5), dimmer and cooler than warm real-presence halos/cores.
+
+Layers are never baked into `buildGlowMapStyle` — when the flag is off, no
+synthetic source or layer exists on the map at all.
+
+### Perf notes
+
+- ~5,000 Point features; GeoJSON is on the order of a few hundred KB
+  (measure with `JSON.stringify(buildSyntheticPreviewGeoJson()).length`).
+- Generation cost is paid once per page load (after first paint), not on
+  every presence tick.
+- Style is never rebuilt for the preview; only `addSource`/`addLayer`
+  once when enabled.
 
 ## Privacy preservation
 

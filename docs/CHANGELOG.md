@@ -2,6 +2,30 @@
 
 ## Unreleased
 
+### Synthetic Atlas Preview (beta ambient density)
+
+Optional, renderer-only ambient lights (~5,000 by default) so the Atlas
+still feels visually alive while real beta presence is sparse. See
+`docs/GlowAtlas.md` → Synthetic Atlas Preview.
+
+#### Added
+- `map/syntheticAtlasData.ts` — deterministic, seeded, population-weighted
+  point generator with state-polygon containment; module-level cache;
+  GeoJSON properties are only `{ synthetic: true }`.
+- `map/syntheticPreviewConfig.ts` — `NEXT_PUBLIC_ATLAS_SYNTHETIC_PREVIEW`
+  / `_COUNT` parsing, 5000 default / 8000 cap, disclosure copy
+  (`"Atlas preview · Simulated community density"`).
+- Dedicated MapLibre source/layers (`glow-synthetic-preview` heatmap +
+  soft glow), cool/dim vs warm real presence, inserted below presence,
+  never interactive; disclosure rendered outside the canvas in
+  `GlowAtlas.tsx`.
+- Pure tests: allocation, determinism, containment, isolation from
+  `buildPresenceGeoJson`, style never bakes synthetic in when disabled.
+
+#### Truthfulness
+- Zero coupling to Auth, `map_clusters`, `AtlasPresence`, realtime, badges,
+  or live captions — no fake DB rows or fake users.
+
 ### Glow Atlas MapLibre Replacement (Checkpoints A–E)
 
 Replaces the SVG-illustration Glow Atlas (previous "Glow Atlas Redesign"
