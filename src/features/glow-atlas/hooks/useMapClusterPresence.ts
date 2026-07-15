@@ -7,9 +7,18 @@ import { createClient } from "@/lib/supabase/client";
 
 import {
   mapClustersToPresence,
+  reconcilePresence,
   type MapClusterPublicRow,
 } from "../data/mapClustersToPresence";
 import type { AtlasPresence } from "../types";
+
+/**
+ * Explicit column list — `approximate_lat`/`approximate_lng` exist on the
+ * view but are never used client-side (see mapClustersToPresence.ts), so
+ * they're deliberately excluded from the wire payload.
+ */
+const MAP_CLUSTER_PUBLIC_COLUMNS =
+  "id, level, state, suburb_area, online_count, updated_at";
 
 export type MapClusterConnection = "live" | "reconnecting" | "idle";
 
@@ -36,7 +45,7 @@ async function fetchMapClusters(): Promise<ClusterFetchResult> {
   const supabase = createClient();
   const { data, error: fetchError } = await supabase
     .from("map_cluster_public")
-    .select("*");
+    .select(MAP_CLUSTER_PUBLIC_COLUMNS);
 
   if (fetchError) {
     return { ok: false, error: fetchError.message };
@@ -80,6 +89,7 @@ export function useMapClusterPresence(
   const [lastUpdatedAt, setLastUpdatedAt] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const disposedRef = useRef(false);
+  const presenceRef = useRef<AtlasPresence>(presence);
 
   const applyFetchResult = useCallback((result: ClusterFetchResult) => {
     if (disposedRef.current) return;
@@ -91,7 +101,11 @@ export function useMapClusterPresence(
     }
 
     const mapped = mapClustersToPresence(result.rows);
-    setPresence(mapped.presence);
+    // Reuse unchanged field references so a no-op realtime tick doesn't
+    // invalidate every disclosure/light useMemo downstream in useGlowAtlas.
+    const stable = reconcilePresence(presenceRef.current, mapped.presence);
+    presenceRef.current = stable;
+    setPresence(stable);
     setCountryCount(mapped.countryCount);
     setLastUpdatedAt(Date.now());
     setError(null);

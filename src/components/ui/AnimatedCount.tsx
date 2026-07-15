@@ -13,6 +13,14 @@ export type AnimatedCountProps = {
   style?: React.CSSProperties;
   /** Screen reader label prefix, e.g. "2 parents awake" */
   "aria-label"?: string;
+  /**
+   * Whether this element owns its own `aria-live` announcement.
+   * Default true for standalone use. Set false when an ancestor already
+   * exposes an equivalent live region or label (e.g. a badge button's own
+   * `aria-label`, or a wrapping `<p aria-live>`) — otherwise the count
+   * change gets announced twice on every realtime tick.
+   */
+  announce?: boolean;
 };
 
 function easeOutCubic(t: number): number {
@@ -29,6 +37,7 @@ export function AnimatedCount({
   className,
   style,
   "aria-label": ariaLabel,
+  announce = true,
 }: AnimatedCountProps) {
   const reducedMotion = useGlowReducedMotion();
   const [display, setDisplay] = useState(value);
@@ -74,13 +83,17 @@ export function AnimatedCount({
 
   const shown = reducedMotion ? value : display;
 
+  // When `announce` is false, this renders as plain text with no live
+  // region or overriding label of its own — it relies on an ancestor
+  // (a labelled button, or a wrapping `aria-live` element) to expose the
+  // count to assistive tech exactly once instead of twice.
   return (
     <span
       className={cn("tabular-nums", className)}
       style={style}
-      aria-label={ariaLabel ?? String(shown)}
-      aria-live="polite"
-      aria-atomic="true"
+      aria-label={announce ? ariaLabel ?? String(shown) : undefined}
+      aria-live={announce ? "polite" : undefined}
+      aria-atomic={announce ? true : undefined}
     >
       {shown.toLocaleString()}
     </span>

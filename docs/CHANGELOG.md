@@ -1,5 +1,141 @@
 # Changelog
 
+## Unreleased
+
+### Glow Atlas MapLibre Replacement (Checkpoints A–E)
+
+Replaces the SVG-illustration Glow Atlas (previous "Glow Atlas Redesign"
+entry below) with a real MapLibre GL JS map. See `docs/GlowAtlas.md` for the
+full architecture record.
+
+#### Added
+- MapLibre GL JS map (`react-map-gl/maplibre`), client-only via
+  `next/dynamic`; local Australia states GeoJSON (Natural Earth 1:10m,
+  public domain — `data/geo/`) as the always-present base layer, with an
+  optional PMTiles context layer and graceful fallback.
+- `map/camera.ts` + `map/stateBounds.ts` — pure, node-testable `fitBounds`
+  target calculation from real geographic bounds; geometry/proximity-based
+  per-state camera bbox (excludes ACT's remote Jervis Bay Territory exclave,
+  includes Tasmania's legitimate nearby islands); responsive
+  level-aware padding; global + per-level zoom ceilings; Australia
+  `maxBounds`; reduced-motion-aware instant/900ms transitions.
+- `map/presenceGeoJson.ts` — privacy-safe `AtlasPresence` → GeoJSON
+  transform (state/city/suburb `FeatureCollection`s); suburb features
+  enforce the `MIN_SUBURB_PRESENCE_COUNT` (`= 5`) floor
+  (`utils/privacyConstants.ts`, shared with `useGlowAtlas`); halo + core
+  circle GL layers with count-scaled, capped intensity; realtime
+  `source.setData` updates with no style/map reinitialization.
+- `map/GlowMapBadges.tsx` — the small set of disclosed, interactive
+  state/city/suburb badges as MapLibre `<Marker>`s positioned by real `geo`
+  coordinates; a national-specific label layout (fixed per-state pixel
+  offsets, zero overlap/edge-overflow verified at 360/390/430px + desktop)
+  keeping all 8 states/territories visible at country level, plus an
+  external leader-line badge for ACT.
+- `map/GlowMapChrome.tsx` — breadcrumbs, Back, and a keyboard-accessible
+  Reset-to-Australia control, outside the map's own pan/zoom coordinate
+  space.
+- Corrected ACT geometry: regenerated `data/geo/australia-states.geojson`
+  from Natural Earth's 1:10m (vs. previous 1:50m) admin-1 dataset — ACT went
+  from a ~20-vertex blob to a recognisable 157-vertex Canberra territory.
+- New tests: `camera.test.ts`, `stateBounds.test.ts`, `presenceGeoJson.test.ts`,
+  `glowMapStyle.test.ts`, `australiaStatesGeoJson.test.ts`,
+  `mapClustersToPresence.test.ts` (privacy boundary coverage: suburb counts
+  0/4/5, duplicate-row aggregation, and a serialization check that
+  `approximate_lat`/`approximate_lng` never reach `AtlasPresence`).
+
+#### Changed
+- `AttributionControl` moved to `bottom-left` (was MapLibre's default
+  `bottom-right`), which was overlapping the Tasmania national badge at
+  360/390px whenever PMTiles was active.
+- City/suburb levels no longer render the selected state as a large opaque
+  fill slab — fill is reduced to a near-invisible contextual boundary at
+  those levels so presence lights and disclosed badges stay the visual
+  focus.
+- "Showing simplified map" moved from an in-canvas overlay to a status line
+  below the map card, alongside the existing privacy/helper text.
+- The MapLibre default compass/navigation control is not rendered at all
+  (the custom Reset-to-Australia control replaces it); only the contained,
+  compact `AttributionControl` remains as a map control.
+
+#### Removed
+- The SVG rendering path this MapLibre implementation replaces:
+  `GlowAtlasSVG.tsx`, `BaseMapLayer.tsx`, `GlowLightLayer.tsx`,
+  `OverlayLayer.tsx`, their SVG/licence assets, and the one-off scripts that
+  generated/validated them (`build-glow-atlas-svg.mjs`,
+  `generate-australia-map-svg.mjs`, `validate-atlas-anchors.mjs`,
+  `build-au10m-states.mjs`). See `docs/GlowAtlas.md` for the full list and
+  the confirmation process (repository-wide reference search before each
+  deletion).
+- `src/features/glow-map/` — a separate, unreferenced legacy prototype
+  directory with zero live imports anywhere in the app.
+- The temporary `/qa-glowmap-refine` QA harness route.
+- Stale `GlowAtlasSVG`/`ATLAS_SVG_VIEWBOX`/`BaseMapLayer`/`GlowLightLayer`/
+  `OverlayLayer` exports from `features/glow-atlas/index.ts`.
+
+#### Performance
+- MapLibre initializes exactly once per mounted `<GlowAtlas>`; realtime
+  presence ticks use `source.setData` only, never a style rebuild.
+- `GlowMapBadges` memoised; selected-feature emphasis uses
+  `map.setFeatureState`, never a source replacement.
+
+#### Accessibility
+- MapLibre canvas kept `aria-hidden`/quiet for screen readers; the caption
+  outside the canvas is the one non-`aria-live` textual activity summary;
+  `GlowAtlasLiveStatus` remains the only actively-announced region, avoiding
+  duplicate announcements.
+- Every interactive control (badges, Back, Reset, breadcrumbs) has a visible
+  focus ring and a clear accessible name; keyboard users can reach and
+  activate all of them.
+
+### Glow Atlas Redesign (Checkpoints A–E)
+
+#### Added
+- Real lat/lng projection pipeline (`utils/projection.ts`) — `latLngToPercent`
+  calibrated against `AU_GEO_BOUNDS`, with a documented, optional
+  `displayOffset` (dx/dy + required `reason`) for coastal clipping, badge
+  collision, or readability exceptions.
+- `states.ts`/`cities.ts`/`suburbs.ts` migrated to a `geo`-first builder
+  pattern (`defineState`/`defineCity`/`defineSuburb`); all screen anchors are
+  now derived, not hand-eyeballed.
+- `featured`/`featuredPriority` data fields replacing the VIC/Melbourne-only
+  disclosure allowlists with a generic preferred-then-top-N mechanism
+  (`deriveFeaturedIds`, `utils/disclosure.ts`).
+- Real badge collision footprint, top-chrome exclusion band, and a capped
+  country-level collision pass (previously unbounded/no collision at all).
+- Materially redesigned visual treatment: unified cross-map SVG gradients,
+  active/selected state hierarchy, candle-like layered-halo lights, warmer
+  glass badges with a presence-dot, and a wider/lower-padding mobile card so
+  the map reads as the Tonight screen's hero feature at 360–430px.
+- `zoomTransitionFor()` / `UI_FADE_TRANSITION` — reduced-motion-aware zoom
+  reposition transition and a shared 350ms/`easeOut` chrome-fade token
+  (aligned with `docs/STYLEGUIDE.md`).
+- Client-side k-anonymity re-check (`MIN_SUBURB_CLUSTER_SIZE`), stable
+  `AtlasPresence` field references across realtime ticks (`reconcilePresence`),
+  and normalized/longest-match suburb matching (`matchSuburb.ts`).
+- New tests: `projection.test.ts`, `disclosure.test.ts`, `matchSuburb.test.ts`.
+
+#### Changed
+- `AnimatedCount` gained an `announce` prop so nested counts inside an
+  already-labelled badge/paragraph stop double-announcing to screen readers.
+- All interactive Atlas controls (badges, back button, breadcrumbs) now show
+  a visible focus ring.
+- `suburbCounts` aggregation now accumulates like `cityCounts` instead of
+  overwriting, fixing a silent undercount when two raw labels fuzzy-match the
+  same Atlas suburb.
+- `useMapClusterPresence` selects an explicit column list instead of `*`,
+  dropping unused `approximate_lat`/`approximate_lng` from the wire payload.
+
+#### Removed
+- Dead components superseded by `BaseMapLayer`/`GlowLightLayer`/
+  `OverlayLayer`: `GlowLights`, `GlowTransition`, `GlowStateLayer`,
+  `GlowCityLayer`, `GlowSuburbLayer`, `StateHitLayer` (its focus-ring pattern
+  was ported forward before deletion).
+
+#### Performance
+- `BaseMapLayer`, `GlowLightLayer`, `OverlayLayer`, and `GlowBadge` are all
+  memoised, with stable callback props from `OverlayLayer` so the
+  memoisation is actually effective on realtime ticks.
+
 ## Milestone 2 – Glow Atlas
 
 ### Added

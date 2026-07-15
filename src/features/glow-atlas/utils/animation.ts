@@ -28,6 +28,28 @@ export const breatheKeyframes = {
   scale: [0.85, 1.35, 0.9, 1.2, 0.85],
 };
 
+/**
+ * Generic chrome fade — the global 350ms/easeOut standard from
+ * docs/STYLEGUIDE.md. Use for simple show/hide UI (level-group fades, the
+ * back button) that isn't part of the presence family below or the
+ * geographic zoom camera in `utils/zoom.ts` (both of which intentionally
+ * use their own slower, calmer curves — documented at their definitions).
+ */
+export const UI_FADE_TRANSITION = {
+  duration: 0.35,
+  ease: "easeOut",
+} as const;
+
+/**
+ * Reduced-motion variant of `UI_FADE_TRANSITION` (Checkpoint D, item 2) —
+ * Back/Reset still appear and disappear instantly with the correct final
+ * opacity, they just skip the slide-in and the 350ms tween. Use alongside a
+ * `reducedMotion ? 0 : 6`-style position offset at the call site.
+ */
+export function uiFadeTransitionFor(reducedMotion: boolean) {
+  return reducedMotion ? { duration: 0 } : UI_FADE_TRANSITION;
+}
+
 /** Soft ease — presence updates should feel calm, never snappy */
 export const PRESENCE_EASE = [0.22, 1, 0.36, 1] as const;
 

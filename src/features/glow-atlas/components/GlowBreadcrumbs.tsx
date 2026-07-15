@@ -37,9 +37,11 @@ export function GlowBreadcrumbs({
             <button
               type="button"
               disabled={isLast}
+              aria-current={isLast ? "location" : undefined}
               onClick={() => onNavigate(item.level)}
               className={cn(
                 "truncate rounded-md px-1.5 py-0.5 text-[11px] font-medium tracking-wide transition-colors",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-glow-primary-light/60",
                 isLast
                   ? "cursor-default text-glow-text"
                   : "text-glow-text-secondary hover:bg-white/[0.06] hover:text-glow-text",

@@ -1,330 +1,380 @@
-import type { AtlasSuburb } from "../types";
+import type {
+  AtlasSuburb,
+  AuStateCode,
+  DisplayOffset,
+  FocusBounds,
+  GeoPoint,
+} from "../types.ts";
+import { resolveDisplayAnchor } from "../utils/projection.ts";
 
 /**
  * Suburb clusters — privacy-safe approximate centres only.
  * Melbourne is fully populated for the Level 3 demo drill-down.
  * Other major cities have a starter set for future expansion.
+ *
+ * `geo` is the real suburb coordinate (source of truth). Suburbs under a
+ * city that carries a `displayOffset` (Brisbane, Canberra) inherit the same
+ * offset so the whole city cluster shifts together and stays internally
+ * consistent — see `cities.ts` for the documented reason.
  */
+type SuburbInput = {
+  id: string;
+  name: string;
+  cityId: string;
+  state: AuStateCode;
+  geo: GeoPoint;
+  displayOffset?: DisplayOffset;
+  awakeCount: number;
+  spread: number;
+  focusScale: number;
+  featured?: boolean;
+  featuredPriority?: number;
+};
+
+function defineSuburb(input: SuburbInput): AtlasSuburb {
+  const anchor = resolveDisplayAnchor(input.geo, input.displayOffset);
+  const focus: FocusBounds = {
+    cx: anchor.x,
+    cy: anchor.y,
+    scale: input.focusScale,
+  };
+  return {
+    id: input.id,
+    name: input.name,
+    cityId: input.cityId,
+    state: input.state,
+    geo: input.geo,
+    displayOffset: input.displayOffset,
+    x: anchor.x,
+    y: anchor.y,
+    focus,
+    awakeCount: input.awakeCount,
+    spread: input.spread,
+    featured: input.featured,
+    featuredPriority: input.featuredPriority,
+  };
+}
+
+const ACT_OFFSET: DisplayOffset = {
+  dx: -0.5,
+  dy: -2.5,
+  reason:
+    "Inherits the Canberra/ACT display offset so Civic and Belconnen shift together with their city anchor.",
+};
+
+const BRISBANE_OFFSET: DisplayOffset = {
+  dx: 0,
+  dy: -1.5,
+  reason:
+    "Inherits the Brisbane display offset (QLD/NSW seam) so all Brisbane suburbs shift together with their city anchor.",
+};
+
 export const atlasSuburbs: AtlasSuburb[] = [
-  // —— Melbourne ——
-  {
+  // —— Melbourne —— (featured set preserved from the original curated allowlist)
+  defineSuburb({
     id: "mel-cbd",
     name: "CBD",
     cityId: "melbourne",
     state: "VIC",
-    x: 76.1,
-    y: 76.4,
+    geo: { lat: -37.8136, lng: 144.9631 },
     awakeCount: 42,
     spread: 0.35,
-    focus: { cx: 76.1, cy: 76.4, scale: 18 },
-  },
-  {
+    focusScale: 18,
+  }),
+  defineSuburb({
     id: "mel-docklands",
     name: "Docklands",
     cityId: "melbourne",
     state: "VIC",
-    x: 75.7,
-    y: 76.3,
+    geo: { lat: -37.8151, lng: 144.9457 },
     awakeCount: 18,
     spread: 0.3,
-    focus: { cx: 75.7, cy: 76.3, scale: 18 },
-  },
-  {
+    focusScale: 18,
+  }),
+  defineSuburb({
     id: "mel-richmond",
     name: "Richmond",
     cityId: "melbourne",
     state: "VIC",
-    x: 76.6,
-    y: 76.5,
+    geo: { lat: -37.8183, lng: 145.0011 },
     awakeCount: 28,
     spread: 0.32,
-    focus: { cx: 76.6, cy: 76.5, scale: 18 },
-  },
-  {
+    focusScale: 18,
+  }),
+  defineSuburb({
     id: "mel-footscray",
     name: "Footscray",
     cityId: "melbourne",
     state: "VIC",
-    x: 75.2,
-    y: 76.4,
+    geo: { lat: -37.8006, lng: 144.9004 },
     awakeCount: 22,
     spread: 0.32,
-    focus: { cx: 75.2, cy: 76.4, scale: 18 },
-  },
-  {
+    focusScale: 18,
+  }),
+  defineSuburb({
     id: "mel-dandenong",
     name: "Dandenong",
     cityId: "melbourne",
     state: "VIC",
-    x: 78.2,
-    y: 77.4,
+    geo: { lat: -37.9877, lng: 145.2151 },
     awakeCount: 31,
     spread: 0.4,
-    focus: { cx: 78.2, cy: 77.4, scale: 16 },
-  },
-  {
+    focusScale: 16,
+  }),
+  defineSuburb({
     id: "mel-sunshine",
     name: "Sunshine",
     cityId: "melbourne",
     state: "VIC",
-    x: 74.6,
-    y: 76.0,
+    geo: { lat: -37.788, lng: 144.8321 },
     awakeCount: 24,
     spread: 0.35,
-    focus: { cx: 74.6, cy: 76.0, scale: 17 },
-  },
-  {
+    focusScale: 17,
+  }),
+  defineSuburb({
     id: "mel-clayton",
     name: "Clayton",
     cityId: "melbourne",
     state: "VIC",
-    x: 77.4,
-    y: 77.2,
+    geo: { lat: -37.9151, lng: 145.1147 },
     awakeCount: 26,
     spread: 0.35,
-    focus: { cx: 77.4, cy: 77.2, scale: 17 },
-  },
-  {
+    focusScale: 17,
+  }),
+  defineSuburb({
     id: "mel-frankston",
     name: "Frankston",
     cityId: "melbourne",
     state: "VIC",
-    x: 77.8,
-    y: 78.6,
+    geo: { lat: -38.1418, lng: 145.1225 },
     awakeCount: 19,
     spread: 0.35,
-    focus: { cx: 77.8, cy: 78.6, scale: 16 },
-  },
-  {
+    focusScale: 16,
+    featured: true,
+    featuredPriority: 4,
+  }),
+  defineSuburb({
     id: "mel-box-hill",
     name: "Box Hill",
     cityId: "melbourne",
     state: "VIC",
-    x: 77.6,
-    y: 76.2,
+    geo: { lat: -37.8194, lng: 145.1219 },
     awakeCount: 21,
     spread: 0.32,
-    focus: { cx: 77.6, cy: 76.2, scale: 17 },
-  },
-  {
+    focusScale: 17,
+    featured: true,
+    featuredPriority: 1,
+  }),
+  defineSuburb({
     id: "mel-st-kilda",
     name: "St Kilda",
     cityId: "melbourne",
     state: "VIC",
-    x: 76.0,
-    y: 77.2,
+    geo: { lat: -37.8677, lng: 144.9811 },
     awakeCount: 17,
     spread: 0.28,
-    focus: { cx: 76.0, cy: 77.2, scale: 18 },
-  },
-  {
+    focusScale: 18,
+    featured: true,
+    featuredPriority: 3,
+  }),
+  defineSuburb({
     id: "mel-brunswick",
     name: "Brunswick",
     cityId: "melbourne",
     state: "VIC",
-    x: 75.9,
-    y: 75.7,
+    geo: { lat: -37.7663, lng: 144.9613 },
     awakeCount: 23,
     spread: 0.3,
-    focus: { cx: 75.9, cy: 75.7, scale: 18 },
-  },
-  {
+    focusScale: 18,
+  }),
+  defineSuburb({
     id: "mel-preston",
     name: "Preston",
     cityId: "melbourne",
     state: "VIC",
-    x: 76.3,
-    y: 75.4,
+    geo: { lat: -37.7398, lng: 145.0037 },
     awakeCount: 16,
     spread: 0.3,
-    focus: { cx: 76.3, cy: 75.4, scale: 18 },
-  },
+    focusScale: 18,
+    featured: true,
+    featuredPriority: 2,
+  }),
 
   // —— Sydney (starter) ——
-  {
+  defineSuburb({
     id: "syd-cbd",
     name: "CBD",
     cityId: "sydney",
     state: "NSW",
-    x: 96.6,
-    y: 60.4,
+    geo: { lat: -33.8688, lng: 151.2093 },
     awakeCount: 38,
     spread: 0.3,
-    focus: { cx: 96.6, cy: 60.4, scale: 18 },
-  },
-  {
+    focusScale: 18,
+  }),
+  defineSuburb({
     id: "syd-parramatta",
     name: "Parramatta",
     cityId: "sydney",
     state: "NSW",
-    x: 95.2,
-    y: 60.2,
+    geo: { lat: -33.8151, lng: 151.0011 },
     awakeCount: 34,
     spread: 0.35,
-    focus: { cx: 95.2, cy: 60.2, scale: 17 },
-  },
-  {
+    focusScale: 17,
+  }),
+  defineSuburb({
     id: "syd-bondi",
     name: "Bondi",
     cityId: "sydney",
     state: "NSW",
-    x: 97.4,
-    y: 60.8,
+    geo: { lat: -33.8915, lng: 151.2767 },
     awakeCount: 22,
     spread: 0.28,
-    focus: { cx: 97.4, cy: 60.8, scale: 18 },
-  },
-  {
+    focusScale: 18,
+  }),
+  defineSuburb({
     id: "syd-liverpool",
     name: "Liverpool",
     cityId: "sydney",
     state: "NSW",
-    x: 95.0,
-    y: 61.6,
+    geo: { lat: -33.92, lng: 150.9236 },
     awakeCount: 28,
     spread: 0.35,
-    focus: { cx: 95.0, cy: 61.6, scale: 17 },
-  },
-  {
+    focusScale: 17,
+  }),
+  defineSuburb({
     id: "syd-chatswood",
     name: "Chatswood",
     cityId: "sydney",
     state: "NSW",
-    x: 96.4,
-    y: 59.6,
+    geo: { lat: -33.7969, lng: 151.1817 },
     awakeCount: 19,
     spread: 0.28,
-    focus: { cx: 96.4, cy: 59.6, scale: 18 },
-  },
+    focusScale: 18,
+  }),
 
   // —— Brisbane (starter) ——
-  {
+  defineSuburb({
     id: "bne-cbd",
     name: "CBD",
     cityId: "brisbane",
     state: "QLD",
-    x: 95.5,
-    y: 48.0,
+    geo: { lat: -27.4698, lng: 153.0251 },
+    displayOffset: BRISBANE_OFFSET,
     awakeCount: 26,
     spread: 0.3,
-    focus: { cx: 95.5, cy: 48.0, scale: 17 },
-  },
-  {
+    focusScale: 17,
+  }),
+  defineSuburb({
     id: "bne-south-bank",
     name: "South Bank",
     cityId: "brisbane",
     state: "QLD",
-    x: 95.4,
-    y: 48.3,
+    geo: { lat: -27.4759, lng: 153.0189 },
+    displayOffset: BRISBANE_OFFSET,
     awakeCount: 14,
     spread: 0.25,
-    focus: { cx: 95.4, cy: 48.3, scale: 18 },
-  },
-  {
+    focusScale: 18,
+  }),
+  defineSuburb({
     id: "bne-fortitude",
     name: "Fortitude Valley",
     cityId: "brisbane",
     state: "QLD",
-    x: 95.7,
-    y: 47.8,
+    geo: { lat: -27.456, lng: 153.0344 },
+    displayOffset: BRISBANE_OFFSET,
     awakeCount: 16,
     spread: 0.25,
-    focus: { cx: 95.7, cy: 47.8, scale: 18 },
-  },
-  {
+    focusScale: 18,
+  }),
+  defineSuburb({
     id: "bne-chermside",
     name: "Chermside",
     cityId: "brisbane",
     state: "QLD",
-    x: 95.8,
-    y: 47.2,
+    geo: { lat: -27.3856, lng: 153.0306 },
+    displayOffset: BRISBANE_OFFSET,
     awakeCount: 18,
     spread: 0.3,
-    focus: { cx: 95.8, cy: 47.2, scale: 17 },
-  },
+    focusScale: 17,
+  }),
 
   // —— Perth (starter) ——
-  {
+  defineSuburb({
     id: "per-cbd",
     name: "CBD",
     cityId: "perth",
     state: "WA",
-    x: 6.5,
-    y: 67.4,
+    geo: { lat: -31.9505, lng: 115.8605 },
     awakeCount: 18,
     spread: 0.28,
-    focus: { cx: 6.5, cy: 67.4, scale: 16 },
-  },
-  {
+    focusScale: 16,
+  }),
+  defineSuburb({
     id: "per-fremantle",
     name: "Fremantle",
     cityId: "perth",
     state: "WA",
-    x: 5.8,
-    y: 68.2,
+    geo: { lat: -32.0569, lng: 115.7439 },
     awakeCount: 12,
     spread: 0.28,
-    focus: { cx: 5.8, cy: 68.2, scale: 16 },
-  },
-  {
+    focusScale: 16,
+  }),
+  defineSuburb({
     id: "per-joondalup",
     name: "Joondalup",
     cityId: "perth",
     state: "WA",
-    x: 6.2,
-    y: 65.8,
+    geo: { lat: -31.7448, lng: 115.7661 },
     awakeCount: 14,
     spread: 0.3,
-    focus: { cx: 6.2, cy: 65.8, scale: 16 },
-  },
+    focusScale: 16,
+  }),
 
   // —— Adelaide (starter) ——
-  {
+  defineSuburb({
     id: "adl-cbd",
     name: "CBD",
     cityId: "adelaide",
     state: "SA",
-    x: 58.5,
-    y: 70.9,
+    geo: { lat: -34.9285, lng: 138.6007 },
     awakeCount: 16,
     spread: 0.28,
-    focus: { cx: 58.5, cy: 70.9, scale: 17 },
-  },
-  {
+    focusScale: 17,
+  }),
+  defineSuburb({
     id: "adl-glenelg",
     name: "Glenelg",
     cityId: "adelaide",
     state: "SA",
-    x: 57.8,
-    y: 71.6,
+    geo: { lat: -34.9803, lng: 138.5108 },
     awakeCount: 10,
     spread: 0.25,
-    focus: { cx: 57.8, cy: 71.6, scale: 17 },
-  },
+    focusScale: 17,
+  }),
 
   // —— Canberra ——
-  {
+  defineSuburb({
     id: "cbr-civic",
     name: "Civic",
     cityId: "canberra",
     state: "ACT",
-    x: 86.0,
-    y: 67.9,
+    geo: { lat: -35.2809, lng: 149.13 },
+    displayOffset: ACT_OFFSET,
     awakeCount: 12,
     spread: 0.25,
-    focus: { cx: 86.0, cy: 67.9, scale: 20 },
-  },
-  {
+    focusScale: 20,
+  }),
+  defineSuburb({
     id: "cbr-belconnen",
     name: "Belconnen",
     cityId: "canberra",
     state: "ACT",
-    x: 85.4,
-    y: 67.5,
+    geo: { lat: -35.2384, lng: 149.0668 },
+    displayOffset: ACT_OFFSET,
     awakeCount: 9,
     spread: 0.25,
-    focus: { cx: 85.4, cy: 67.5, scale: 20 },
-  },
+    focusScale: 20,
+  }),
 ];
 
 export function getSuburbsForCity(cityId: string): AtlasSuburb[] {

@@ -42,6 +42,12 @@ supabase/ops/*.local.sql
 # vercel
 .vercel
 
+# Glow Atlas basemap archive — never commit or bundle into the deployment.
+# Production reads NEXT_PUBLIC_ATLAS_PMTILES_URL from CDN/object storage
+# instead. See docs/GlowAtlas.md and src/features/glow-atlas/map/ATTRIBUTION.md.
+*.pmtiles
+public/atlas/*.pmtiles
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

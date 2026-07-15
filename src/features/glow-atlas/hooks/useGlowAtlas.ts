@@ -10,13 +10,14 @@ import { atlasStates } from "../data/states";
 import { getState } from "../data/states";
 import { getSuburb, getSuburbsForCity } from "../data/suburbs";
 import { buildClusterLights, buildNeighbourhoodLights } from "../utils/cluster";
+import { MIN_SUBURB_PRESENCE_COUNT } from "../utils/privacyConstants";
 import {
   applyViewportCollision,
+  BADGE_COLLISION,
   discloseCityBadges,
+  discloseStateBadges,
   discloseSuburbBadges,
-  MELBOURNE_PREFERRED_SUBURB_IDS,
   resolveBadgeTargetId,
-  VIC_PREFERRED_CITY_IDS,
 } from "../utils/disclosure";
 import { focusToTransform, projectOverlayPoint } from "../utils/zoom";
 import type {
@@ -141,7 +142,7 @@ export function useGlowAtlas(
 
   const transform = useMemo(() => focusToTransform(focus), [focus]);
 
-  const stateBadges: AtlasBadge[] = useMemo(
+  const allStateBadges: AtlasBadge[] = useMemo(
     () =>
       Object.entries(presence.stateCounts)
         .filter(([, count]) => count > 0)
@@ -158,6 +159,25 @@ export function useGlowAtlas(
     [presence.stateCounts],
   );
 
+  // Country level always shows every awake state — there are at most eight,
+  // a fixed, known set of real geographic anchors, never a dynamic top-N
+  // problem the way city/suburb disclosure is. Checkpoint C's visual review
+  // found the generic viewport-collision pass (designed for city/suburb's
+  // *variable* candidate lists) was silently demoting SA/NT/ACT to
+  // unlabelled lights at common card widths — an active state must never be
+  // silently dropped. The MapLibre renderer instead applies a national,
+  // declarative per-state pixel nudge (+ an ACT leader line) at render time
+  // — see `NATIONAL_LABEL_OFFSET` in `map/GlowMapBadges.tsx` — so no
+  // viewport-space collision math runs here at all for this level.
+  const stateDisclosure = useMemo(() => {
+    if (selection.currentLevel !== "country") {
+      return { badges: [] as AtlasBadge[], lightOnly: [] as AtlasBadge[] };
+    }
+    return discloseStateBadges(allStateBadges);
+  }, [allStateBadges, selection.currentLevel]);
+
+  const stateBadges = stateDisclosure.badges;
+
   const allCityBadges: AtlasBadge[] = useMemo(
     () =>
       cities
@@ -167,6 +187,8 @@ export function useGlowAtlas(
           count: presence.cityCounts[city.id] ?? 0,
           x: city.x,
           y: city.y,
+          featured: city.featured,
+          featuredPriority: city.featuredPriority,
         }))
         .filter((badge) => badge.count > 0),
     [cities, presence.cityCounts],
@@ -181,8 +203,14 @@ export function useGlowAtlas(
           count: presence.suburbCounts[suburb.id] ?? 0,
           x: suburb.x,
           y: suburb.y,
+          featured: suburb.featured,
+          featuredPriority: suburb.featuredPriority,
         }))
-        .filter((badge) => badge.count > 0),
+        // Same k-anonymity floor as presenceGeoJson.ts's suburb features —
+        // defense-in-depth here too, since `presence` can be supplied
+        // directly (tests/Storybook/QA), bypassing mapClustersToPresence.ts's
+        // own floor. A suburb badge must never disclose an identifiable count.
+        .filter((badge) => badge.count >= MIN_SUBURB_PRESENCE_COUNT),
     [presence.suburbCounts, suburbs],
   );
 
@@ -191,60 +219,41 @@ export function useGlowAtlas(
       return { badges: [] as AtlasBadge[], lightOnly: [] as AtlasBadge[] };
     }
 
-    const preferredIds =
-      selection.selectedState === "VIC" ? VIC_PREFERRED_CITY_IDS : [];
+    // Preference is derived from each city's own `featured` data (see
+    // cities.ts) rather than a hardcoded per-state allowlist, so any state
+    // can have a curated disclosure order without a new code branch.
+    const disclosed = discloseCityBadges(allCityBadges, { max: 5 });
 
-    const disclosed = discloseCityBadges(allCityBadges, {
-      max: 5,
-      preferredIds,
-    });
-
-    const collided = applyViewportCollision(disclosed.badges, (badge) =>
-      projectOverlayPoint(badge.x, badge.y, focus),
+    const collided = applyViewportCollision(
+      disclosed.badges,
+      (badge) => projectOverlayPoint(badge.x, badge.y, focus),
+      { footprint: BADGE_COLLISION.city },
     );
 
     return {
       badges: collided.badges,
       lightOnly: [...disclosed.lightOnly, ...collided.lightOnly],
     };
-  }, [
-    allCityBadges,
-    focus,
-    selection.currentLevel,
-    selection.selectedState,
-  ]);
+  }, [allCityBadges, focus, selection.currentLevel]);
 
   const suburbDisclosure = useMemo(() => {
     if (selection.currentLevel !== "city") {
       return { badges: [] as AtlasBadge[], lightOnly: [] as AtlasBadge[] };
     }
 
-    const preferredIds =
-      selection.selectedCity === "melbourne"
-        ? MELBOURNE_PREFERRED_SUBURB_IDS
-        : [];
-
-    const disclosed = discloseSuburbBadges(allSuburbBadges, {
-      max: 4,
-      preferredIds,
-    });
+    const disclosed = discloseSuburbBadges(allSuburbBadges, { max: 4 });
 
     const collided = applyViewportCollision(
       disclosed.badges,
       (badge) => projectOverlayPoint(badge.x, badge.y, focus),
-      { minDx: 15, minDy: 6.5 },
+      { footprint: BADGE_COLLISION.suburb },
     );
 
     return {
       badges: collided.badges,
       lightOnly: [...disclosed.lightOnly, ...collided.lightOnly],
     };
-  }, [
-    allSuburbBadges,
-    focus,
-    selection.currentLevel,
-    selection.selectedCity,
-  ]);
+  }, [allSuburbBadges, focus, selection.currentLevel]);
 
   const cityBadges = cityDisclosure.badges;
   const suburbBadges = suburbDisclosure.badges;
@@ -329,6 +338,20 @@ export function useGlowAtlas(
       ];
     }
 
+    // Only fall back to an unlabeled state-level dot for a rejected state
+    // badge when that state has no active cities of its own — otherwise its
+    // presence is already visible via the per-city lights below, and a
+    // second dot at the state anchor would double-represent it.
+    const stateLightOnlyLights = unlabeledLightsFor(
+      stateDisclosure.lightOnly.filter((badge) => {
+        const hasActiveCities = atlasCities.some(
+          (c) => c.state === badge.id && (presence.cityCounts[c.id] ?? 0) > 0,
+        );
+        return !hasActiveCities;
+      }),
+      "state-light",
+    );
+
     const cityLights = atlasCities.flatMap((city) => {
       const awake = presence.cityCounts[city.id] ?? 0;
       if (awake <= 0) return [];
@@ -342,9 +365,11 @@ export function useGlowAtlas(
       });
     });
 
-    if (cityLights.length > 0) return cityLights;
+    if (cityLights.length > 0) {
+      return [...cityLights, ...stateLightOnlyLights];
+    }
 
-    return atlasStates.flatMap((state) => {
+    const stateFallbackLights = atlasStates.flatMap((state) => {
       const awake = presence.stateCounts[state.code] ?? 0;
       if (awake <= 0) return [];
       const count = Math.max(2, Math.min(8, Math.round(awake * 0.12)));
@@ -356,6 +381,8 @@ export function useGlowAtlas(
         spread: 1.0,
       });
     });
+
+    return [...stateFallbackLights, ...stateLightOnlyLights];
   }, [
     cities,
     cityBadges,
@@ -367,6 +394,7 @@ export function useGlowAtlas(
     selectedStateData,
     selectedSuburbData,
     selection.currentLevel,
+    stateDisclosure.lightOnly,
     suburbBadges,
     suburbDisclosure.lightOnly,
     suburbs,

@@ -50,7 +50,9 @@ function AwakeHeadline({ count }: { count: number }) {
       <AnimatedCount
         value={count}
         duration={650}
-        aria-label={`${count} ${noun} awake`}
+        // The wrapping <p aria-live="polite"> below already announces this
+        // sentence as a whole — a second live region here would double it.
+        announce={false}
       />{" "}
       {noun} are awake with you tonight.
     </span>
@@ -209,7 +211,11 @@ export function TonightScreen({
           initial="hidden"
           animate="visible"
           variants={fadeUp}
-          className="mb-8"
+          // Claw back half the page gutter on phones so the map reads as
+          // the hero feature rather than another inset card, while keeping
+          // enough margin that its rounded corners still look intentional;
+          // reverts to the page's normal gutter from the sm breakpoint up.
+          className="mb-8 -mx-3 sm:mx-0"
         >
           <GlowAtlas
             presence={presence}

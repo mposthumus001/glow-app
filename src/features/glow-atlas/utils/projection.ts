@@ -1,4 +1,5 @@
-import { ATLAS_VIEWBOX } from "../data/australia";
+import { ATLAS_VIEWBOX } from "../data/australia.ts";
+import type { DisplayOffset, GeoPoint } from "../types.ts";
 
 export type PercentPoint = { x: number; y: number };
 
@@ -22,14 +23,39 @@ export const AU_GEO_BOUNDS = {
 } as const;
 
 /**
- * Future: project map_cluster_public lat/lng → overlay %.
- * Linear fit only — never street-level accuracy.
+ * Project a real-world coordinate → overlay % using a linear fit calibrated
+ * against `AU_GEO_BOUNDS` / `ATLAS_VIEWBOX`. Never street-level accuracy, but
+ * this is the geographic source of truth for every Atlas anchor (state, city,
+ * suburb) and for map_cluster_public lat/lng.
  */
 export function latLngToPercent(lat: number, lng: number): PercentPoint {
   const { west, east, north, south } = AU_GEO_BOUNDS;
   return {
     x: clamp(((lng - west) / (east - west)) * 100, 0, 100),
     y: clamp(((lat - north) / (south - north)) * 100, 0, 100),
+  };
+}
+
+// `GeoPoint` / `DisplayOffset` are defined once in `../types` (shared with
+// AtlasState/City/Suburb) and re-exported here for convenience since this is
+// the module that actually resolves them into screen-space percentages.
+export type { DisplayOffset, GeoPoint } from "../types.ts";
+
+/**
+ * Resolve the final display anchor (% of viewBox) for a geographic point,
+ * applying an optional documented display offset on top of the projected
+ * geographic position. `geo` is always the source of truth; `offset` is
+ * always a visible, reviewable exception.
+ */
+export function resolveDisplayAnchor(
+  geo: GeoPoint,
+  offset?: DisplayOffset,
+): PercentPoint {
+  const base = latLngToPercent(geo.lat, geo.lng);
+  if (!offset) return base;
+  return {
+    x: clamp(base.x + offset.dx, 0, 100),
+    y: clamp(base.y + offset.dy, 0, 100),
   };
 }
 

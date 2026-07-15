@@ -1,4 +1,4 @@
-import type { FocusBounds } from "../types";
+import type { FocusBounds } from "../types.ts";
 
 /** Permanent SVG viewBox — never change the asset geometry */
 export const ATLAS_VIEWBOX = {

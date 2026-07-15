@@ -32,14 +32,29 @@ describe("getPublicEnvChecks", () => {
     assert.deepEqual(result, { ok: true });
   });
 
-  it("flags SITE_URL as a soft production gap", () => {
+  it("flags SITE_URL and the Atlas PMTiles URL as soft production gaps", () => {
     const gaps = getSoftProductionGaps({
       NODE_ENV: "production",
       NEXT_PUBLIC_SUPABASE_URL: "https://example.supabase.co",
       NEXT_PUBLIC_SUPABASE_ANON_KEY: "anon",
     } as NodeJS.ProcessEnv);
 
-    assert.deepEqual(gaps, ["NEXT_PUBLIC_SITE_URL"]);
+    assert.deepEqual(gaps, [
+      "NEXT_PUBLIC_SITE_URL",
+      "NEXT_PUBLIC_ATLAS_PMTILES_URL",
+    ]);
+  });
+
+  it("never hard-fails the build on a missing Atlas PMTiles URL", () => {
+    const result = assertRequiredPublicEnv({
+      NODE_ENV: "production",
+      NEXT_PUBLIC_SUPABASE_URL: "https://example.supabase.co",
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: "anon",
+      // NEXT_PUBLIC_ATLAS_PMTILES_URL intentionally unset — the Atlas map
+      // must still build and render its local GeoJSON basemap.
+    } as NodeJS.ProcessEnv);
+
+    assert.deepEqual(result, { ok: true });
   });
 
   it("fails when Supabase vars are missing", () => {

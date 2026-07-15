@@ -39,6 +39,9 @@ export type AtlasBadge = {
   count: number;
   x: number;
   y: number;
+  /** Data-driven disclosure preference — see utils/disclosure.ts */
+  featured?: boolean;
+  featuredPriority?: number;
 };
 
 export type FocusBounds = {
@@ -50,10 +53,31 @@ export type FocusBounds = {
   scale: number;
 };
 
+/** A real-world coordinate — the geographic source of truth for an anchor. */
+export type GeoPoint = {
+  lat: number;
+  lng: number;
+};
+
+/**
+ * A small, documented display-only nudge away from the geographic anchor
+ * (coastal clipping, badge collision, or legibility). Geography is never
+ * overwritten — only adjusted for display, with a required `reason`.
+ */
+export type DisplayOffset = {
+  dx: number;
+  dy: number;
+  reason: string;
+};
+
 export type AtlasState = {
   code: AuStateCode;
   name: string;
-  /** Badge / focus anchor */
+  /** Geographic source of truth (approximate landmass centroid, not capital) */
+  geo: GeoPoint;
+  /** Documented display exception, if any */
+  displayOffset?: DisplayOffset;
+  /** Derived badge / focus anchor (% of viewBox) — see `geo` for source of truth */
   x: number;
   y: number;
   focus: FocusBounds;
@@ -64,12 +88,18 @@ export type AtlasCity = {
   id: string;
   name: string;
   state: AuStateCode;
+  geo: GeoPoint;
+  displayOffset?: DisplayOffset;
   x: number;
   y: number;
   focus: FocusBounds;
   awakeCount: number;
   weight: number;
   spread: number;
+  /** Data-driven disclosure preference (replaces per-state allowlists) */
+  featured?: boolean;
+  /** Lower sorts first among featured cities within a state; ties broken by count */
+  featuredPriority?: number;
 };
 
 export type AtlasSuburb = {
@@ -77,11 +107,15 @@ export type AtlasSuburb = {
   name: string;
   cityId: string;
   state: AuStateCode;
+  geo: GeoPoint;
+  displayOffset?: DisplayOffset;
   x: number;
   y: number;
   focus: FocusBounds;
   awakeCount: number;
   spread: number;
+  featured?: boolean;
+  featuredPriority?: number;
 };
 
 export type AtlasSelection = {

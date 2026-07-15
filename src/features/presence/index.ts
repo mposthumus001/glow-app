@@ -8,7 +8,7 @@ export { markPresenceOffline, fetchMapPresence } from "./api";
 export { emptyAtlasPresence } from "./utils/emptyAtlasPresence";
 export { toAtlasPresence } from "./utils/toAtlasPresence";
 export { peersToAtlasPresence, uniquePeersByParentId } from "./utils/peersToAtlasPresence";
-export { matchAtlasSuburb } from "./utils/matchSuburb";
+export { matchAtlasSuburb, normalizeLabel } from "./utils/matchSuburb";
 export {
   lifecycleToAppState,
   isAwakeOnMap,
