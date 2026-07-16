@@ -126,17 +126,14 @@ export type CircleCandidate = {
   createdAt: string;
 };
 
-export type CircleSelectionResult =
-  | { kind: "existing"; circleId: string }
-  | { kind: "create"; template: CircleRuleFields | null; ageMin: number; ageMax: number };
-
 /**
  * Deterministic selection order (must match SQL in assign_parent_to_circle):
- * 1. rule priority ASC (lower number = higher priority)
- * 2. rule specificity DESC
- * 3. member count DESC (prefer fuller circle)
- * 4. circle created_at ASC (oldest)
- * 5. circle id ASC
+ * 1. all required rules match (filter)
+ * 2. rule priority ASC (lower number = higher priority)
+ * 3. rule specificity DESC (most specific matching rule set)
+ * 4. member count DESC (prefer fuller circle below capacity)
+ * 5. circle created_at ASC (oldest)
+ * 6. circle id ASC
  */
 export function compareCircleCandidates(
   a: CircleCandidate,
@@ -177,49 +174,6 @@ export function selectBestCircleWithCapacity(
   return [...eligible].sort(compareCircleCandidates)[0] ?? null;
 }
 
-export function selectBestRuleTemplate(
-  candidates: CircleCandidate[],
-  parent: ParentMatchProfile,
-): CircleRuleFields | null {
-  const eligible = candidates.filter(
-    (c) =>
-      (c.status === "active" || c.status === "forming") &&
-      ruleMatchesParent(c.rule, parent),
-  );
-
-  if (eligible.length === 0) return null;
-
-  return [...eligible].sort(compareCircleCandidates)[0]?.rule ?? null;
-}
-
-export function deriveAgeBandForNewCircle(
-  template: CircleRuleFields | null,
-  babyAgeMonths: number | null,
-): { ageMin: number; ageMax: number } {
-  if (template) {
-    const ageMin = template.babyAgeMinMonths ?? 0;
-    const ageMax = template.babyAgeMaxMonths ?? 12;
-    return { ageMin, ageMax };
-  }
-
-  const ageMin = Math.max(0, babyAgeMonths ?? 0);
-  const ageMax = Math.min(60, ageMin + 6);
-  return { ageMax: Math.max(ageMin, ageMax), ageMin };
-}
-
-export function buildPrivacySafeCircleName(
-  state: AuState,
-  ageMin: number,
-  ageMax: number,
-  babyAgeMonths: number | null,
-): string {
-  let name = `Glow Circle · ${state}`;
-  if (babyAgeMonths != null) {
-    name += ` · ${ageMin}–${ageMax} mo`;
-  }
-  return name;
-}
-
 export type MemberRow = {
   circleId: string;
   parentId: string;
@@ -252,7 +206,17 @@ export function findExistingActiveMembership(
   return active[0]?.circleId ?? null;
 }
 
-/** Simulate idempotent assignment in tests without a database. */
+export type CircleSelectionResult =
+  | { kind: "existing"; circleId: string }
+  | { kind: "assigned"; circleId: string }
+  | { kind: "no_match"; reason: "no_eligible_active_circle" };
+
+/**
+ * Simulate idempotent assignment without a database.
+ * Keep outcomes aligned with `assign_parent_to_circle` (migration 0013):
+ * existing membership → existing; best capacity match → assigned; else → no_match.
+ * Never auto-creates Circles.
+ */
 export function simulateAssignment(input: {
   parentId: string;
   parent: ParentMatchProfile;
@@ -274,14 +238,109 @@ export function simulateAssignment(input: {
 
   const best = selectBestCircleWithCapacity(withCounts, input.parent);
   if (best) {
-    return { kind: "existing", circleId: best.circleId };
+    return { kind: "assigned", circleId: best.circleId };
   }
 
-  const template = selectBestRuleTemplate(withCounts, input.parent);
-  const { ageMin, ageMax } = deriveAgeBandForNewCircle(
-    template,
-    input.parent.babyAgeMonths,
-  );
+  return { kind: "no_match", reason: "no_eligible_active_circle" };
+}
 
-  return { kind: "create", template, ageMin, ageMax };
+/**
+ * Serialised concurrent final-slot simulation (advisory + row-lock semantics).
+ * Two parents racing for the last seat must not exceed capacity.
+ */
+export function simulateConcurrentFinalSlotAssignments(input: {
+  circle: CircleCandidate;
+  existingMembers: MemberRow[];
+  parentA: { parentId: string; parent: ParentMatchProfile };
+  parentB: { parentId: string; parent: ParentMatchProfile };
+}): {
+  results: [CircleSelectionResult, CircleSelectionResult];
+  finalActiveCount: number;
+  exceededCapacity: boolean;
+} {
+  const circles = [input.circle];
+  let members = [...input.existingMembers];
+
+  const first = simulateAssignment({
+    parentId: input.parentA.parentId,
+    parent: input.parentA.parent,
+    members,
+    circles: circles.map((c) => ({
+      ...c,
+      memberCount: countActiveMembers(members, c.circleId),
+    })),
+  });
+
+  if (first.kind === "assigned") {
+    members = [
+      ...members,
+      {
+        circleId: first.circleId,
+        parentId: input.parentA.parentId,
+        status: "active",
+        deletedAt: null,
+      },
+    ];
+  }
+
+  const second = simulateAssignment({
+    parentId: input.parentB.parentId,
+    parent: input.parentB.parent,
+    members,
+    circles: circles.map((c) => ({
+      ...c,
+      memberCount: countActiveMembers(members, c.circleId),
+    })),
+  });
+
+  if (second.kind === "assigned") {
+    members = [
+      ...members,
+      {
+        circleId: second.circleId,
+        parentId: input.parentB.parentId,
+        status: "active",
+        deletedAt: null,
+      },
+    ];
+  }
+
+  const finalActiveCount = countActiveMembers(members, input.circle.circleId);
+  return {
+    results: [first, second],
+    finalActiveCount,
+    exceededCapacity: finalActiveCount > input.circle.maxMembers,
+  };
+}
+
+/** Calm holding copy when no suitable Circle exists (shown to parents). */
+export const CIRCLE_NO_MATCH_HOLDING_MESSAGE =
+  "We're finding the right Circle for you.";
+
+/**
+ * Auth guard for assignment callers.
+ * Never allow assigning another parent unless staff (staff checked in SQL).
+ */
+export function canRequestAssignmentForParent(
+  authUserId: string | null | undefined,
+  parentId: string,
+): boolean {
+  if (!authUserId) return false;
+  return authUserId === parentId;
+}
+
+/**
+ * Onboarding must not fail when assignment returns no_match or a soft error.
+ * Profile/baby writes are already committed before assignment runs.
+ */
+export function shouldFailOnboardingForAssignment(result: {
+  ok: boolean;
+  outcome?: string;
+}): boolean {
+  void result;
+  return false;
+}
+
+export function postOnboardingRedirectPath(): "/circle" {
+  return "/circle";
 }

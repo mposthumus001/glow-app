@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+### Production Circle assignment (no auto-create)
+
+Automatic post-onboarding Circle membership into the best matching **active**
+Circle with capacity. Unmatched parents get a calm holding state instead of
+an auto-created Circle.
+
+#### Changed
+- Migration `0013_circle_assignment_no_auto_create.sql` — RPC returns
+  `no_match` when no eligible Circle exists; capacity re-check under row lock.
+- `assignParentToBestCircle` wrapper; onboarding redirects to `/circle`.
+- Holding copy: “We're finding the right Circle for you.”
+- Admin SQL: `supabase/ops/circle-assignment-admin-check.sql`.
+
 ### Password recovery flow
 
 Fixes recovery links landing on the normal login screen instead of a

@@ -1,13 +1,20 @@
 "use client";
 
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { Send } from "lucide-react";
 
+import { CirclePromptComposerBanner } from "@/features/circles/components/CirclePromptComposerBanner";
 import { GlowButton, GlowTextarea } from "@/components/ui";
 import {
   MESSAGE_MAX_LENGTH,
   prepareMessageBody,
 } from "@/features/circles/messaging/messageLogic";
+import type { PromptComposerContext } from "@/features/circles/prompts/promptResponseLogic";
+import {
+  promptComposerAnnouncement,
+  shouldClearComposerDraftAfterSend,
+} from "@/features/circles/prompts/promptResponseLogic";
+import { useGlowReducedMotion } from "@/lib/hooks/useGlowReducedMotion";
 import { cn } from "@/lib/utils/cn";
 
 export interface CircleComposerProps {
@@ -18,6 +25,10 @@ export interface CircleComposerProps {
   isSending?: boolean;
   textareaRef?: React.RefObject<HTMLTextAreaElement | null>;
   focusRequestToken?: number;
+  promptContext?: PromptComposerContext | null;
+  onCancelPrompt?: () => void;
+  promptAnnounceToken?: number;
+  stalePromptMessage?: string | null;
 }
 
 /**
@@ -31,19 +42,54 @@ export function CircleComposer({
   isSending = false,
   textareaRef,
   focusRequestToken = 0,
+  promptContext = null,
+  onCancelPrompt,
+  promptAnnounceToken = 0,
+  stalePromptMessage = null,
 }: CircleComposerProps) {
+  const reduceMotion = useGlowReducedMotion();
   const hintId = useId();
+  const liveRegionRef = useRef<HTMLDivElement>(null);
+  const lastAnnouncedToken = useRef(0);
   const [draft, setDraft] = useState("");
   const [localError, setLocalError] = useState<string | null>(null);
 
   useEffect(() => {
     if (focusRequestToken > 0) {
-      textareaRef?.current?.focus();
+      textareaRef?.current?.scrollIntoView({
+        behavior: reduceMotion ? "auto" : "smooth",
+        block: "nearest",
+      });
+      requestAnimationFrame(() => {
+        textareaRef?.current?.focus({ preventScroll: true });
+      });
     }
-  }, [focusRequestToken, textareaRef]);
+  }, [focusRequestToken, textareaRef, reduceMotion]);
+
+  useEffect(() => {
+    if (
+      promptAnnounceToken <= 0 ||
+      promptAnnounceToken === lastAnnouncedToken.current ||
+      !promptContext
+    ) {
+      return;
+    }
+
+    lastAnnouncedToken.current = promptAnnounceToken;
+    const announcement = promptComposerAnnouncement(promptContext);
+    if (!announcement || !liveRegionRef.current) return;
+
+    liveRegionRef.current.textContent = "";
+    requestAnimationFrame(() => {
+      if (liveRegionRef.current) {
+        liveRegionRef.current.textContent = announcement;
+      }
+    });
+  }, [promptAnnounceToken, promptContext]);
 
   const busy = disabled || isSending;
   const remaining = MESSAGE_MAX_LENGTH - draft.length;
+  const composerFieldId = "circle-message-draft";
 
   async function submit() {
     if (busy) return;
@@ -61,7 +107,7 @@ export function CircleComposer({
     setLocalError(null);
     onStopTyping?.();
     const result = await onSend(prepared.body);
-    if (result.ok) {
+    if (shouldClearComposerDraftAfterSend(result.ok)) {
       setDraft("");
       return;
     }
@@ -75,9 +121,7 @@ export function CircleComposer({
       return;
     }
 
-    if (result.reason === "send_failed") {
-      setDraft("");
-    }
+    // send_failed: preserve draft and prompt context for retry
   }
 
   return (
@@ -89,6 +133,13 @@ export function CircleComposer({
         Write a message
       </h2>
 
+      <div
+        ref={liveRegionRef}
+        className="sr-only"
+        aria-live="polite"
+        aria-atomic="true"
+      />
+
       <form
         className="flex flex-col gap-3"
         onSubmit={(event) => {
@@ -96,16 +147,40 @@ export function CircleComposer({
           void submit();
         }}
       >
+        {promptContext ? (
+          <CirclePromptComposerBanner
+            promptText={promptContext.promptText}
+            composerFieldId={composerFieldId}
+            onRemove={() => onCancelPrompt?.()}
+            staleMessage={stalePromptMessage}
+          />
+        ) : stalePromptMessage ? (
+          <p
+            className="text-xs leading-relaxed text-glow-text-tertiary"
+            role="status"
+          >
+            {stalePromptMessage}
+          </p>
+        ) : null}
+
         <GlowTextarea
-          id="circle-message-draft"
+          id={composerFieldId}
           name="message"
           label="Message"
-          placeholder="Share something gentle…"
+          placeholder={
+            promptContext
+              ? "Share your response…"
+              : "Share something gentle…"
+          }
           rows={2}
           value={draft}
           disabled={busy}
           maxLength={MESSAGE_MAX_LENGTH}
-          aria-describedby={hintId}
+          aria-describedby={
+            promptContext
+              ? `circle-prompt-composer-text ${hintId}`
+              : hintId
+          }
           error={localError ?? undefined}
           ref={textareaRef}
           onChange={(event) => {
@@ -147,7 +222,9 @@ export function CircleComposer({
             size="md"
             disabled={busy || prepareMessageBody(draft).ok === false}
             isLoading={isSending}
-            aria-label="Send message"
+            aria-label={
+              promptContext ? "Send prompt response" : "Send message"
+            }
             className="min-w-[7.5rem] shrink-0"
             rightIcon={
               <Send className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />

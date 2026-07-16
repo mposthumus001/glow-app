@@ -46,6 +46,11 @@ import {
   resolveAttachPromptId,
 } from "./messageInsertLogic";
 import {
+  buildPromptResponseContext,
+  isActivePromptContextStale,
+  type PromptResponseContextState,
+} from "../prompts/promptResponseLogic";
+import {
   createOptimisticMessage,
   markMessageFailed,
   markMessageOptimistic,
@@ -96,6 +101,10 @@ export type MessagingSnapshot = {
   unreadCount: number;
   firstUnreadIndex: number | null;
   readMarker: ReadMarker | null;
+  /** Active prompt-response attachment for the next send (circle-scoped). */
+  promptContext: PromptResponseContextState;
+  /** Shown after a stale prompt attachment was cleared safely. */
+  promptStaleNotice: boolean;
 };
 
 type Listener = (snapshot: MessagingSnapshot) => void;
@@ -186,6 +195,7 @@ export class CircleMessagingService {
   private hiddenMessageIds = new Set<string>();
   private sendPromptId: string | null = null;
   private sendPromptCircleId: string | null = null;
+  private promptStaleNotice = false;
 
   private listeners = new Set<Listener>();
   private started = false;
@@ -253,6 +263,7 @@ export class CircleMessagingService {
     this.hiddenMessageIds = new Set();
     this.sendPromptId = null;
     this.sendPromptCircleId = null;
+    this.promptStaleNotice = false;
     this.connection = "connecting";
     this.reconnectAttempt = 0;
     this.bindNetwork();
@@ -291,12 +302,61 @@ export class CircleMessagingService {
     this.hiddenMessageIds = new Set();
     this.sendPromptId = null;
     this.sendPromptCircleId = null;
+    this.promptStaleNotice = false;
   }
 
   setSendPromptId(promptId: string | null, circleId?: string | null): void {
     this.sendPromptId = promptId;
     this.sendPromptCircleId =
       promptId && circleId ? circleId : null;
+    if (promptId) {
+      this.promptStaleNotice = false;
+    }
+    this.emit();
+  }
+
+  clearPromptContext(): void {
+    this.sendPromptId = null;
+    this.sendPromptCircleId = null;
+    this.promptStaleNotice = false;
+    this.emit();
+  }
+
+  syncDailyPrompt(dailyPromptId: string | null | undefined): void {
+    if (!this.circleId) return;
+
+    const promptContext = buildPromptResponseContext({
+      sendPromptId: this.sendPromptId,
+      sendPromptCircleId: this.sendPromptCircleId,
+      activeCircleId: this.circleId,
+    });
+
+    if (!promptContext) {
+      if (this.promptStaleNotice) {
+        this.promptStaleNotice = false;
+        this.emit();
+      }
+      return;
+    }
+
+    if (
+      isActivePromptContextStale({
+        promptContext,
+        activeCircleId: this.circleId,
+        dailyPromptId,
+      })
+    ) {
+      this.sendPromptId = null;
+      this.sendPromptCircleId = null;
+      this.promptStaleNotice = true;
+      this.emit();
+      return;
+    }
+
+    if (this.promptStaleNotice) {
+      this.promptStaleNotice = false;
+      this.emit();
+    }
   }
 
   async hideMessage(messageId: string): Promise<{ ok: boolean }> {
@@ -1291,6 +1351,12 @@ export class CircleMessagingService {
       unreadCount,
       firstUnreadIndex,
       readMarker: this.readMarker,
+      promptContext: buildPromptResponseContext({
+        sendPromptId: this.sendPromptId,
+        sendPromptCircleId: this.sendPromptCircleId,
+        activeCircleId: this.circleId,
+      }),
+      promptStaleNotice: this.promptStaleNotice,
     };
   }
 

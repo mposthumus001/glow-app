@@ -142,3 +142,11 @@ Sound catalogue source of truth for beta: static `src/features/calm/catalogue.ts
 
 Signup remains at `/signup` for invited testers. Login/signup copy states private beta. Hook must be enabled in Supabase Dashboard after migration `0010`. Details: `docs/Beta.md`.
 
+### Circle assignment (production)
+
+- Trigger: after successful onboarding (`completeOnboarding` → `assignParentToBestCircle`).
+- Engine: Postgres `assign_parent_to_circle` (SECURITY DEFINER); clients cannot insert `circle_members`.
+- Outcomes: `existing` | `assigned` | `no_match` (no auto-create Circles).
+- Holding UI: `/circle` and Tonight preview — “We're finding the right Circle for you.”
+- Details: `docs/GlowCircles.md`, admin SQL `supabase/ops/circle-assignment-admin-check.sql`.
+

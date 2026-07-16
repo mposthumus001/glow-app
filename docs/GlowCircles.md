@@ -18,17 +18,20 @@ Private.
 
 ---
 
-## Assignment (Sprint 4.4)
+## Assignment (Sprint 4.4 + production hardening)
 
 Automatic matching after onboarding completes (and on `/circle` when still unassigned).
 
 ### Lifecycle
 
-1. Parent completes onboarding → server persists profile + optional baby → `assign_parent_to_circle`.
-2. If already in an active circle → return existing membership (idempotent).
+1. Parent completes onboarding → server persists profile + optional baby → `assignParentToBestCircle` → `assign_parent_to_circle` RPC.
+2. If already in an active circle → return existing membership (idempotent; do not move).
 3. Else evaluate `circle_rules` against parent state, feeding method, first-child flag, and baby age.
-4. Join the best eligible **active** circle with capacity, or create a new **active** circle with a privacy-safe name.
-5. `/circle` retries assignment once when no membership is found (backfill for pre-4.4 parents).
+4. Join the best eligible **active** circle with capacity.
+5. If none fit → return `no_match` (onboarding still succeeds). Parent sees a calm holding state.
+6. `/circle` retries assignment once when no membership is found (backfill / later capacity).
+
+**Production policy:** Glow never auto-creates Circles for unmatched parents and never places someone in an unsuitable Circle. Staff seed `circles` + `circle_rules`; admins resolve unmatched parents via SQL.
 
 ### Matching criteria
 
@@ -46,27 +49,54 @@ Automatic matching after onboarding completes (and on `/circle` when still unass
 * Due date only, past → floor months since due date.
 * No dates → age unknown; age-banded rules do not match.
 
-### Rule priority
+### Priority order
 
-Lower `circle_rules.priority` wins. Ties break on specificity → fuller circle → oldest circle → stable id.
+1. All required rule fields match (`circle_rule_matches_parent`).
+2. Lowest `circle_rules.priority` (lower number = higher priority).
+3. Highest rule specificity (count of non-null constraint groups; age min/max count as one).
+4. Highest current active membership count below capacity (fill existing Circles).
+5. Oldest `circles.created_at`, then stable `circles.id`.
 
 ### Capacity
 
-Only `circles.status = 'active'`. Count `circle_members` where `status = 'active'` and `deleted_at IS NULL`. Skip full circles.
+Only `circles.status = 'active'`. Count `circle_members` where `status = 'active'` and `deleted_at IS NULL`. Skip full circles. After `FOR UPDATE` on the chosen circle row, re-count before insert so two concurrent assignments cannot take the same final seat.
 
-### Concurrency
+### Concurrency & idempotency
 
-Per-parent advisory transaction lock; row lock on selected circle before insert.
+* Per-parent `pg_advisory_xact_lock(hashtext('circle_assign:' || parent_id))`.
+* `SELECT … FOR UPDATE OF circles` on the chosen circle; capacity re-check under the lock.
+* Existing active membership returned unchanged.
+* Unique `(circle_id, parent_id)`; inactive rows may be reactivated via `ON CONFLICT` when rejoining the same circle — never creates a second active membership for the parent.
+
+### no_match behaviour
+
+RPC returns:
+
+```json
+{
+  "outcome": "no_match",
+  "reason": "no_eligible_active_circle",
+  "parent_id": "…",
+  "parent_state": "NSW",
+  "feeding_method": "…",
+  "first_child": true,
+  "baby_age_months": 5
+}
+```
+
+Parents see: **“We're finding the right Circle for you.”**  
+Admins: run `supabase/ops/circle-assignment-admin-check.sql` (unmatched onboarded parents + capacity). Postgres also `RAISE LOG`s `circle_assignment_no_match`.
 
 ### Privacy
 
-Generated circle names use state + age band only. Matching details are never shown to other members.
+Matching details are never shown to other members. Circle names remain staff-defined (no auto-generated names in production assignment).
 
 ### Known limitations
 
 * No manual circle picker in app.
+* Staff must ensure seeded Circles + rules cover beta cohorts.
 * Realtime channel authorization still client-gated (see Sprint 4.3).
-* Moderator dashboard and automated enforcement deferred (Sprint 4.6 stores reports only).
+* Moderator dashboard and automated enforcement deferred.
 
 ---
 

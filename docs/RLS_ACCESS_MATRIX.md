@@ -41,7 +41,7 @@ Legend: **Staff** = moderator / support / admin. **Circle member** = active `cir
 
 | Function | Who may call | Guard |
 |----------|--------------|-------|
-| `assign_parent_to_circle` | Self or staff | Locks + capacity inside function |
+| `assign_parent_to_circle` | Self or staff | Locks + capacity re-check; outcomes `existing`/`assigned`/`no_match` (no auto-create) |
 | `ensure_circle_daily_prompt` | Active circle member | Membership check |
 | `advance_circle_read_state` | Invoker (RLS) | Own membership row |
 | `parent_baby_age_months` | Self or staff (0009) | `auth.uid()` check |

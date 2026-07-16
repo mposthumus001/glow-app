@@ -174,14 +174,18 @@ Soft-delete: set `deleted_at`; SELECT policies require `deleted_at is null`.
 
 ---
 
-## Circle assignment (Sprint 4.4)
+## Circle assignment (Sprint 4.4 + migration 0013)
 
 ### RPC
 
 `assign_parent_to_circle(p_parent_id uuid default auth.uid()) → jsonb`
 
 * SECURITY DEFINER; callable by authenticated users for self only (staff may assign any parent).
-* Returns `{ outcome, circle_id, membership_id }` where `outcome` is `existing`, `assigned`, or `created`.
+* Returns one of:
+  * `{ outcome: "existing"|"assigned", circle_id, membership_id }`
+  * `{ outcome: "no_match", reason, parent_id, parent_state, feeding_method, first_child, baby_age_months }`
+* **Does not auto-create Circles** (changed in migration `0013_circle_assignment_no_auto_create.sql`).
+* App wrapper: `assignParentToBestCircle` in `CircleAssignmentRepository`.
 
 ### Helpers
 
@@ -189,7 +193,11 @@ Soft-delete: set `deleted_at`; SELECT policies require `deleted_at is null`.
 * `circle_rule_matches_parent(...)` — wildcard/null rule fields.
 * `circle_active_member_count(circle_id)` — active, non-deleted members only.
 
-### RLS changes (migration 0004)
+### Concurrency
+
+Per-parent advisory lock + `FOR UPDATE` on the chosen circle + post-lock capacity re-check before insert.
+
+### RLS changes (migration 0004; still in force)
 
 | Policy | Change |
 |--------|--------|
@@ -200,9 +208,13 @@ Soft-delete: set `deleted_at`; SELECT policies require `deleted_at is null`.
 
 Read/update policies for members unchanged. Message isolation unchanged (`circle_messages` scoped to active membership).
 
+### Admin visibility
+
+`supabase/ops/circle-assignment-admin-check.sql` — onboarding, membership, unmatched parents, capacity.
+
 ### Backfill
 
-Unassigned onboarded parents: sign in and visit `/circle` — one assignment attempt per page load (idempotent).
+Unassigned onboarded parents: sign in and visit `/circle` — one assignment attempt per page load (idempotent). `no_match` shows holding copy until staff add capacity/rules.
 
 ---
 

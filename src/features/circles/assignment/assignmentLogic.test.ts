@@ -2,16 +2,18 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import {
-  buildPrivacySafeCircleName,
+  canRequestAssignmentForParent,
   compareCircleCandidates,
   computeBabyAgeMonths,
   countActiveMembers,
-  deriveAgeBandForNewCircle,
   findExistingActiveMembership,
+  postOnboardingRedirectPath,
   ruleMatchesParent,
   ruleSpecificity,
   selectBestCircleWithCapacity,
+  shouldFailOnboardingForAssignment,
   simulateAssignment,
+  simulateConcurrentFinalSlotAssignments,
   type CircleCandidate,
   type CircleRuleFields,
   type MemberRow,
@@ -95,6 +97,21 @@ describe("computeBabyAgeMonths", () => {
 });
 
 describe("ruleMatchesParent", () => {
+  it("matches an eligible parent against matching rules", () => {
+    assert.equal(
+      ruleMatchesParent(
+        rule({
+          state: "NSW",
+          feedingMethod: "breastfeeding",
+          babyAgeMinMonths: 0,
+          babyAgeMaxMonths: 6,
+        }),
+        NSW_PARENT,
+      ),
+      true,
+    );
+  });
+
   it("matches wildcard rules", () => {
     assert.equal(ruleMatchesParent(rule(), NSW_PARENT), true);
   });
@@ -179,7 +196,7 @@ describe("rule priority and specificity", () => {
 });
 
 describe("capacity and circle status", () => {
-  it("skips full circles", () => {
+  it("excludes full Circles", () => {
     const full = circle({
       circleId: "full",
       rule: rule({ state: "NSW" }),
@@ -213,21 +230,30 @@ describe("capacity and circle status", () => {
     assert.equal(countActiveMembers(members, "c1"), 1);
   });
 
-  it("only considers active circles with capacity", () => {
+  it("excludes inactive Circles", () => {
     const archived = circle({
       circleId: "archived",
       status: "archived",
       rule: rule({ state: "NSW" }),
     });
-    assert.equal(
-      selectBestCircleWithCapacity([archived], NSW_PARENT),
-      null,
-    );
+    const paused = circle({
+      circleId: "paused",
+      status: "paused",
+      rule: rule({ state: "NSW" }),
+    });
+    const forming = circle({
+      circleId: "forming",
+      status: "forming",
+      rule: rule({ state: "NSW" }),
+    });
+    assert.equal(selectBestCircleWithCapacity([archived], NSW_PARENT), null);
+    assert.equal(selectBestCircleWithCapacity([paused], NSW_PARENT), null);
+    assert.equal(selectBestCircleWithCapacity([forming], NSW_PARENT), null);
   });
 });
 
 describe("tie-breaking", () => {
-  it("prefers fuller circle, then oldest, then id", () => {
+  it("uses deterministic fuller → oldest → id order", () => {
     const fuller = circle({
       circleId: "b-circle",
       rule: rule({ priority: 10, state: "NSW" }),
@@ -275,12 +301,17 @@ describe("simulateAssignment", () => {
       parentId: "parent-1",
       parent: NSW_PARENT,
       members: existingMembers,
-      circles: [],
+      circles: [
+        circle({
+          circleId: "other",
+          rule: rule({ state: "NSW" }),
+        }),
+      ],
     });
     assert.deepEqual(result, { kind: "existing", circleId: "existing" });
   });
 
-  it("prefers existing circle over creating new", () => {
+  it("assigns an eligible parent into the best matching Circle", () => {
     const result = simulateAssignment({
       parentId: "parent-1",
       parent: NSW_PARENT,
@@ -293,10 +324,10 @@ describe("simulateAssignment", () => {
         }),
       ],
     });
-    assert.deepEqual(result, { kind: "existing", circleId: "roomy" });
+    assert.deepEqual(result, { kind: "assigned", circleId: "roomy" });
   });
 
-  it("creates only when no circle has capacity", () => {
+  it("returns no_match when no Circle fits", () => {
     const result = simulateAssignment({
       parentId: "parent-1",
       parent: NSW_PARENT,
@@ -308,16 +339,20 @@ describe("simulateAssignment", () => {
           memberCount: 12,
           maxMembers: 12,
         }),
+        circle({
+          circleId: "wrong-state",
+          rule: rule({ state: "VIC" }),
+          memberCount: 2,
+        }),
       ],
     });
-    assert.equal(result.kind, "create");
-    if (result.kind === "create") {
-      assert.equal(result.ageMin, 0);
-      assert.equal(result.ageMax, 12);
-    }
+    assert.deepEqual(result, {
+      kind: "no_match",
+      reason: "no_eligible_active_circle",
+    });
   });
 
-  it("is idempotent on repeated invocation", () => {
+  it("is idempotent on repeated assignment", () => {
     const membersAfterFirst: MemberRow[] = [
       {
         circleId: "roomy",
@@ -350,14 +385,14 @@ describe("simulateAssignment", () => {
         }),
       ],
     });
-    assert.equal(first.kind, "existing");
+    assert.equal(first.kind, "assigned");
     assert.equal(second.kind, "existing");
-    if (first.kind === "existing" && second.kind === "existing") {
+    if (first.kind === "assigned" && second.kind === "existing") {
       assert.equal(first.circleId, second.circleId);
     }
   });
 
-  it("concurrent-style duplicate guard via existing membership lookup", () => {
+  it("finds existing active membership for duplicate-guard semantics", () => {
     assert.equal(
       findExistingActiveMembership(
         [
@@ -375,17 +410,60 @@ describe("simulateAssignment", () => {
   });
 });
 
-describe("privacy-safe naming", () => {
-  it("never includes suburb or email", () => {
-    const name = buildPrivacySafeCircleName("NSW", 0, 6, 4);
-    assert.match(name, /^Glow Circle · NSW · 0–6 mo$/);
-    assert.doesNotMatch(name, /@/);
+describe("concurrent final-slot assignment", () => {
+  it("cannot exceed capacity for the last seat", () => {
+    const almostFull = circle({
+      circleId: "last-seat",
+      rule: rule({ state: "NSW" }),
+      memberCount: 11,
+      maxMembers: 12,
+    });
+    const existing: MemberRow[] = Array.from({ length: 11 }, (_, i) => ({
+      circleId: "last-seat",
+      parentId: `seed-${i}`,
+      status: "active" as const,
+      deletedAt: null,
+    }));
+
+    const race = simulateConcurrentFinalSlotAssignments({
+      circle: almostFull,
+      existingMembers: existing,
+      parentA: { parentId: "parent-a", parent: NSW_PARENT },
+      parentB: { parentId: "parent-b", parent: NSW_PARENT },
+    });
+
+    assert.equal(race.results[0].kind, "assigned");
+    assert.equal(race.results[1].kind, "no_match");
+    assert.equal(race.finalActiveCount, 12);
+    assert.equal(race.exceededCapacity, false);
   });
 });
 
-describe("deriveAgeBandForNewCircle", () => {
-  it("falls back when no template", () => {
-    const band = deriveAgeBandForNewCircle(null, 8);
-    assert.deepEqual(band, { ageMin: 8, ageMax: 14 });
+describe("assignment auth guard", () => {
+  it("rejects unauthenticated or mismatched parent ids", () => {
+    assert.equal(canRequestAssignmentForParent(null, "parent-1"), false);
+    assert.equal(canRequestAssignmentForParent(undefined, "parent-1"), false);
+    assert.equal(
+      canRequestAssignmentForParent("other-parent", "parent-1"),
+      false,
+    );
+    assert.equal(
+      canRequestAssignmentForParent("parent-1", "parent-1"),
+      true,
+    );
+  });
+});
+
+describe("onboarding assignment soft-fail", () => {
+  it("does not fail onboarding when assignment returns no_match", () => {
+    assert.equal(
+      shouldFailOnboardingForAssignment({ ok: true, outcome: "no_match" }),
+      false,
+    );
+    assert.equal(
+      shouldFailOnboardingForAssignment({ ok: false }),
+      false,
+    );
+    assert.equal(postOnboardingRedirectPath(), "/circle");
   });
 });

@@ -8,7 +8,11 @@ import type {
   FeedingMethod,
   MapVisibility,
 } from "@/lib/supabase/database.types";
-import { assignParentToCircle } from "@/features/circles/service/CircleAssignmentRepository";
+import { assignParentToBestCircle } from "@/features/circles/service/CircleAssignmentRepository";
+import {
+  postOnboardingRedirectPath,
+  shouldFailOnboardingForAssignment,
+} from "@/features/circles/assignment/assignmentLogic";
 import { createClient } from "@/lib/supabase/server";
 
 export type OnboardingState = {
@@ -170,9 +174,13 @@ export async function completeOnboarding(
     }
   }
 
-  await assignParentToCircle(supabase, user.id);
+  // Profile + baby are committed. Assignment must not roll back onboarding.
+  const assignment = await assignParentToBestCircle(supabase, user.id);
+  if (shouldFailOnboardingForAssignment(assignment)) {
+    return { error: "We couldn't finish matching your Circle. Please try again." };
+  }
 
   revalidatePath("/");
   revalidatePath("/circle");
-  redirect("/");
+  redirect(postOnboardingRedirectPath());
 }

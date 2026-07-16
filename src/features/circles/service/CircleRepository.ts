@@ -1,9 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
+import { CIRCLE_NO_MATCH_HOLDING_MESSAGE } from "@/features/circles/assignment/assignmentLogic";
 
 import { fetchAssignedCircle } from "../api";
 import type { CircleLoadResult } from "../types";
 
-import { assignParentToCircle } from "./CircleAssignmentRepository";
+import { assignParentToBestCircle } from "./CircleAssignmentRepository";
 
 /**
  * Server-side repository for Circle reads.
@@ -20,6 +21,7 @@ export async function loadAssignedCircleForParent(
 /**
  * Load circle membership, attempting one trusted assignment when unassigned.
  * Idempotent — safe on every /circle navigation for backfill parents.
+ * no_match returns a calm holding state (never invents a Circle).
  */
 export async function loadAssignedCircleWithAssignment(
   parentId: string,
@@ -31,10 +33,17 @@ export async function loadAssignedCircleWithAssignment(
     return result;
   }
 
-  const assignment = await assignParentToCircle(supabase, parentId);
+  const assignment = await assignParentToBestCircle(supabase, parentId);
 
   if (!assignment.ok) {
     return { status: "error", message: assignment.message };
+  }
+
+  if (assignment.outcome === "no_match") {
+    return {
+      status: "unassigned",
+      message: assignment.holdingMessage,
+    };
   }
 
   result = await fetchAssignedCircle(supabase, parentId);
@@ -42,8 +51,7 @@ export async function loadAssignedCircleWithAssignment(
   if (result.status === "unassigned") {
     return {
       status: "unassigned",
-      message:
-        "We're still gathering your Circle. Check back soon — no action needed.",
+      message: CIRCLE_NO_MATCH_HOLDING_MESSAGE,
     };
   }
 

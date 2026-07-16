@@ -11,6 +11,11 @@ import type {
 } from "@/features/circles/types";
 import { useCircleMessages } from "@/features/circles/messaging/useCircleMessages";
 import type { CircleDailyPrompt } from "@/features/circles/prompts/promptLibrary";
+import {
+  PROMPT_CONTEXT_STALE_COPY,
+  resolvePromptComposerContext,
+  sharePromptRequest,
+} from "@/features/circles/prompts/promptResponseLogic";
 import { useGlowReducedMotion } from "@/lib/hooks/useGlowReducedMotion";
 
 import { CircleComposer } from "./CircleComposer";
@@ -130,19 +135,51 @@ function AssignedCircleSession({
     circleId: data.circle.id,
     parentId,
     authorName: displayName,
+    dailyPromptId: dailyPrompt?.id,
   });
 
+  const { promptContext, clearPromptContext, setSendPromptId, promptStaleNotice } =
+    messaging;
+
   const composerRef = useRef<HTMLTextAreaElement>(null);
+  const composerSectionRef = useRef<HTMLDivElement>(null);
   const [focusComposerToken, setFocusComposerToken] = useState(0);
+  const [promptAnnounceToken, setPromptAnnounceToken] = useState(0);
 
   const promptStatus =
     promptUnavailable || !dailyPrompt?.promptText ? "unavailable" : "ready";
 
+  const promptComposer = resolvePromptComposerContext({
+    promptContext,
+    activeCircleId: data.circle.id,
+    dailyPrompt: dailyPrompt?.promptText
+      ? { id: dailyPrompt.id, promptText: dailyPrompt.promptText }
+      : null,
+  });
+
+  const stalePromptMessage =
+    promptStaleNotice && !promptContext ? PROMPT_CONTEXT_STALE_COPY : null;
+
   const handleSharePrompt = () => {
-    if (dailyPrompt?.id && dailyPrompt.id !== "fallback") {
-      messaging.setSendPromptId(dailyPrompt.id, data.circle.id);
+    const activation = sharePromptRequest({
+      dailyPromptId: dailyPrompt?.id,
+      circleId: data.circle.id,
+    });
+
+    if (activation) {
+      setSendPromptId(activation.promptId, activation.circleId);
+      setPromptAnnounceToken((value) => value + 1);
     }
+
+    composerSectionRef.current?.scrollIntoView({
+      behavior: reduceMotion ? "auto" : "smooth",
+      block: "nearest",
+    });
     setFocusComposerToken((value) => value + 1);
+  };
+
+  const handleCancelPrompt = () => {
+    clearPromptContext();
   };
 
   return (
@@ -214,6 +251,7 @@ function AssignedCircleSession({
       </motion.div>
 
       <motion.div
+        ref={composerSectionRef}
         custom={4}
         initial={reduceMotion ? false : "hidden"}
         animate={reduceMotion ? undefined : "visible"}
@@ -230,6 +268,10 @@ function AssignedCircleSession({
           isSending={messaging.sendingClientKey != null}
           textareaRef={composerRef}
           focusRequestToken={focusComposerToken}
+          promptContext={promptComposer.active}
+          onCancelPrompt={handleCancelPrompt}
+          promptAnnounceToken={promptAnnounceToken}
+          stalePromptMessage={stalePromptMessage}
         />
       </motion.div>
     </>

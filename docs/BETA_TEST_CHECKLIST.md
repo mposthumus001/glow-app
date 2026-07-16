@@ -28,8 +28,10 @@ Mark each item Pass / Fail / N/A.
 | C6 | Existing tester login | Tonight (or onboarding if incomplete) |
 | C7 | Revoked email signup | Denied (same calm copy) |
 | C8 | Direct Auth signup with unknown email | Denied when hook enabled |
-| C9 | Onboarding after approved signup | Completes; Circle assignment runs |
-| C10 | Allowlist not readable from client | No `beta_testers` rows via anon key |
+| C9 | Onboarding after approved signup | Completes; Circle assignment runs (`assigned` or calm `no_match` holding) |
+| C10 | Visit `/circle` when unmatched | Holding: “We're finding the right Circle for you.” — no unsuitable Circle |
+| C11 | Repeat `/circle` / onboarding assign | Idempotent — existing membership unchanged |
+| C12 | Allowlist not readable from client | No `beta_testers` rows via anon key |
 
 ---
 

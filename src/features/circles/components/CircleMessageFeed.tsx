@@ -14,6 +14,7 @@ import { MessageSafetyMenu } from "@/features/circles/components/MessageSafetyMe
 import type { CircleFeedMessage } from "@/features/circles/messaging/messageLogic";
 import { shouldAutoScrollForIncoming } from "@/features/circles/messaging/messageLogic";
 import type { ReactionAggregate } from "@/features/circles/reactions/reactionLogic";
+import { PROMPT_RESPONSE_MESSAGE_LABEL } from "@/features/circles/prompts/promptResponseLogic";
 import { canReportMessage } from "@/features/circles/safety/reportLogic";
 import type { CircleReactionType, ReportReason } from "@/lib/supabase/database.types";
 import { useGlowReducedMotion } from "@/lib/hooks/useGlowReducedMotion";
@@ -508,7 +509,12 @@ const MessageRow = memo(function MessageRow({
               {name}
             </p>
             {message.promptId ? (
-              <span className="text-[10px] text-glow-accent/70">prompt</span>
+              <span
+                className="text-[10px] text-glow-accent/70"
+                aria-label={PROMPT_RESPONSE_MESSAGE_LABEL}
+              >
+                {PROMPT_RESPONSE_MESSAGE_LABEL}
+              </span>
             ) : null}
           </div>
           {time ? (

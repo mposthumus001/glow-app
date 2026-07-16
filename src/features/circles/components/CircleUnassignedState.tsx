@@ -1,6 +1,7 @@
 import { Heart } from "lucide-react";
 
 import { GlowCard } from "@/components/ui";
+import { CIRCLE_NO_MATCH_HOLDING_MESSAGE } from "@/features/circles/assignment/assignmentLogic";
 import { textStyles } from "@/lib/theme";
 import { cn } from "@/lib/utils/cn";
 
@@ -9,7 +10,7 @@ export interface CircleUnassignedStateProps {
 }
 
 export function CircleUnassignedState({
-  message = "We're matching you with a small, trusted group of parents. You'll land here when your Circle is ready — no searching required.",
+  message = CIRCLE_NO_MATCH_HOLDING_MESSAGE,
 }: CircleUnassignedStateProps) {
   return (
     <section

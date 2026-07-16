@@ -98,10 +98,28 @@ Presence/Broadcast are not RLS-scoped; membership is enforced by only joining af
 
 ---
 
+## 2026-07-16 — Production Circle assignment without auto-create
+
+Decision:
+Keep `assign_parent_to_circle` as the sole write path for membership after onboarding, but **stop auto-creating Circles** when no rule-matching active Circle has capacity. Return structured `no_match` for admins; show parents a calm holding state. Prefer filling fuller Circles under capacity.
+
+Reason:
+Private beta Circles are staff-seeded. Auto-create scattered one-person Circles and hid matching gaps. Explicit `no_match` keeps onboarding reliable while operators expand capacity via SQL.
+
+Concurrency:
+Per-parent advisory lock + `FOR UPDATE` on the chosen circle + post-lock member count re-check before insert.
+
+Idempotency:
+Return existing active membership; never move parents automatically.
+
+See: migration `0013`, `docs/GlowCircles.md`, `supabase/ops/circle-assignment-admin-check.sql`.
+
+---
+
 ## 2026-07-11 — Circle assignment engine (Sprint 4.4)
 
 Decision:
-Automatic Circle assignment runs only server-side via `public.assign_parent_to_circle` (SECURITY DEFINER). Matching reads `circle_rules`, respects active circle capacity, and prefers filling existing circles before creating new ones. New circles start as `active` so messaging works immediately. Parents cannot INSERT into `circle_members` or `circles` directly — only staff or the definer function.
+Automatic Circle assignment runs only server-side via `public.assign_parent_to_circle` (SECURITY DEFINER). Matching reads `circle_rules`, respects active circle capacity, and prefers filling existing circles. **Historical note:** 4.4 also auto-created Circles when none matched; production policy as of 2026-07-16 returns `no_match` instead (migration 0013). Parents cannot INSERT into `circle_members` or `circles` directly — only staff or the definer function.
 
 Reason:
 Deterministic, idempotent, concurrency-safe matching without trusting client-provided circle IDs. Keeps assignment logic auditable in Postgres with advisory + row locks.
@@ -123,7 +141,7 @@ Selection order:
 5. circle `id` ASC
 
 Limitations:
-No exact suburb matching; no cross-state assignment; template-less parents get a state + age-band circle; Realtime channel auth unchanged from 4.3.
+No exact suburb matching; no cross-state assignment unless a wildcard rule allows it; unmatched parents wait in holding UI until staff expand Circles/rules; Realtime channel auth unchanged from 4.3.
 
 ---
 

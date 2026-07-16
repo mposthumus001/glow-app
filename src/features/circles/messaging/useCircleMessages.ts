@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import type { CircleReactionType, ReportReason } from "@/lib/supabase/database.types";
 
@@ -24,6 +24,8 @@ const emptySnapshot: MessagingSnapshot = {
   unreadCount: 0,
   firstUnreadIndex: null,
   readMarker: null,
+  promptContext: null,
+  promptStaleNotice: false,
 };
 
 export type UseCircleMessagesResult = MessagingSnapshot & {
@@ -42,6 +44,7 @@ export type UseCircleMessagesResult = MessagingSnapshot & {
     observedMessageId: string | null;
   }) => void;
   setSendPromptId: (promptId: string | null, circleId?: string | null) => void;
+  clearPromptContext: () => void;
   hideMessage: (messageId: string) => Promise<{ ok: boolean }>;
   reportMessage: (input: {
     messageId: string;
@@ -58,6 +61,7 @@ export function useCircleMessages(input: {
   circleId: string;
   parentId: string;
   authorName: string;
+  dailyPromptId?: string | null;
   enabled?: boolean;
 }): UseCircleMessagesResult {
   const enabled = input.enabled ?? true;
@@ -83,6 +87,22 @@ export function useCircleMessages(input: {
     };
   }, [enabled, input.circleId, input.parentId, input.authorName, service]);
 
+  useEffect(() => {
+    if (!enabled) return;
+    service.syncDailyPrompt(input.dailyPromptId);
+  }, [enabled, input.dailyPromptId, service]);
+
+  const setSendPromptId = useCallback(
+    (promptId: string | null, circleId?: string | null) =>
+      service.setSendPromptId(promptId, circleId),
+    [service],
+  );
+
+  const clearPromptContext = useCallback(
+    () => service.clearPromptContext(),
+    [service],
+  );
+
   return {
     ...snapshot,
     send: (body: string) => service.send(body),
@@ -93,8 +113,8 @@ export function useCircleMessages(input: {
     toggleReaction: (messageId, reactionType) =>
       service.toggleReaction({ messageId, reactionType }),
     updateReadObservation: (input) => service.updateReadObservation(input),
-    setSendPromptId: (promptId, circleId) =>
-      service.setSendPromptId(promptId, circleId),
+    setSendPromptId,
+    clearPromptContext,
     hideMessage: (messageId) => service.hideMessage(messageId),
     reportMessage: (input) => service.reportMessage(input),
   };
