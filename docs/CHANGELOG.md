@@ -13,12 +13,12 @@ still feels visually alive while real beta presence is sparse. See
   point generator with state-polygon containment; module-level cache;
   GeoJSON properties are only `{ synthetic: true }`.
 - `map/syntheticPreviewConfig.ts` — `NEXT_PUBLIC_ATLAS_SYNTHETIC_PREVIEW`
-  / `_COUNT` parsing, 5000 default / 8000 cap, disclosure copy
-  (`"Atlas preview · Simulated community density"`).
-- Dedicated MapLibre source/layers (`glow-synthetic-preview` heatmap +
-  soft glow), cool/dim vs warm real presence, inserted below presence,
-  never interactive; disclosure rendered outside the canvas in
-  `GlowAtlas.tsx`.
+  / `_COUNT` parsing, 5000 default / 8000 cap, disclosure
+  (`"Full community preview · N simulated parents online"`).
+- Dedicated MapLibre source (`glow-synthetic-preview`) shared by heatmap +
+  per-parent halo/core layers; cool density + warm-lavender simulated
+  parents vs warmer real presence; inserted below presence; never
+  interactive; disclosure rendered outside the canvas in `GlowAtlas.tsx`.
 - Pure tests: allocation, determinism, containment, isolation from
   `buildPresenceGeoJson`, style never bakes synthetic in when disabled.
 

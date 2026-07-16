@@ -44,7 +44,8 @@ import {
   stateFillOpacityExpression,
   stateLineOpacityExpression,
   stateLineWidthExpression,
-  syntheticPreviewGlowLayer,
+  syntheticPreviewCoreLayer,
+  syntheticPreviewHaloLayer,
   syntheticPreviewHeatmapLayer,
 } from "./glowMapStyle";
 import { GlowMapBadges } from "./GlowMapBadges";
@@ -308,17 +309,13 @@ export function GlowMap({
     suburbSource?.setData(presenceGeoJson.suburb as unknown as GeoJSON.FeatureCollection);
   }, [mapLoaded, presenceGeoJson]);
 
-  // Synthetic Atlas Preview: generation is pure but not free (~5,000 seeded,
-  // rejection-sampled points — see docs/GlowAtlas.md's perf notes), so it
-  // deliberately runs *after* `mapLoaded` rather than inside the `mapStyle`
-  // build above — the real map (basemap, state polygons, real presence)
-  // always paints first; this ambient layer fades in shortly after,
-  // never delaying the map's own first paint. Added exactly once per mount
-  // (`syntheticPreviewAddedRef`) via `addSource`/`addLayer`, never rebuilt —
-  // the config (env-resolved, static for the session) can't change without
-  // a full page reload, so there is no update path to wire beyond this.
-  // Inserted with an explicit `beforeId` so real presence (added when the
-  // style itself was built) always paints on top of these, never under.
+  // Synthetic Atlas Preview: one GeoJSON source (~5,000 simulated parents)
+  // feeding three WebGL layers — atmospheric heatmap + per-parent halo +
+  // per-parent core. Generation runs *after* `mapLoaded` so the real map
+  // paints first. Added exactly once (`syntheticPreviewAddedRef`); never
+  // rebuilt on realtime ticks. Inserted with `beforeId` so real presence
+  // always paints above synthetic layers. No clustering / no feature
+  // reduction — every Point remains one rendered light.
   const syntheticPreviewAddedRef = useRef(false);
   useEffect(() => {
     if (!mapLoaded || !SYNTHETIC_PREVIEW_CONFIG.enabled || syntheticPreviewAddedRef.current) {
@@ -332,9 +329,19 @@ export function GlowMap({
     map.addSource(GLOW_SYNTHETIC_PREVIEW_SOURCE_ID, {
       type: "geojson",
       data: geojson as unknown as GeoJSON.FeatureCollection,
+      // Explicitly disable MapLibre clustering — one Point = one light.
+      cluster: false,
     });
-    map.addLayer(syntheticPreviewHeatmapLayer(), GLOW_PRESENCE_STATE_HALO_LAYER_ID);
-    map.addLayer(syntheticPreviewGlowLayer(), GLOW_PRESENCE_STATE_HALO_LAYER_ID);
+    // Paint order (bottom → top): heatmap → halo → core → real presence.
+    // Each addLayer(..., beforeId) inserts just under presence, so later
+    // adds stack above earlier ones while remaining below real presence.
+    const beforeRealPresence = GLOW_PRESENCE_STATE_HALO_LAYER_ID;
+    // Paint order (bottom → top): heatmap → halo → core → real presence.
+    // Each addLayer(..., beforeId) inserts just under presence, so later
+    // adds stack above earlier ones while remaining below real presence.
+    map.addLayer(syntheticPreviewHeatmapLayer(), beforeRealPresence);
+    map.addLayer(syntheticPreviewHaloLayer(), beforeRealPresence);
+    map.addLayer(syntheticPreviewCoreLayer(), beforeRealPresence);
   }, [mapLoaded]);
 
   // Logical hierarchy (Checkpoint C item 6): only the presence layer pair

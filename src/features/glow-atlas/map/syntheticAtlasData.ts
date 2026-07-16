@@ -289,6 +289,9 @@ export type SyntheticAtlasGeneration = {
  */
 const generationCache = new Map<string, SyntheticAtlasGeneration>();
 
+/** Same cache key as generation — one FeatureCollection shared by heatmap + halo + core. */
+const geoJsonCache = new Map<string, SyntheticPreviewFeatureCollection>();
+
 export function generateSyntheticAtlasPoints(
   options: { seed?: string; count?: number } = {},
 ): SyntheticAtlasGeneration {
@@ -309,30 +312,61 @@ export function generateSyntheticAtlasPoints(
   return result;
 }
 
-export type SyntheticPreviewFeatureProperties = { synthetic: true };
+/**
+ * One Point feature = one simulated parent. `simulatedParentId` is stable for
+ * a given (seed, index) so the same parent keeps the same identity across
+ * regenerations of the same seed. `visualVariant` is a deterministic 0–1
+ * value used only by MapLibre circle paint expressions for slight radius/
+ * opacity variation — never a real aggregate count.
+ */
+export type SyntheticPreviewFeatureProperties = {
+  synthetic: true;
+  simulatedParentId: string;
+  visualVariant: number;
+};
+
 export type SyntheticPreviewFeatureCollection = GeoJSON.FeatureCollection<
   GeoJSON.Point,
   SyntheticPreviewFeatureProperties
 >;
 
+/** Zero-padded stable id — `synthetic-parent-00001` … — never a real user id. */
+export function simulatedParentIdForIndex(index: number): string {
+  return `synthetic-parent-${String(index + 1).padStart(5, "0")}`;
+}
+
 /**
- * The renderer-facing GeoJSON — deliberately the *only* thing GlowMap.tsx
- * ever imports from this module. Properties carry nothing but a `synthetic`
- * marker: no count, no label, no id tying back to a real place name, so
- * there is nothing here a future style change could accidentally surface as
- * if it were a real aggregate (see glowMapStyle.ts's layers, which never
- * read anything but `synthetic` for a static paint value).
+ * The renderer-facing GeoJSON — the *only* thing GlowMap.tsx ever imports
+ * from this module. One feature per simulated parent; heatmap + halo + core
+ * layers all read this same FeatureCollection (never duplicated into a
+ * second source). Properties never include a live count or place label that
+ * could be mistaken for real presence.
  */
 export function buildSyntheticPreviewGeoJson(
   options: { seed?: string; count?: number } = {},
 ): SyntheticPreviewFeatureCollection {
-  const { points } = generateSyntheticAtlasPoints(options);
-  return {
+  const { points, seed, count } = generateSyntheticAtlasPoints(options);
+  const cacheKey = `${seed}::${count}`;
+  const cached = geoJsonCache.get(cacheKey);
+  if (cached) return cached;
+
+  const collection: SyntheticPreviewFeatureCollection = {
     type: "FeatureCollection",
-    features: points.map((point) => ({
-      type: "Feature",
-      geometry: { type: "Point", coordinates: [point.lng, point.lat] },
-      properties: { synthetic: true },
-    })),
+    features: points.map((point, index) => {
+      const simulatedParentId = simulatedParentIdForIndex(index);
+      return {
+        type: "Feature",
+        id: simulatedParentId,
+        geometry: { type: "Point", coordinates: [point.lng, point.lat] },
+        properties: {
+          synthetic: true,
+          simulatedParentId,
+          // Deterministic per-parent variation (not random at paint time).
+          visualVariant: seededRandom(`${seed}-variant-${index}`),
+        },
+      };
+    }),
   };
+  geoJsonCache.set(cacheKey, collection);
+  return collection;
 }

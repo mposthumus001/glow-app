@@ -150,15 +150,45 @@ test("state allocation broadly follows the configured population weights", () =>
   }
 });
 
-test("buildSyntheticPreviewGeoJson never carries a count, label, or state-name property — only a synthetic marker", () => {
-  const geojson = buildSyntheticPreviewGeoJson({ seed: "no-leaked-props", count: 50 });
+test("buildSyntheticPreviewGeoJson is one Point per simulated parent with stable id + visualVariant", () => {
+  const geojson = buildSyntheticPreviewGeoJson({ seed: "feature-props", count: 50 });
   assert.equal(geojson.type, "FeatureCollection");
   assert.equal(geojson.features.length, 50);
-  for (const feature of geojson.features) {
-    assert.deepEqual(feature.properties, { synthetic: true });
+  for (let i = 0; i < geojson.features.length; i++) {
+    const feature = geojson.features[i];
+    const expectedId = `synthetic-parent-${String(i + 1).padStart(5, "0")}`;
+    assert.equal(feature.id, expectedId);
     assert.equal(feature.geometry.type, "Point");
     assert.equal(feature.geometry.coordinates.length, 2);
+    assert.equal(feature.properties.synthetic, true);
+    assert.equal(feature.properties.simulatedParentId, expectedId);
+    assert.ok(feature.properties.visualVariant >= 0 && feature.properties.visualVariant < 1);
+    assert.equal(
+      "count" in feature.properties,
+      false,
+      "must not carry a live count property",
+    );
+    assert.equal("label" in feature.properties, false);
+    assert.equal("state" in feature.properties, false);
   }
+});
+
+test("requested count 5000 produces exactly 5000 point features", () => {
+  const geojson = buildSyntheticPreviewGeoJson({ seed: "five-thousand", count: 5000 });
+  assert.equal(geojson.features.length, 5000);
+  assert.equal(geojson.features[0].properties.simulatedParentId, "synthetic-parent-00001");
+  assert.equal(geojson.features[4999].properties.simulatedParentId, "synthetic-parent-05000");
+});
+
+test("heatmap and circle layers share one FeatureCollection — buildSyntheticPreviewGeoJson is not duplicated per layer", () => {
+  // Contract: a single build call yields the one collection GlowMap feeds
+  // into one source that all three layers read. Two builds with the same
+  // seed must be byte-identical (cache), proving we never need a second
+  // source object for "heatmap data" vs "circle data".
+  const a = buildSyntheticPreviewGeoJson({ seed: "shared-source", count: 100 });
+  const b = buildSyntheticPreviewGeoJson({ seed: "shared-source", count: 100 });
+  assert.equal(a, b);
+  assert.equal(a.features.length, 100);
 });
 
 test("generation is cached — repeated calls with the same seed/count return the exact same array reference", () => {

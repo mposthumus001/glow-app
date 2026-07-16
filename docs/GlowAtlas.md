@@ -315,8 +315,9 @@ data even by accident. Consequences of that separation:
 - Synthetic layers are **not** in `interactiveLayerIds` — clicking one is a
   no-op by construction.
 - Whenever the preview is enabled, a calm disclosure sits **outside** the
-  canvas: `"Atlas preview · Simulated community density"`. It is never
-  labelled "parents awake", "live users", or anything implying real
+  canvas: `"Full community preview · 5,000 simulated parents online"`. It is
+  kept separate from the real `"N parents awake…"` caption — the two counts
+  are never combined, and the lights are never labelled as genuine current
   activity.
 
 ### Configuration
@@ -352,17 +353,28 @@ Darwin/Alice Springs) all come from the existing city catalog.
 
 ### Visual layers (WebGL only — never 5,000 React Markers)
 
-`GlowMap.tsx` adds a dedicated source (`glow-synthetic-preview`) **once**
-after `mapLoaded`, inserting layers *below* real presence
-(`beforeId: glow-presence-state-halo`) so real lights always paint on top:
+`GlowMap.tsx` adds **one** GeoJSON source (`glow-synthetic-preview`) once
+after `mapLoaded`, then three layers all reading that same source, inserted
+*below* real presence (`beforeId: glow-presence-state-halo`):
 
-- **Country zoom** — restrained cool-blue heatmap (`#7c8cff` family),
-  fading out by zoom ~8. No numbered cluster bubbles.
-- **State/city zoom** — individual soft, blurred circle lights (minzoom
-  ~4.5), dimmer and cooler than warm real-presence halos/cores.
+1. **Heatmap** — cool lavender/blue atmospheric density (strongest ≈z2–4,
+   fades ≈z5–8, off by ≈z9). Derived from the same points; never replaces
+   or aggregates them.
+2. **Parent halo** — warm lavender-gold soft circle per Point (visible
+   from country zoom).
+3. **Parent core** — distinct smaller core per Point (subtle at z2, clearly
+   individual from ≈z6).
 
-Layers are never baked into `buildGlowMapStyle` — when the flag is off, no
-synthetic source or layer exists on the map at all.
+Paint order (bottom → top): basemap → states → synthetic heatmap →
+synthetic halo → synthetic core → real presence → badges/controls.
+
+One Point feature = one simulated parent = one rendered light. No
+clustering, no numbered bubbles, no feature reduction. Real presence is
+brighter/warmer and always paints above.
+
+Disclosure (outside canvas): `"Full community preview · 5,000 simulated
+parents online"` — kept separate from the real `"N parents awake…"`
+caption; the two counts are never combined.
 
 ### Perf notes
 

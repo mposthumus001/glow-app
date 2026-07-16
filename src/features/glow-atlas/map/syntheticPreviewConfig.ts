@@ -23,12 +23,18 @@ export const SYNTHETIC_PREVIEW_MAX_COUNT = 8000;
 
 /**
  * Calm, explicit disclosure shown outside the map canvas whenever the
- * preview is enabled (item 7). Deliberately avoids "parents awake", "live
- * users", or any other phrase implying real activity — see
- * syntheticAtlasData.ts for the full truthfulness rationale.
+ * preview is enabled. Separated from the real "N parents awake" caption —
+ * never combines simulated + real counts, and never claims the lights are
+ * genuine current activity. See syntheticAtlasData.ts for truthfulness.
  */
+export function formatSyntheticPreviewDisclosure(pointCount: number): string {
+  const n = Math.max(0, Math.floor(pointCount)).toLocaleString("en-AU");
+  return `Full community preview · ${n} simulated parents online`;
+}
+
+/** Default disclosure for the default 5,000-point preview. */
 export const SYNTHETIC_PREVIEW_DISCLOSURE_TEXT =
-  "Atlas preview · Simulated community density";
+  formatSyntheticPreviewDisclosure(SYNTHETIC_PREVIEW_DEFAULT_COUNT);
 
 export type SyntheticPreviewConfig = {
   enabled: boolean;

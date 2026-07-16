@@ -10,8 +10,8 @@ import type { MapClusterConnection } from "../hooks/useMapClusterPresence";
 import type { BasemapStatusResult } from "../map/basemapStatus";
 import type { CameraSelectionInput } from "../map/camera";
 import {
+  formatSyntheticPreviewDisclosure,
   resolveSyntheticPreviewConfig,
-  SYNTHETIC_PREVIEW_DISCLOSURE_TEXT,
 } from "../map/syntheticPreviewConfig";
 import type { AtlasPresence } from "../types";
 import { cn } from "@/lib/utils/cn";
@@ -233,11 +233,11 @@ export function GlowAtlas({
             ) : null}
           </p>
           {SYNTHETIC_PREVIEW_CONFIG.enabled ? (
-            // Item 7: a calm, explicit disclosure — never folded into the
-            // live-count caption above, and never phrased as "parents
-            // awake" or "live users" (see syntheticPreviewConfig.ts).
+            // Explicit simulated-community disclosure — kept separate from
+            // the real "N parents awake" caption above; never combines the
+            // two counts (see formatSyntheticPreviewDisclosure).
             <p className="mt-1 text-center text-[11px] italic tracking-wide text-glow-text-tertiary/80">
-              {SYNTHETIC_PREVIEW_DISCLOSURE_TEXT}
+              {formatSyntheticPreviewDisclosure(SYNTHETIC_PREVIEW_CONFIG.pointCount)}
             </p>
           ) : null}
         </div>

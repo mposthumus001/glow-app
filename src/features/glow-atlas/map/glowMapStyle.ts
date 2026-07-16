@@ -62,18 +62,41 @@ export const GLOW_PRESENCE_LAYER_IDS = [
  * pure but not free (see docs/GlowAtlas.md's perf notes), and folding it
  * into the initial style would delay the very first paint of the whole map.
  * GlowMap.tsx instead calls `map.addSource()`/`map.addLayer()` for these
- * once, imperatively, right after `mapLoaded` — same "never rebuild the
- * style/source for this" spirit as the presence sources' `setData` calls,
- * just an additive one-time add instead of a repeated update. Never added
- * to `interactiveLayerIds` anywhere, and never given a `promoteId` — there
- * is deliberately no way to click, hover, or select a synthetic light.
+ * once, imperatively, right after `mapLoaded`. One GeoJSON source feeds
+ * three layers (heatmap + parent halo + parent core) — never duplicated,
+ * never clustered, never reduced. Never added to `interactiveLayerIds`,
+ * never given a `promoteId`.
+ *
+ * Paint order (bottom → top, inserted before real presence):
+ *   heatmap → synthetic halo → synthetic core → real presence …
  */
 export const GLOW_SYNTHETIC_PREVIEW_SOURCE_ID = "glow-synthetic-preview";
 export const GLOW_SYNTHETIC_PREVIEW_HEATMAP_LAYER_ID = "glow-synthetic-preview-heatmap";
-export const GLOW_SYNTHETIC_PREVIEW_GLOW_LAYER_ID = "glow-synthetic-preview-glow";
+export const GLOW_SYNTHETIC_PREVIEW_HALO_LAYER_ID = "glow-synthetic-preview-halo";
+export const GLOW_SYNTHETIC_PREVIEW_CORE_LAYER_ID = "glow-synthetic-preview-core";
 
-/** Cool, dim, distinctly *not* the warm real-presence palette (`GLOW_PRESENCE_*_COLOR` above) — a synthetic light should never be mistaken for a real one at a glance. */
-const GLOW_SYNTHETIC_PREVIEW_COLOR = "#7c8cff";
+/** Cool lavender/blue atmospheric density — never a warning-map palette. */
+const GLOW_SYNTHETIC_HEATMAP_COLOR_STOPS = [
+  "rgba(16,20,40,0)",
+  "rgba(90,100,190,0.18)",
+  "rgba(130,140,220,0.28)",
+  "rgba(170,175,235,0.36)",
+] as const;
+
+/**
+ * Warm lavender-gold for individual simulated parents — dimmer and slightly
+ * cooler than genuine live presence (`GLOW_PRESENCE_*` below), so the two
+ * never read as the same thing at a glance.
+ */
+const GLOW_SYNTHETIC_PARENT_HALO_COLOR = "#d4b07a";
+const GLOW_SYNTHETIC_PARENT_CORE_COLOR = "#f2e0b8";
+
+/** All synthetic layer ids in paint order (heatmap → halo → core). */
+export const GLOW_SYNTHETIC_PREVIEW_LAYER_IDS = [
+  GLOW_SYNTHETIC_PREVIEW_HEATMAP_LAYER_ID,
+  GLOW_SYNTHETIC_PREVIEW_HALO_LAYER_ID,
+  GLOW_SYNTHETIC_PREVIEW_CORE_LAYER_ID,
+] as const;
 
 const GLOW_NAVY_BACKGROUND = "#060914";
 const GLOW_STATE_FILL = "#b694ff";
@@ -258,44 +281,74 @@ function presenceCoreLayer(
 }
 
 /**
- * Restrained, atmospheric density at country zoom — never individual dots
- * at this scale, per the "no numbered cluster bubbles, no giant blob" brief.
- * Fades out (`heatmap-opacity` → 0, and a hard `maxzoom`) well before state
- * zoom, handing off to `syntheticPreviewGlowLayer` below.
+ * Atmospheric population-density treatment derived from the same Point
+ * features as the individual parent lights — never a replacement for them,
+ * never a clustered aggregation. Strongest at country zoom (≈2–4), fades
+ * through state zoom (≈5–8), nearly off at city/suburb.
  */
 export function syntheticPreviewHeatmapLayer(): HeatmapLayerSpecification {
   return {
     id: GLOW_SYNTHETIC_PREVIEW_HEATMAP_LAYER_ID,
     type: "heatmap",
     source: GLOW_SYNTHETIC_PREVIEW_SOURCE_ID,
-    maxzoom: 8,
+    maxzoom: 9,
     paint: {
       "heatmap-color": [
         "interpolate",
         ["linear"],
         ["heatmap-density"],
         0,
-        "rgba(16,20,40,0)",
-        0.3,
-        "rgba(70,90,190,0.22)",
+        GLOW_SYNTHETIC_HEATMAP_COLOR_STOPS[0],
+        0.35,
+        GLOW_SYNTHETIC_HEATMAP_COLOR_STOPS[1],
         0.7,
-        "rgba(110,140,255,0.32)",
+        GLOW_SYNTHETIC_HEATMAP_COLOR_STOPS[2],
         1,
-        "rgba(150,175,255,0.42)",
+        GLOW_SYNTHETIC_HEATMAP_COLOR_STOPS[3],
       ],
-      "heatmap-intensity": ["interpolate", ["linear"], ["zoom"], 2.5, 0.55, 6, 0.3] as unknown as number,
-      "heatmap-radius": ["interpolate", ["linear"], ["zoom"], 2.5, 10, 6, 22] as unknown as number,
+      // Strongest around zoom 2–4; eases off as individual lights take over.
+      "heatmap-intensity": [
+        "interpolate",
+        ["linear"],
+        ["zoom"],
+        2,
+        0.65,
+        4,
+        0.55,
+        6,
+        0.28,
+        8,
+        0.12,
+      ] as unknown as number,
+      "heatmap-radius": [
+        "interpolate",
+        ["linear"],
+        ["zoom"],
+        2,
+        12,
+        4,
+        16,
+        6,
+        22,
+        8,
+        28,
+      ] as unknown as number,
+      // Strongest 2–4 → fades 5–8 → off by ~9.
       "heatmap-opacity": [
         "interpolate",
         ["linear"],
         ["zoom"],
-        2.5,
-        0.55,
-        5.5,
-        0.4,
-        7,
-        0.1,
+        2,
+        0.58,
+        4,
+        0.5,
+        5,
+        0.35,
+        6.5,
+        0.18,
         8,
+        0.05,
+        9,
         0,
       ] as unknown as number,
     },
@@ -303,36 +356,102 @@ export function syntheticPreviewHeatmapLayer(): HeatmapLayerSpecification {
 }
 
 /**
- * Individual soft ambient lights, taking over from the heatmap once the
- * camera moves into a state/city — dimmer, smaller, and more blurred than
- * any real-presence halo/core circle so they read as calm background
- * texture, never as a disclosed light. No `intensity`/count-scaling (unlike
- * `presenceHaloLayer`/`presenceCoreLayer` above) — every synthetic point is
- * visually identical, since there is no real aggregate behind any of them.
+ * Soft halo behind each simulated parent — one circle per Point feature,
+ * no clustering / no feature reduction. Dimmer and cooler than real
+ * presence halos.
+ *
+ * MapLibre requires `["zoom"]` as the *direct* input of a top-level
+ * interpolate (see `presenceRadiusExpression` above) — the per-parent
+ * `visualVariant` multiplier is therefore folded into each stop's output
+ * value, never wrapping the whole interpolate in `["*", ...]`.
  */
-export function syntheticPreviewGlowLayer(): CircleLayerSpecification {
+export function syntheticPreviewHaloLayer(): CircleLayerSpecification {
+  const variantScale = ["+", 0.75, ["*", ["coalesce", ["get", "visualVariant"], 0.5], 0.5]];
   return {
-    id: GLOW_SYNTHETIC_PREVIEW_GLOW_LAYER_ID,
+    id: GLOW_SYNTHETIC_PREVIEW_HALO_LAYER_ID,
     type: "circle",
     source: GLOW_SYNTHETIC_PREVIEW_SOURCE_ID,
-    minzoom: 4.5,
     paint: {
-      "circle-color": GLOW_SYNTHETIC_PREVIEW_COLOR,
-      "circle-blur": 0.75,
+      "circle-color": GLOW_SYNTHETIC_PARENT_HALO_COLOR,
+      "circle-blur": 0.8,
       "circle-opacity": [
         "interpolate",
         ["linear"],
         ["zoom"],
-        4.5,
-        0,
+        2,
+        ["*", 0.16, variantScale],
+        4,
+        ["*", 0.22, variantScale],
         6,
-        0.16,
+        ["*", 0.36, variantScale],
         9,
-        0.26,
+        ["*", 0.48, variantScale],
         13,
-        0.3,
+        ["*", 0.55, variantScale],
       ] as unknown as number,
-      "circle-radius": ["interpolate", ["linear"], ["zoom"], 4.5, 1.2, 8, 2, 13, 2.6] as unknown as number,
+      "circle-radius": [
+        "interpolate",
+        ["linear"],
+        ["zoom"],
+        2,
+        ["*", 2.6, variantScale],
+        4,
+        ["*", 4, variantScale],
+        6,
+        ["*", 6.5, variantScale],
+        9,
+        ["*", 10, variantScale],
+        13,
+        ["*", 13, variantScale],
+      ] as unknown as number,
+    },
+  };
+}
+
+/**
+ * Distinct core for each simulated parent — one circle per Point, always
+ * present from country zoom (subtle) through city zoom (clearly individual).
+ * Slightly warmer/brighter than the halo, still dimmer than live presence.
+ */
+export function syntheticPreviewCoreLayer(): CircleLayerSpecification {
+  const variantScale = ["+", 0.8, ["*", ["coalesce", ["get", "visualVariant"], 0.5], 0.4]];
+  return {
+    id: GLOW_SYNTHETIC_PREVIEW_CORE_LAYER_ID,
+    type: "circle",
+    source: GLOW_SYNTHETIC_PREVIEW_SOURCE_ID,
+    paint: {
+      "circle-color": GLOW_SYNTHETIC_PARENT_CORE_COLOR,
+      "circle-blur": 0.25,
+      "circle-opacity": [
+        "interpolate",
+        ["linear"],
+        ["zoom"],
+        2,
+        ["*", 0.32, variantScale],
+        4,
+        ["*", 0.45, variantScale],
+        6,
+        ["*", 0.65, variantScale],
+        9,
+        ["*", 0.82, variantScale],
+        13,
+        ["*", 0.9, variantScale],
+      ] as unknown as number,
+      "circle-radius": [
+        "interpolate",
+        ["linear"],
+        ["zoom"],
+        2,
+        ["*", 1.25, variantScale],
+        4,
+        ["*", 1.7, variantScale],
+        6,
+        ["*", 2.8, variantScale],
+        9,
+        ["*", 4, variantScale],
+        13,
+        ["*", 5.5, variantScale],
+      ] as unknown as number,
     },
   };
 }

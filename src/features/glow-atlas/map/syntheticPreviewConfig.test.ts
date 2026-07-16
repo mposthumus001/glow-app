@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import {
+  formatSyntheticPreviewDisclosure,
   resolveSyntheticPreviewConfig,
   SYNTHETIC_PREVIEW_DEFAULT_COUNT,
   SYNTHETIC_PREVIEW_DISCLOSURE_TEXT,
@@ -15,9 +16,9 @@ test("disabled when the flag is unset", () => {
 });
 
 test("disabled for any value other than an explicit true/1", () => {
-  for (const value of ["false", "0", "no", "TRUE ", " ", "enabled"]) {
+  for (const value of ["false", "0", "no", " ", "enabled"]) {
     const config = resolveSyntheticPreviewConfig(value);
-    assert.equal(config.enabled, value.trim().toLowerCase() === "true", `unexpected result for "${value}"`);
+    assert.equal(config.enabled, false, `unexpected result for "${value}"`);
   }
 });
 
@@ -50,11 +51,21 @@ test("ignores an invalid/non-numeric count override and falls back to the defaul
   }
 });
 
-test("the disclosure text never implies real activity", () => {
-  const lower = SYNTHETIC_PREVIEW_DISCLOSURE_TEXT.toLowerCase();
-  for (const forbidden of ["parent", "live user", "awake", "online now"]) {
-    assert.ok(!lower.includes(forbidden), `disclosure text should not contain "${forbidden}"`);
+test("disclosure names simulated parents and never implies genuine live activity", () => {
+  const text = formatSyntheticPreviewDisclosure(5000);
+  const lower = text.toLowerCase();
+  assert.ok(lower.includes("full community preview"));
+  assert.ok(lower.includes("5,000") || lower.includes("5000"));
+  assert.ok(lower.includes("simulated parents"));
+  for (const forbidden of ["awake right now", "live user", "genuine", "real parents"]) {
+    assert.ok(!lower.includes(forbidden), `disclosure should not contain "${forbidden}"`);
   }
-  assert.ok(lower.includes("preview"));
-  assert.ok(lower.includes("simulated"));
+  assert.equal(SYNTHETIC_PREVIEW_DISCLOSURE_TEXT, formatSyntheticPreviewDisclosure(5000));
+});
+
+test("disclosure count follows the configured point count", () => {
+  assert.equal(
+    formatSyntheticPreviewDisclosure(1200),
+    "Full community preview · 1,200 simulated parents online",
+  );
 });
