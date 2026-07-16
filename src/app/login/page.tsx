@@ -3,7 +3,14 @@ import { isParentOnboarded } from "@/lib/auth/onboarding";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 
-export default async function LoginPage() {
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ reset?: string }>;
+}) {
+  const params = await searchParams;
+  const passwordResetSuccess = params.reset === "success";
+
   const supabase = await createClient();
   const {
     data: { user },
@@ -22,5 +29,5 @@ export default async function LoginPage() {
     redirect("/onboarding");
   }
 
-  return <LoginForm />;
+  return <LoginForm passwordResetSuccess={passwordResetSuccess} />;
 }

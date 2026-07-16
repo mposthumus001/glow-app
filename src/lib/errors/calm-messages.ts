@@ -22,6 +22,8 @@ const AUTH_COPY: Record<string, string> = {
     "Please confirm your email first, then sign in.",
   "User already registered":
     "An account with this email already exists. Try signing in instead.",
+  "For security purposes, you can only request this after 60 seconds.":
+    "Too many attempts just now. Please wait a moment and try again.",
 };
 
 const BETA_DENIED =
@@ -44,6 +46,14 @@ export function calmAuthErrorMessage(raw: string | null | undefined): string {
     lower.includes("not on the tester")
   ) {
     return BETA_DENIED;
+  }
+
+  if (
+    lower.includes("rate limit") ||
+    lower.includes("too many requests") ||
+    lower.includes("only request this after")
+  ) {
+    return "Too many attempts just now. Please wait a moment and try again.";
   }
 
   return calmUserFacingError(trimmed, "auth");

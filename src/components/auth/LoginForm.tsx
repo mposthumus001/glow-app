@@ -7,10 +7,15 @@ import { useState, useTransition } from "react";
 import { AuthShell } from "@/components/auth/AuthShell";
 import { ForgotPasswordForm } from "@/components/auth/ForgotPasswordForm";
 import { GlowButton, GlowInput } from "@/components/ui";
+import { PASSWORD_RESET_SUCCESS_MESSAGE } from "@/lib/auth/password-recovery";
 import { createClient } from "@/lib/supabase/client";
 import { calmAuthErrorMessage } from "@/lib/errors/calm-messages";
 
-export function LoginForm() {
+export function LoginForm({
+  passwordResetSuccess = false,
+}: {
+  passwordResetSuccess?: boolean;
+}) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -56,6 +61,14 @@ export function LoginForm() {
         </>
       }
     >
+      {passwordResetSuccess ? (
+        <p
+          className="mb-4 rounded-glow-input bg-glow-primary/10 px-3 py-2 text-sm text-glow-primary-light"
+          role="status"
+        >
+          {PASSWORD_RESET_SUCCESS_MESSAGE}
+        </p>
+      ) : null}
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <GlowInput
           label="Email"

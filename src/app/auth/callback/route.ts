@@ -1,23 +1,22 @@
 import { NextResponse } from "next/server";
 
+import { safeAuthNextPath } from "@/lib/auth/safe-auth-next";
 import { createClient } from "@/lib/supabase/server";
 
 /**
- * Auth callback for password recovery and email confirmations.
- * Exchanges the code for a session, then redirects into the app shell.
+ * Auth callback for password recovery, email confirmations, and invites.
+ * Exchanges the PKCE code for a session, then redirects to a validated `next` path.
  */
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
-  const next = searchParams.get("next") ?? "/";
-
-  const safeNext = next.startsWith("/") ? next : "/";
+  const next = safeAuthNextPath(searchParams.get("next"), "/");
 
   if (code) {
     const supabase = await createClient();
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
-      return NextResponse.redirect(`${origin}${safeNext}`);
+      return NextResponse.redirect(`${origin}${next}`);
     }
   }
 

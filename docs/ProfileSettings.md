@@ -42,7 +42,33 @@ Not self-service in beta. Profile explains this and points to Help & feedback.
 
 ## Password reset
 
-`resetPasswordForEmail` via Account settings. Callback: `/auth/callback?next=/profile/account`. Configure `NEXT_PUBLIC_SITE_URL` in production.
+`resetPasswordForEmail` via Account settings or the login “Forgot password?” form.
+
+**Redirect flow (PKCE):**
+
+1. `redirectTo` = `{SITE_URL}/auth/callback?next=/auth/reset-password`
+2. `/auth/callback` exchanges the code for a session
+3. Redirects to `/auth/reset-password`
+4. User sets a new password → Glow signs them out → `/login?reset=success`
+
+Configure `NEXT_PUBLIC_SITE_URL` in production.
+
+### Supabase Dashboard → Authentication → URL Configuration → Redirect URLs
+
+Allow at least:
+
+**Local**
+- `http://localhost:3000/auth/reset-password`
+- `http://localhost:3000/auth/callback`
+
+**Production**
+- `https://glow-app-six.vercel.app/auth/reset-password`
+- `https://glow-app-six.vercel.app/auth/callback`
+
+Also include the permanent custom Glow domain when available (same two paths).
+
+**Success behaviour:** update password, sign out, redirect to login with
+“Your password has been updated. Sign in with your new password.”
 
 ## Account deletion
 

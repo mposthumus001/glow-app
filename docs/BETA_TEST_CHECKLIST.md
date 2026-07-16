@@ -24,7 +24,7 @@ Mark each item Pass / Fail / N/A.
 | C2 | Sign up with **uninvited** email | Calm denial — not on tester list |
 | C3 | Invited email with mixed case / spaces | Accepted (normalised) |
 | C4 | Email confirmation redirect | Lands in app / onboarding |
-| C5 | Password reset redirect | Account page + set password |
+| C5 | Password reset redirect | `/auth/reset-password` + set password, then login |
 | C6 | Existing tester login | Tonight (or onboarding if incomplete) |
 | C7 | Revoked email signup | Denied (same calm copy) |
 | C8 | Direct Auth signup with unknown email | Denied when hook enabled |

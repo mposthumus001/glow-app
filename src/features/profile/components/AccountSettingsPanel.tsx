@@ -10,7 +10,6 @@ import {
   sendPasswordResetEmail,
   type ProfileActionState,
 } from "@/features/profile/actions";
-import { PasswordRecoveryPanel } from "@/features/profile/components/PasswordRecoveryPanel";
 
 const initial: ProfileActionState = {};
 
@@ -88,8 +87,6 @@ export function AccountSettingsPanel({
           </p>
         ) : null}
       </section>
-
-      <PasswordRecoveryPanel />
 
       <section aria-labelledby="session-heading">
         <h2

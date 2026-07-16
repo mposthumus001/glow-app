@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+### Password recovery flow
+
+Fixes recovery links landing on the normal login screen instead of a
+new-password form.
+
+#### Changed
+- `resetPasswordForEmail` now redirects to
+  `/auth/callback?next=/auth/reset-password` (dedicated reset route).
+- New `/auth/reset-password` page waits for `PASSWORD_RECOVERY` or an
+  already-established recovery session, then shows new/confirm password.
+- On success: update password → sign out → `/login?reset=success`.
+- Auth callback `next` paths are validated against open redirects.
+- Removed the fragile Account-page `PasswordRecoveryPanel` that only
+  listened for a client `PASSWORD_RECOVERY` event after server code exchange.
+
 ### Synthetic Atlas Preview (beta ambient density)
 
 Optional, renderer-only ambient lights (~5,000 by default) so the Atlas

@@ -1,9 +1,12 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 
-import { createClient } from "@/lib/supabase/server";
-import { calmAuthErrorMessage, calmUserFacingError } from "@/lib/errors/calm-messages";
+import {
+  buildPasswordResetRedirectTo,
+  validateNewPassword,
+} from "@/lib/auth/password-recovery";
 import {
   validateAtlasPrivacy,
   validateBabyProfile,
@@ -11,6 +14,8 @@ import {
   validateFeedback,
   validateParentProfile,
 } from "@/features/profile/validation";
+import { calmAuthErrorMessage, calmUserFacingError } from "@/lib/errors/calm-messages";
+import { createClient } from "@/lib/supabase/server";
 
 export type ProfileActionState = {
   error?: string;
@@ -291,15 +296,28 @@ export async function cancelAccountDeletion(
   return { success: "Your deletion request has been cancelled." };
 }
 
-function passwordResetRedirectUrl(): string | undefined {
+/**
+ * Builds redirectTo for resetPasswordForEmail.
+ * Prefer NEXT_PUBLIC_SITE_URL, then request Origin, then VERCEL_URL.
+ * Final destination is /auth/reset-password via the PKCE callback.
+ */
+export async function passwordResetRedirectUrl(): Promise<string | undefined> {
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "");
-  const origin =
-    siteUrl ??
-    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null);
+  if (siteUrl) {
+    return buildPasswordResetRedirectTo(siteUrl);
+  }
 
-  return origin
-    ? `${origin}/auth/callback?next=/profile/account`
-    : undefined;
+  const headerStore = await headers();
+  const requestOrigin = headerStore.get("origin")?.replace(/\/$/, "");
+  if (requestOrigin) {
+    return buildPasswordResetRedirectTo(requestOrigin);
+  }
+
+  if (process.env.VERCEL_URL) {
+    return buildPasswordResetRedirectTo(`https://${process.env.VERCEL_URL}`);
+  }
+
+  return undefined;
 }
 
 export async function sendPasswordResetEmail(
@@ -315,7 +333,7 @@ export async function sendPasswordResetEmail(
     return { error: "Enter the email linked to your account." };
   }
 
-  const redirectTo = passwordResetRedirectUrl();
+  const redirectTo = await passwordResetRedirectUrl();
 
   const { error: resetError } = await supabase.auth.resetPasswordForEmail(
     email,
@@ -332,6 +350,11 @@ export async function sendPasswordResetEmail(
   };
 }
 
+/**
+ * @deprecated Prefer the dedicated /auth/reset-password client flow
+ * (updateUser → signOut → login). Kept for any in-app callers that still
+ * submit via server action while a recovery session is active.
+ */
 export async function completePasswordReset(
   _prev: ProfileActionState,
   formData: FormData,
@@ -342,16 +365,14 @@ export async function completePasswordReset(
 
   const password = asString(formData, "password");
   const confirm = asString(formData, "confirm_password");
-
-  if (password.length < 6) {
-    return { error: "Password needs at least 6 characters." };
+  const validated = validateNewPassword(password, confirm);
+  if (!validated.ok) {
+    return { error: validated.error };
   }
 
-  if (password !== confirm) {
-    return { error: "Passwords do not match." };
-  }
-
-  const { error: updateError } = await supabase.auth.updateUser({ password });
+  const { error: updateError } = await supabase.auth.updateUser({
+    password: validated.password,
+  });
 
   if (updateError) {
     return { error: calmAuthErrorMessage(updateError.message) };
