@@ -1,45 +1,48 @@
 /**
- * Image processing boundary — Sprint 9.1.
- * No sharp/native image library in project yet; media stays pending until
- * a trusted worker implements this interface (Sprint 9.2+).
+ * Sprint 9.2A — trusted image processing types.
  */
+
+export type MomentProcessingStatus =
+  | "pending"
+  | "processing"
+  | "ready"
+  | "failed";
 
 export type MomentMediaProcessingInput = {
   mediaId: string;
-  storagePath: string;
-  mimeType: string;
+  originalPath: string;
+  displayPath: string;
+  thumbnailPath: string;
+  ownerParentId: string;
+  momentId: string;
 };
 
 export type MomentMediaProcessingResult = {
-  status: "pending" | "ready" | "failed";
+  status: MomentProcessingStatus;
   width: number | null;
   height: number | null;
-  sizeBytes: number | null;
+  processedSizeBytes: number | null;
+  thumbnailSizeBytes: number | null;
   errorCode?: string;
+  originalCleanupRequired?: boolean;
 };
 
-export interface MomentMediaProcessor {
-  process(input: MomentMediaProcessingInput): Promise<MomentMediaProcessingResult>;
-}
+export type { MomentMediaOutcome } from "./outcomes.ts";
+export {
+  calmMessageForOutcome,
+  mapProcessingErrorToOutcome,
+  MOMENT_MEDIA_OUTCOME_MESSAGES,
+  outcomeAllowsRetry,
+} from "./outcomes.ts";
 
-/** No-op processor — leaves media pending (not visible in album UI). */
-export const pendingOnlyProcessor: MomentMediaProcessor = {
-  async process() {
-    return {
-      status: "pending",
-      width: null,
-      height: null,
-      sizeBytes: null,
-      errorCode: "processing_not_implemented",
-    };
-  },
-};
+export type { ProcessMomentMediaResult } from "./processMomentMedia.ts";
+export { processMomentMedia } from "./processMomentMedia.ts";
 
-/**
- * Planned processing steps (not implemented in 9.1):
- * - EXIF orientation correction
- * - EXIF/GPS removal
- * - Resize original max 2048px
- * - WebP thumbnail ~400px
- * - Extract width/height
- */
+export {
+  MOMENTS_DISPLAY_MAX_EDGE,
+  MOMENTS_MAX_INPUT_PIXELS,
+  MOMENTS_THUMB_MAX_EDGE,
+  processImageBuffer,
+} from "./processImageBuffer.ts";
+
+export { sniffImageMime } from "./sniffMime.ts";

@@ -341,6 +341,32 @@ Bucket `moments-private` (private, 8 MB, jpeg/png/webp). Ops: `supabase/ops/MOME
 
 ### Feature flag
 
-`NEXT_PUBLIC_MOMENTS_ENABLED=false` until Sprint 9.2 UI.
+`NEXT_PUBLIC_MOMENTS_ENABLED=false` until Sprint 9.2B album UI.
+
+---
+
+## Glow Moments image processing (Sprint 9.2A — migration 0016)
+
+### `moment_media` additions
+
+| Column | Purpose |
+|--------|---------|
+| `original_path` | Upload target; deleted after processing |
+| `storage_path` | Processed `display.webp` (signed download when `ready`) |
+| `processed_size_bytes` / `thumbnail_size_bytes` | Quota + metadata |
+| `processing_error_code` | Safe codes only (no paths/filenames) |
+| `original_cleanup_required` | Original delete failed after `ready` |
+| `processing_started_at` / `processing_completed_at` | Stale claim detection |
+
+### RPCs (9.2A)
+
+| Function | Caller | Purpose |
+|----------|--------|---------|
+| `claim_moment_media_processing` | authenticated owner | `pending`/`failed`/stale → `processing` |
+| `complete_moment_media_processing` | service_role only | Mark `ready` |
+| `fail_moment_media_processing` | service_role only | Mark `failed` |
+| `retry_moment_media_processing` | authenticated owner | `failed` → `pending` |
+
+Ops: `supabase/ops/moments-retry-processing.sql`, `moments-orphan-cleanup.sql`.
 
 Details: `docs/Moments.md`.

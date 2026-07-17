@@ -89,14 +89,16 @@ Mark each item Pass / Fail / N/A.
 
 ---
 
-## Moments foundation (Sprint 9.1 — backend only)
+## Moments (Sprint 9.1 + 9.2A — backend only)
 
 | # | Step | Expected |
 |---|------|----------|
-| M1 | Migration `0015` applied | Tables + bucket exist |
+| M1 | Migrations `0015` + `0016` applied | Tables + processing RPCs exist |
 | M2 | Run `moments-verify-rls.sql` | 12 system tags; storage policies present |
-| M3 | `NEXT_PUBLIC_MOMENTS_ENABLED=false` | Actions return unavailable (until 9.2) |
-| M4 | Bucket not public | `moments-private.public = false` |
+| M3 | `SUPABASE_SERVICE_ROLE_KEY` on Vercel | Processing worker can complete media |
+| M4 | `NEXT_PUBLIC_MOMENTS_ENABLED=false` | Actions return unavailable until 9.2B UI |
+| M5 | Bucket not public | `moments-private.public = false` |
+| M6 | Upload → process → ready (API test) | Original deleted; display/thumb WebP exist |
 
 ---
 

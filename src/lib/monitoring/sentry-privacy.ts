@@ -5,7 +5,11 @@ const JWT_PATTERN = /eyJ[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+/g;
 const BEARER_PATTERN = /bearer\s+[a-z0-9._~+/=-]+/gi;
 
 const SENSITIVE_KEY_PATTERN =
-  /(password|passwd|token|secret|authorization|cookie|session|email|message|body|note|content|photo|image|caption|filename|storage_path|signed_url|signedurl|thumbnail|exif|gps|latitude|longitude|lat|lng|feeding|health|baby_name|display_name|suburb|address|original_filename|mime_type)/i;
+  /(password|passwd|token|secret|authorization|cookie|session|email|message|body|note|content|photo|image|caption|filename|storage_path|original_path|display_path|signed_url|signedurl|thumbnail|thumb_path|exif|gps|latitude|longitude|lat|lng|feeding|health|baby_name|display_name|suburb|address|original_filename|mime_type|media_id|moment_id|bucket|object_path|webp|jpeg|png)/i;
+
+const URL_PATTERN = /https?:\/\/[^\s]+/gi;
+const STORAGE_PATH_PATTERN =
+  /[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\/[0-9a-f-]+\/[0-9a-f-]+\/(original\.(jpg|jpeg|png|webp)|display\.webp|thumb\.webp)/gi;
 
 const BLOCKED_BREADCRUMB_CATEGORIES = new Set([
   "console",
@@ -18,7 +22,9 @@ export function scrubString(value: string): string {
   return value
     .replace(EMAIL_PATTERN, "[redacted-email]")
     .replace(JWT_PATTERN, "[redacted-token]")
-    .replace(BEARER_PATTERN, "[redacted-auth]");
+    .replace(BEARER_PATTERN, "[redacted-auth]")
+    .replace(URL_PATTERN, "[redacted-url]")
+    .replace(STORAGE_PATH_PATTERN, "[redacted-storage-path]");
 }
 
 export function isSensitiveFieldName(name: string): boolean {

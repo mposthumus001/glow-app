@@ -2,6 +2,25 @@
 
 ## Unreleased
 
+### Sprint 9.2A — Secure Moments image processing
+
+Trusted Node.js worker processes uploaded originals into privacy-safe WebP display + thumbnail.
+
+#### Added
+- Migration `0016_moments_image_processing.sql` — `processing` status, `original_path`, completion RPCs
+- `sharp` pipeline: EXIF orientation, metadata strip, max 2048px display, 400px thumb
+- `src/lib/supabase/admin.ts` — server-only service role client
+- `POST /api/moments/process`, `requestMomentMediaProcessing`, `retryMomentMediaProcessing`, `getMomentMediaStatus`
+- Typed outcomes for Sprint 9.2B UI (`src/features/moments/processing/outcomes.ts`)
+- Ops: `supabase/ops/moments-retry-processing.sql`
+- Tests: MIME sniff, sharp processing, paths, outcomes
+
+#### Security
+- Magic-byte MIME validation; decompression bomb pixel cap
+- Only service role may mark `ready` via `complete_moment_media_processing`
+- Original upload deleted after processing; `original_cleanup_required` on delete failure
+- Sentry scrubbing extended for storage URLs and path patterns
+
 ### Sprint 9.1 — Glow Moments foundation
 
 Private photo Moments backend: schema, Storage, RLS, server actions. No album UI yet.

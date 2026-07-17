@@ -14,8 +14,16 @@ import {
   mapRpcError,
   validateCreateMomentInput,
   validateUploadSlotInput,
+  type CreateMomentInput,
+  type UploadSlotInput,
 } from "./validation";
-import type { CreateMomentInput, UploadSlotInput } from "./validation";
+import {
+  mapProcessingErrorToOutcome,
+  type MomentMediaOutcome,
+  calmMessageForOutcome,
+  outcomeAllowsRetry,
+} from "./processing/outcomes";
+import { processMomentMedia } from "./processing/processMomentMedia";
 
 export type MomentActionResult<T = undefined> =
   | { ok: true; data: T }
@@ -26,8 +34,10 @@ type RpcPayload = {
   error?: string;
   moment_id?: string;
   media_id?: string;
+  original_path?: string;
   storage_path?: string;
   thumbnail_path?: string;
+  status?: string;
 };
 
 async function requireAuthenticatedParent() {
@@ -98,7 +108,8 @@ export async function requestMomentUploadSlot(
 ): Promise<
   MomentActionResult<{
     mediaId: string;
-    storagePath: string;
+    originalPath: string;
+    displayPath: string;
     thumbnailPath: string;
     signedUploadUrl: string;
   }>
@@ -141,6 +152,7 @@ export async function requestMomentUploadSlot(
   if (
     !result.ok ||
     !result.media_id ||
+    !result.original_path ||
     !result.storage_path ||
     !result.thumbnail_path
   ) {
@@ -149,7 +161,7 @@ export async function requestMomentUploadSlot(
 
   const { data: signed, error: signError } = await supabase.storage
     .from(MOMENTS_BUCKET)
-    .createSignedUploadUrl(result.storage_path, { upsert: false });
+    .createSignedUploadUrl(result.original_path, { upsert: false });
 
   if (signError || !signed?.signedUrl) {
     reportOperationalFailure(signError?.message ?? "signed_upload_failed", {
@@ -167,7 +179,8 @@ export async function requestMomentUploadSlot(
     ok: true,
     data: {
       mediaId: result.media_id,
-      storagePath: result.storage_path,
+      originalPath: result.original_path,
+      displayPath: result.storage_path,
       thumbnailPath: result.thumbnail_path,
       signedUploadUrl: signed.signedUrl,
     },
@@ -177,9 +190,13 @@ export async function requestMomentUploadSlot(
 export async function finalizeMomentMediaUpload(input: {
   mediaId: string;
   sizeBytes: number;
-  width?: number | null;
-  height?: number | null;
-}): Promise<MomentActionResult<{ mediaId: string }>> {
+}): Promise<
+  MomentActionResult<{
+    mediaId: string;
+    outcome: MomentMediaOutcome;
+    message: string;
+  }>
+> {
   if (!isMomentsEnabled()) {
     return { ok: false, error: "Moments are not available yet." };
   }
@@ -192,9 +209,6 @@ export async function finalizeMomentMediaUpload(input: {
     {
       p_media_id: input.mediaId,
       p_size_bytes: input.sizeBytes,
-      p_width: input.width ?? null,
-      p_height: input.height ?? null,
-      p_processing_status: "pending",
     },
   );
 
@@ -210,7 +224,165 @@ export async function finalizeMomentMediaUpload(input: {
     return { ok: false, error: mapRpcError(result.error) };
   }
 
-  return { ok: true, data: { mediaId: result.media_id } };
+  const processed = await processMomentMedia(result.media_id);
+
+  return {
+    ok: true,
+    data: {
+      mediaId: result.media_id,
+      outcome: processed.outcome,
+      message: processed.message,
+    },
+  };
+}
+
+export async function requestMomentMediaProcessing(
+  mediaId: string,
+): Promise<
+  MomentActionResult<{
+    mediaId: string;
+    outcome: MomentMediaOutcome;
+    message: string;
+  }>
+> {
+  if (!isMomentsEnabled()) {
+    return { ok: false, error: "Moments are not available yet." };
+  }
+
+  const trimmed = mediaId?.trim();
+  if (!trimmed) {
+    return { ok: false, error: "That photo could not be found." };
+  }
+
+  const { user, error } = await requireAuthenticatedParent();
+  if (error || !user) return { ok: false, error: error ?? "Please sign in again." };
+
+  const processed = await processMomentMedia(trimmed);
+
+  return {
+    ok: true,
+    data: {
+      mediaId: trimmed,
+      outcome: processed.outcome,
+      message: processed.message,
+    },
+  };
+}
+
+export async function retryMomentMediaProcessing(
+  mediaId: string,
+): Promise<
+  MomentActionResult<{
+    mediaId: string;
+    outcome: MomentMediaOutcome;
+    message: string;
+  }>
+> {
+  if (!isMomentsEnabled()) {
+    return { ok: false, error: "Moments are not available yet." };
+  }
+
+  const trimmed = mediaId?.trim();
+  if (!trimmed) {
+    return { ok: false, error: "That photo could not be found." };
+  }
+
+  const { supabase, user, error } = await requireAuthenticatedParent();
+  if (error || !user) return { ok: false, error: error ?? "Please sign in again." };
+
+  const { data, error: rpcError } = await supabase.rpc(
+    "retry_moment_media_processing",
+    { p_media_id: trimmed },
+  );
+
+  if (rpcError) {
+    return {
+      ok: false,
+      error: calmUserFacingError(rpcError.message, "profile"),
+    };
+  }
+
+  const result = parseRpc(data);
+  if (!result.ok) {
+    return { ok: false, error: mapRpcError(result.error) };
+  }
+
+  const processed = await processMomentMedia(trimmed);
+
+  return {
+    ok: true,
+    data: {
+      mediaId: trimmed,
+      outcome: processed.outcome,
+      message: processed.message,
+    },
+  };
+}
+
+export async function getMomentMediaStatus(mediaId: string): Promise<
+  MomentActionResult<{
+    mediaId: string;
+    processingStatus: string;
+    outcome: MomentMediaOutcome;
+    message: string;
+    canRetry: boolean;
+  }>
+> {
+  if (!isMomentsEnabled()) {
+    return { ok: false, error: "Moments are not available yet." };
+  }
+
+  const trimmed = mediaId?.trim();
+  if (!trimmed) {
+    return { ok: false, error: "That photo could not be found." };
+  }
+
+  const { supabase, user, error } = await requireAuthenticatedParent();
+  if (error || !user) return { ok: false, error: error ?? "Please sign in again." };
+
+  const { data: media, error: mediaError } = await supabase
+    .from("moment_media")
+    .select("id, processing_status, processing_error_code")
+    .eq("id", trimmed)
+    .eq("owner_parent_id", user.id)
+    .is("deleted_at", null)
+    .maybeSingle();
+
+  if (mediaError || !media) {
+    return { ok: false, error: "That photo could not be found." };
+  }
+
+  let outcome: MomentMediaOutcome;
+  switch (media.processing_status) {
+    case "ready":
+      outcome = "ready";
+      break;
+    case "processing":
+      outcome = "processing";
+      break;
+    case "pending":
+      outcome = "uploaded";
+      break;
+    case "failed":
+      outcome = mapProcessingErrorToOutcome(media.processing_error_code);
+      if (outcome === "processing_failed") {
+        outcome = "retry_available";
+      }
+      break;
+    default:
+      outcome = "processing_failed";
+  }
+
+  return {
+    ok: true,
+    data: {
+      mediaId: trimmed,
+      processingStatus: media.processing_status,
+      outcome,
+      message: calmMessageForOutcome(outcome),
+      canRetry: outcomeAllowsRetry(outcome),
+    },
+  };
 }
 
 export async function getMomentDownloadUrl(input: {

@@ -459,6 +459,140 @@ export type Database = {
         Update: Record<string, never>;
         Relationships: [];
       };
+      moments: {
+        Row: {
+          id: string;
+          owner_parent_id: string;
+          family_id: string;
+          title: string | null;
+          caption: string | null;
+          occurred_on: string;
+          visibility: "private" | "shared_family";
+          is_favourite: boolean;
+          created_at: string;
+          updated_at: string;
+          deleted_at: string | null;
+        };
+        Insert: {
+          owner_parent_id: string;
+          family_id: string;
+          title?: string | null;
+          caption?: string | null;
+          occurred_on: string;
+          visibility?: "private" | "shared_family";
+          is_favourite?: boolean;
+        };
+        Update: Partial<{
+          title: string | null;
+          caption: string | null;
+          occurred_on: string;
+          is_favourite: boolean;
+          deleted_at: string | null;
+        }>;
+        Relationships: [];
+      };
+      moment_children: {
+        Row: {
+          moment_id: string;
+          baby_id: string;
+          created_at: string;
+        };
+        Insert: {
+          moment_id: string;
+          baby_id: string;
+        };
+        Update: Record<string, never>;
+        Relationships: [];
+      };
+      moment_media: {
+        Row: {
+          id: string;
+          moment_id: string;
+          owner_parent_id: string;
+          original_path: string | null;
+          storage_path: string;
+          thumbnail_path: string | null;
+          original_filename: string | null;
+          media_type: "image";
+          mime_type: string;
+          size_bytes: number;
+          processed_size_bytes: number | null;
+          thumbnail_size_bytes: number | null;
+          width: number | null;
+          height: number | null;
+          processing_status: "pending" | "processing" | "ready" | "failed";
+          processing_error_code: string | null;
+          original_cleanup_required: boolean;
+          processing_started_at: string | null;
+          processing_completed_at: string | null;
+          sort_order: number;
+          created_at: string;
+          deleted_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          moment_id: string;
+          owner_parent_id: string;
+          original_path?: string | null;
+          storage_path: string;
+          thumbnail_path?: string | null;
+          original_filename?: string | null;
+          media_type?: "image";
+          mime_type: string;
+          size_bytes?: number;
+          processing_status?: "pending" | "processing" | "ready" | "failed";
+          sort_order?: number;
+        };
+        Update: Partial<{
+          size_bytes: number;
+          processed_size_bytes: number | null;
+          thumbnail_size_bytes: number | null;
+          width: number | null;
+          height: number | null;
+          processing_status: "pending" | "processing" | "ready" | "failed";
+          processing_error_code: string | null;
+          original_cleanup_required: boolean;
+          deleted_at: string | null;
+        }>;
+        Relationships: [];
+      };
+      moment_tags: {
+        Row: {
+          id: string;
+          owner_parent_id: string | null;
+          label: string;
+          normalised_label: string;
+          is_system: boolean;
+          created_at: string;
+          updated_at: string;
+          deleted_at: string | null;
+        };
+        Insert: {
+          owner_parent_id?: string | null;
+          label: string;
+          normalised_label: string;
+          is_system?: boolean;
+        };
+        Update: Partial<{
+          label: string;
+          normalised_label: string;
+          deleted_at: string | null;
+        }>;
+        Relationships: [];
+      };
+      moment_tag_links: {
+        Row: {
+          moment_id: string;
+          tag_id: string;
+          created_at: string;
+        };
+        Insert: {
+          moment_id: string;
+          tag_id: string;
+        };
+        Update: Record<string, never>;
+        Relationships: [];
+      };
     };
     Views: {
       map_presence: {
@@ -514,6 +648,73 @@ export type Database = {
       australian_prompt_date: {
         Args: { p_at?: string };
         Returns: string;
+      };
+      create_private_moment: {
+        Args: {
+          p_title?: string | null;
+          p_caption?: string | null;
+          p_occurred_on: string;
+          p_baby_ids?: string[];
+          p_tag_ids?: string[];
+          p_custom_tag_labels?: string[];
+        };
+        Returns: Json;
+      };
+      create_moment_media_upload_slot: {
+        Args: {
+          p_moment_id: string;
+          p_mime_type: string;
+          p_original_filename?: string | null;
+          p_size_bytes: number;
+          p_extension: string;
+        };
+        Returns: Json;
+      };
+      finalize_moment_media_upload: {
+        Args: {
+          p_media_id: string;
+          p_size_bytes: number;
+          p_width?: number | null;
+          p_height?: number | null;
+          p_processing_status?: "pending" | "processing" | "ready" | "failed";
+        };
+        Returns: Json;
+      };
+      claim_moment_media_processing: {
+        Args: { p_media_id: string };
+        Returns: Json;
+      };
+      complete_moment_media_processing: {
+        Args: {
+          p_media_id: string;
+          p_width: number;
+          p_height: number;
+          p_processed_size_bytes: number;
+          p_thumbnail_size_bytes: number;
+          p_original_deleted: boolean;
+          p_mime_type?: string;
+        };
+        Returns: Json;
+      };
+      fail_moment_media_processing: {
+        Args: { p_media_id: string; p_error_code: string };
+        Returns: Json;
+      };
+      retry_moment_media_processing: {
+        Args: { p_media_id: string };
+        Returns: Json;
+      };
+      moments_owner_owns_moment: {
+        Args: { p_moment_id: string };
+        Returns: boolean;
+      };
+      moments_normalise_tag_label: {
+        Args: { p_label: string };
+        Returns: string;
+      };
+      moments_parent_media_bytes: {
+        Args: { p_parent_id: string };
+        Returns: number;
       };
     };
     Enums: {

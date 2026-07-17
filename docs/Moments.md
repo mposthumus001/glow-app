@@ -1,6 +1,6 @@
 # Glow Moments — Architecture Specification
 
-**Status:** Sprint 9.1 foundation implemented (migration `0015`); UI deferred to Sprint 9.2.  
+**Status:** Sprint 9.1 foundation + Sprint 9.2A secure processing (migrations `0015`, `0016`); album UI deferred to Sprint 9.2B.  
 **Version:** 0.2 (2026-07-17)  
 **Depends on:** existing `parents`, `babies`, `families`, Baby feature, Supabase Auth/RLS patterns.
 
@@ -145,7 +145,7 @@ PK: `(moment_id, baby_id)`.
 | `width` | integer nullable | |
 | `height` | integer nullable | |
 | `sort_order` | smallint | Default 0; v1 single image |
-| `processing_status` | enum | `pending` \| `ready` \| `failed` |
+| `processing_status` | enum | `pending` \| `processing` \| `ready` \| `failed` |
 | `created_at` | timestamptz | |
 | `deleted_at` | timestamptz nullable | |
 
@@ -198,19 +198,23 @@ Defined in `docs/Family.md`: `shared_families`, `shared_family_members`, `shared
 
 ```
 {owner_parent_id}/{moment_id}/{media_id}/original.{ext}
+{owner_parent_id}/{moment_id}/{media_id}/display.webp
 {owner_parent_id}/{moment_id}/{media_id}/thumb.webp
 ```
+
+- `storage_path` column stores **`display.webp`** after Sprint 9.2A
+- `original_path` holds upload object until processing deletes it
 
 - `owner_parent_id` first segment prevents cross-user path guessing even if UUID leaked
 - All paths validated server-side before signed upload URL issuance
 
 ### 5.3 Upload flow (trusted server action)
 
-1. Client requests upload slot → server action validates auth, creates `moments` + `moment_media` rows (`processing_status = pending`)
-2. Server returns **short-lived signed upload URL** (Supabase `createSignedUploadUrl` or equivalent)
+1. Client requests upload slot → server action validates auth, creates `moment_media` row (`processing_status = pending`)
+2. Server returns **short-lived signed upload URL** targeting `original_path`
 3. Client uploads directly to Storage
-4. Server/webhook confirms upload → generates thumbnail (Edge Function or server job) → strips EXIF/GPS → sets `ready`
-5. On failure/timeout → mark `failed`; orphan cleanup job removes objects without `ready` after 24h
+4. `finalizeMomentMediaUpload` confirms bytes → trusted Node worker processes image → `ready`
+5. On failure → `failed` with safe `processing_error_code`; parent may retry via `retry_moment_media_processing`
 
 ### 5.4 Read flow
 
@@ -218,14 +222,20 @@ Defined in `docs/Family.md`: `shared_families`, `shared_family_members`, `shared
 - Created via server action after RLS check on `moments` + `moment_media`
 - Thumbnails served same way (prefer thumb in grid)
 
-### 5.5 Image processing
+### 5.5 Image processing (Sprint 9.2A — implemented)
 
 | Step | Requirement |
 |------|-------------|
-| EXIF/GPS removal | Strip all location and device metadata on server after upload |
-| Compression | Max dimension 2048px; JPEG quality ~85 or WebP equivalent |
-| Thumbnail | Max 400px edge; WebP |
-| Validation | Magic-byte check, not extension alone |
+| Worker | Next.js Node route + `sharp` (server-only `SUPABASE_SERVICE_ROLE_KEY`) |
+| EXIF orientation | Applied before resize via `sharp().rotate()` |
+| EXIF/GPS removal | All metadata stripped in WebP output |
+| Display | Max edge 2048px, no upscale, WebP quality ~82 |
+| Thumbnail | Max edge 400px, WebP quality ~75 |
+| Validation | Magic-byte MIME sniff; decompression bomb cap (`4096×4096` input pixels) |
+| Original retention | Deleted after successful processing; `original_cleanup_required` if delete fails |
+| Ready transition | Only `complete_moment_media_processing` (service role) |
+
+**Do not** use service-role in browser. Signed URLs created server-side only.
 
 ### 5.6 Delete behaviour
 

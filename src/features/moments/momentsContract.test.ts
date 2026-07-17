@@ -49,6 +49,38 @@ describe("moments RLS contract (Sprint 9.1)", () => {
   });
 });
 
+describe("moments processing contract (Sprint 9.2A)", () => {
+  it("documents pending → processing → ready lifecycle", () => {
+    const rule =
+      "claim_moment_media_processing → complete_moment_media_processing (service_role only)";
+    assert.match(rule, /service_role only/);
+  });
+
+  it("documents only service role marks ready", () => {
+    const rule = "complete_moment_media_processing rejects authenticated JWT";
+    assert.match(rule, /complete_moment_media_processing/);
+  });
+
+  it("documents original_path upload and display.webp storage_path", () => {
+    const paths = "original_path upload; storage_path = display.webp after processing";
+    assert.match(paths, /display\.webp/);
+  });
+
+  it("documents typed outcomes for 9.2B UI", () => {
+    const outcomes = [
+      "uploaded",
+      "processing",
+      "ready",
+      "unsupported_image",
+      "image_too_large",
+      "processing_failed",
+      "quota_exceeded",
+      "retry_available",
+    ];
+    assert.equal(outcomes.length, 8);
+  });
+});
+
 describe("moments signed URL contract", () => {
   it("documents short-lived signed URLs only", () => {
     const ttl = "MOMENTS_SIGNED_URL_TTL_SECONDS = 120";

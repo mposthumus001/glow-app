@@ -133,13 +133,11 @@ App Store Launch
 
 Glow Moments & Family
 
-**Status:** Architecture specification complete (2026-07-17). **No code, migrations, or Storage yet.**
-
-Docs: `docs/Moments.md`, `docs/Family.md`
+**Status:** Sprint 9.1 + 9.2A implemented in code. Album UI (9.2B) planned.
 
 ### Sprint 9.1 — Moments foundation
 
-✅ Implemented (awaiting migration apply, bucket verify, lint/build/test, Sprint 9.2 UI)
+✅ Implemented
 
 | Area | Deliverable |
 |------|-------------|
@@ -150,7 +148,18 @@ Docs: `docs/Moments.md`, `docs/Family.md`
 | Tests | validation, quota, paths, age, RLS contract |
 | Ops | `supabase/ops/MOMENTS_ROLLOUT.md` |
 
-### Sprint 9.2 — Private child albums
+### Sprint 9.2A — Secure image processing
+
+✅ Implemented
+
+| Area | Deliverable |
+|------|-------------|
+| Schema | Migration `0016_moments_image_processing.sql` |
+| Worker | Node + `sharp`, `POST /api/moments/process` |
+| Security | MIME sniff, pixel limits, service-role completion only |
+| Ops | `moments-retry-processing.sql`, orphan cleanup updates |
+
+### Sprint 9.2B — Private child albums (UI)
 
 ⬜ Planned
 

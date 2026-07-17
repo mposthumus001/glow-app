@@ -84,4 +84,13 @@ describe("sentry privacy scrubbing", () => {
     assert.equal(extra.processing_status, "pending");
     assert.equal(extra.file_size_category, "medium");
   });
+
+  it("redacts storage paths and URLs in free text", () => {
+    const path =
+      "11111111-1111-4111-8111-111111111111/22222222-2222-4222-8222-222222222222/33333333-3333-4333-8333-333333333333/display.webp";
+    const output = scrubString(`failed ${path} https://cdn.example.com/x`);
+    assert.match(output, /\[redacted-storage-path\]/);
+    assert.match(output, /\[redacted-url\]/);
+    assert.doesNotMatch(output, /display\.webp/);
+  });
 });

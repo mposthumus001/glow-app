@@ -67,9 +67,9 @@ Glow is **conditionally ready** for closed private beta after ops complete:
 | No user update | ✅ | Insert-only for authenticated users |
 | Sensitive content guidance | ✅ | Form hint — no Circle bodies / passwords |
 
-## 7. Glow Moments & Family (Milestone 9 — proposed)
+## 7. Glow Moments & Family (Milestone 9)
 
-**Status:** Not implemented. Spec: `docs/Moments.md`, `docs/Family.md`.
+**Status:** Sprint 9.1 + 9.2A implemented in code. Spec: `docs/Moments.md`, `docs/Family.md`.
 
 ### Permission matrix (target state)
 
@@ -104,10 +104,13 @@ Glow is **conditionally ready** for closed private beta after ops complete:
 ### Pre-implementation gate
 
 - [x] Sprint 9.1 schema + RLS authored (migration `0015`)
+- [x] Sprint 9.2A processing RPCs + path split (migration `0016`)
+- [x] Service-role processing worker server-only (`src/lib/supabase/admin.ts`)
 - [ ] Product approval on unresolved decisions (`docs/Moments.md` §15, `docs/Family.md` §13)
 - [ ] Legal review for children’s photo storage
 - [ ] Storage bucket verified in staging (`moments-verify-rls.sql`)
-- [ ] `NEXT_PUBLIC_MOMENTS_ENABLED` remains false until Sprint 9.2 UI QA
+- [ ] `SUPABASE_SERVICE_ROLE_KEY` set on Vercel (server env)
+- [ ] `NEXT_PUBLIC_MOMENTS_ENABLED` remains false until Sprint 9.2B UI QA
 
 ---
 

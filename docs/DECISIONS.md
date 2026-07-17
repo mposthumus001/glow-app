@@ -272,3 +272,19 @@ Ops:
 `supabase/ops/MOMENTS_ROLLOUT.md`, `moments-verify-rls.sql`
 
 ---
+
+## 2026-07-17 — Glow Moments Sprint 9.2A secure processing
+
+Decision:
+Trusted **Next.js Node.js route** + `sharp` with **server-only** `SUPABASE_SERVICE_ROLE_KEY` (not Supabase Edge Function).
+
+Reason:
+Edge lacks mature native image stack; Node route reuses existing Vercel deployment, keeps service role off the client, and satisfies EXIF strip / resize / WebP outputs without paid external services.
+
+Implementation:
+- Migration `0016` — `processing` enum, `original_path`, service-role completion RPCs
+- `storage_path` = processed `display.webp`; original deleted after success
+- Outcomes typed for Sprint 9.2B UI (`uploaded`, `processing`, `ready`, etc.)
+- Idempotent claim/retry; stale processing reclaim after 10 minutes
+
+---
