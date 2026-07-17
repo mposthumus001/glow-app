@@ -427,6 +427,38 @@ export type Database = {
         Update: Record<string, never>;
         Relationships: [];
       };
+      beta_feedback: {
+        Row: {
+          id: string;
+          parent_id: string;
+          category: "bug" | "confusing" | "suggestion" | "other";
+          summary: string;
+          details: string | null;
+          route: string | null;
+          app_version: string | null;
+          environment: string | null;
+          user_agent: string | null;
+          viewport: string | null;
+          contact_allowed: boolean;
+          status: "new" | "reviewed" | "closed";
+          created_at: string;
+        };
+        Insert: {
+          parent_id: string;
+          category: "bug" | "confusing" | "suggestion" | "other";
+          summary: string;
+          details?: string | null;
+          route?: string | null;
+          app_version?: string | null;
+          environment?: string | null;
+          user_agent?: string | null;
+          viewport?: string | null;
+          contact_allowed?: boolean;
+          status?: "new" | "reviewed" | "closed";
+        };
+        Update: Record<string, never>;
+        Relationships: [];
+      };
     };
     Views: {
       map_presence: {

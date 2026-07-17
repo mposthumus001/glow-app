@@ -4,6 +4,9 @@ const DEFAULT_DISPLAY_NAME = "New parent";
 export const DISPLAY_NAME_MAX = 80;
 export const SUBURB_AREA_MAX = 80;
 export const FEEDBACK_MESSAGE_MAX = 2000;
+export const BETA_FEEDBACK_SUMMARY_MAX = 200;
+export const BETA_FEEDBACK_DETAILS_MAX = 2000;
+export const BETA_FEEDBACK_DUPLICATE_WINDOW_MS = 30_000;
 export const DELETION_REASON_MAX = 500;
 
 type AuState =
@@ -51,6 +54,17 @@ export type FeedbackInput = {
   routeContext?: string;
 };
 
+export type BetaFeedbackInput = {
+  category: string;
+  summary: string;
+  details?: string;
+  route?: string;
+  appVersion?: string;
+  userAgent?: string;
+  viewport?: string;
+  contactAllowed: boolean;
+};
+
 export type ValidationResult<T> =
   | { ok: true; value: T }
   | { ok: false; error: string };
@@ -80,6 +94,13 @@ const FEEDBACK_CATEGORIES = new Set([
   "feedback",
   "technical",
   "safety",
+  "other",
+]);
+
+const BETA_FEEDBACK_CATEGORIES = new Set([
+  "bug",
+  "confusing",
+  "suggestion",
   "other",
 ]);
 
@@ -204,6 +225,64 @@ export function validateAtlasPrivacy(
   return { ok: true, value: { mapVisibility, suburbArea: null } };
 }
 
+export function validateBetaFeedback(
+  input: BetaFeedbackInput,
+): ValidationResult<{
+  category: "bug" | "confusing" | "suggestion" | "other";
+  summary: string;
+  details: string | null;
+  route: string | null;
+  appVersion: string | null;
+  userAgent: string | null;
+  viewport: string | null;
+  contactAllowed: boolean;
+}> {
+  if (!BETA_FEEDBACK_CATEGORIES.has(input.category)) {
+    return { ok: false, error: "Please choose a feedback category." };
+  }
+
+  const summary = input.summary.trim();
+  if (!summary || summary.length > BETA_FEEDBACK_SUMMARY_MAX) {
+    return {
+      ok: false,
+      error: `Please add a short summary (1–${BETA_FEEDBACK_SUMMARY_MAX} characters).`,
+    };
+  }
+
+  const detailsRaw = input.details?.trim() ?? "";
+  const details = detailsRaw ? detailsRaw.slice(0, BETA_FEEDBACK_DETAILS_MAX) : null;
+  if (detailsRaw && detailsRaw.length > BETA_FEEDBACK_DETAILS_MAX) {
+    return {
+      ok: false,
+      error: `Details can be up to ${BETA_FEEDBACK_DETAILS_MAX} characters.`,
+    };
+  }
+
+  const route = input.route?.trim().slice(0, 200) || null;
+  const appVersion = input.appVersion?.trim().slice(0, 40) || null;
+  const userAgent = input.userAgent?.trim().slice(0, 512) || null;
+  const viewport = input.viewport?.trim().slice(0, 32) || null;
+
+  return {
+    ok: true,
+    value: {
+      category: input.category as
+        | "bug"
+        | "confusing"
+        | "suggestion"
+        | "other",
+      summary,
+      details,
+      route,
+      appVersion,
+      userAgent,
+      viewport,
+      contactAllowed: input.contactAllowed,
+    },
+  };
+}
+
+/** @deprecated Legacy app_feedback — use validateBetaFeedback for new submissions. */
 export function validateFeedback(
   input: FeedbackInput,
 ): ValidationResult<{

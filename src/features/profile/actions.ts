@@ -7,14 +7,16 @@ import {
   buildPasswordResetRedirectTo,
   validateNewPassword,
 } from "@/lib/auth/password-recovery";
+import { isDuplicateBetaFeedbackSubmission } from "@/features/profile/betaFeedbackLogic";
 import {
   validateAtlasPrivacy,
   validateBabyProfile,
+  validateBetaFeedback,
   validateDeletionReason,
-  validateFeedback,
   validateParentProfile,
 } from "@/features/profile/validation";
 import { calmAuthErrorMessage, calmUserFacingError } from "@/lib/errors/calm-messages";
+import { getDeploymentEnvironment } from "@/lib/monitoring/sentry-options";
 import { createClient } from "@/lib/supabase/server";
 
 export type ProfileActionState = {
@@ -189,32 +191,65 @@ export async function updateAtlasPrivacy(
   return { success: "Atlas privacy updated." };
 }
 
-export async function submitAppFeedback(
+export async function submitBetaFeedback(
   _prev: ProfileActionState,
   formData: FormData,
 ): Promise<ProfileActionState> {
   const { supabase, user, error } = await requireUser();
   if (error || !user) return { error: error ?? "Please sign in again." };
 
-  const parsed = validateFeedback({
+  const parsed = validateBetaFeedback({
     category: asString(formData, "category"),
-    message: asString(formData, "message"),
-    routeContext: asString(formData, "route_context") || undefined,
+    summary: asString(formData, "summary"),
+    details: asString(formData, "details") || undefined,
+    route: asString(formData, "route") || undefined,
+    appVersion: asString(formData, "app_version") || undefined,
+    userAgent: asString(formData, "user_agent") || undefined,
+    viewport: asString(formData, "viewport") || undefined,
+    contactAllowed: formData.get("contact_allowed") === "true",
   });
   if (!parsed.ok) return { error: parsed.error };
 
-  const { error: insertError } = await supabase.from("app_feedback").insert({
+  const { data: recent } = await supabase
+    .from("beta_feedback")
+    .select("created_at")
+    .eq("parent_id", user.id)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (isDuplicateBetaFeedbackSubmission(recent?.created_at ?? null)) {
+    return { success: "Thank you — we’ve already received your note." };
+  }
+
+  const { error: insertError } = await supabase.from("beta_feedback").insert({
     parent_id: user.id,
     category: parsed.value.category,
-    message: parsed.value.message,
-    app_version: asString(formData, "app_version").slice(0, 40) || null,
-    route_context: parsed.value.routeContext,
+    summary: parsed.value.summary,
+    details: parsed.value.details,
+    route: parsed.value.route,
+    app_version: parsed.value.appVersion,
+    environment: getDeploymentEnvironment(),
+    user_agent: parsed.value.userAgent,
+    viewport: parsed.value.viewport,
+    contact_allowed: parsed.value.contactAllowed,
+    status: "new",
   });
 
-  if (insertError) return { error: insertError.message };
+  if (insertError) {
+    return { error: calmUserFacingError(insertError.message, "profile") };
+  }
 
   revalidatePath("/profile/help");
   return { success: "Thank you — we’ve received your note." };
+}
+
+/** @deprecated Use submitBetaFeedback — kept for legacy imports. */
+export async function submitAppFeedback(
+  prev: ProfileActionState,
+  formData: FormData,
+): Promise<ProfileActionState> {
+  return submitBetaFeedback(prev, formData);
 }
 
 export async function requestAccountDeletion(

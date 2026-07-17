@@ -7,6 +7,7 @@ import { ProfileBackLink } from "@/features/profile";
 import { ABOUT_MISSION, LEGAL_DRAFT_BANNER } from "@/features/profile/legal";
 import { requireAppUser } from "@/lib/auth/require-app-user";
 import { APP_VERSION } from "@/lib/app-version";
+import { getDeploymentEnvironment } from "@/lib/monitoring/sentry-options";
 
 export default async function AboutPage() {
   await requireAppUser();
@@ -31,10 +32,12 @@ export default async function AboutPage() {
               <dt className="text-glow-text-tertiary">Status</dt>
               <dd className="mt-1 text-glow-text">Private beta</dd>
             </div>
-            {process.env.NODE_ENV !== "production" ? (
+            {getDeploymentEnvironment() !== "production" ? (
               <div>
                 <dt className="text-glow-text-tertiary">Environment</dt>
-                <dd className="mt-1 text-glow-text">Development</dd>
+                <dd className="mt-1 text-glow-text">
+                  {getDeploymentEnvironment()}
+                </dd>
               </div>
             ) : null}
           </dl>

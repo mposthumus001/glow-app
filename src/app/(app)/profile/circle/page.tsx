@@ -4,6 +4,7 @@ import { GlowCard } from "@/components/ui";
 import { GlowContainer } from "@/components/layout";
 import { PageHeader } from "@/components/shell/PageHeader";
 import { ProfileBackLink } from "@/features/profile";
+import { CIRCLE_NO_MATCH_HOLDING_MESSAGE } from "@/features/circles/assignment/assignmentLogic";
 import { loadAssignedCircleForParent } from "@/features/circles/service/CircleRepository";
 import { requireAppUser } from "@/lib/auth/require-app-user";
 
@@ -51,8 +52,7 @@ export default async function ProfileCirclePage() {
               Your Circle is on its way
             </p>
             <p className="mt-2 text-sm text-glow-text-secondary">
-              {result.message ??
-                "We’re still gathering a gentle group for you. No action needed."}
+              {result.message ?? CIRCLE_NO_MATCH_HOLDING_MESSAGE}
             </p>
             <Link
               href="/circle"

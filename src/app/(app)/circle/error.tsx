@@ -2,7 +2,7 @@
 
 import { FeatureRouteError } from "@/components/errors/FeatureRouteError";
 
-export default function AppError({
+export default function CircleError({
   error,
   reset,
 }: {
@@ -13,7 +13,9 @@ export default function AppError({
     <FeatureRouteError
       error={error}
       reset={reset}
-      featureArea="global"
+      featureArea="circle"
+      title="Your Circle didn't load"
+      message="Messages are still private and safe. Please try again in a moment."
     />
   );
 }

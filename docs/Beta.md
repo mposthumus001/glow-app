@@ -1,8 +1,8 @@
 # Glow Beta — Private Beta Program
 
-Version: **0.10.0-beta.2**  
+Version: **0.11.0-beta.1**  
 Target cohort: **~10 testers**  
-Sprint: **6.2 — Closed Beta Access**
+Sprint: **7.1 — Private Beta Hardening**
 
 ## Beta scope (included)
 
@@ -119,11 +119,24 @@ Full steps: `docs/RELEASE_CHECKLIST.md`.
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Required (never service-role) |
 | `NEXT_PUBLIC_SITE_URL` | Required in production (Auth redirects) |
 
+## Sprint 7.1 — Monitoring & feedback
+
+| Area | Status |
+|------|--------|
+| Sentry error monitoring | Optional — enable with `NEXT_PUBLIC_SENTRY_DSN` |
+| Privacy scrubbing | No Circle bodies, baby notes, tokens, email in events |
+| Feature error boundaries | Global, Circle, Atlas, Baby, Calm, Profile |
+| Beta feedback form | `/profile/help` → `beta_feedback` table |
+| App version display | `/profile/about` |
+
+Apply migration `0014_beta_feedback.sql` before using the new feedback form in production.
+
 ## Pre-invite checklist
 
-- [ ] Migrations `0001`–`0010` applied
+- [ ] Migrations `0001`–`0014` applied
 - [ ] Before User Created hook **enabled** in Dashboard
 - [ ] `NEXT_PUBLIC_SITE_URL` configured
+- [ ] Sentry DSN + Vercel source map vars (optional but recommended)
 - [ ] ~10 tester emails seeded (`invited`)
 - [ ] Existing QA emails reviewed via audit query
 - [ ] Invited + uninvited signup smoke tests passed

@@ -1,10 +1,12 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
+import { APP_VERSION } from "../../lib/app-version.ts";
 import {
   displayNameInitials,
   validateAtlasPrivacy,
   validateBabyProfile,
+  validateBetaFeedback,
   validateDeletionReason,
   validateFeedback,
   validateParentProfile,
@@ -135,6 +137,41 @@ describe("validateFeedback", () => {
         message: "Something felt off on Tonight.",
       }).ok,
       true,
+    );
+  });
+});
+
+describe("validateBetaFeedback", () => {
+  it("accepts structured beta feedback", () => {
+    const result = validateBetaFeedback({
+      category: "bug",
+      summary: "Circle messages did not refresh",
+      details: "Happened after switching tabs.",
+      route: "/circle",
+      appVersion: APP_VERSION,
+      userAgent: "Mozilla/5.0",
+      viewport: "390x844",
+      contactAllowed: true,
+    });
+    assert.equal(result.ok, true);
+  });
+
+  it("rejects invalid categories and empty summaries", () => {
+    assert.equal(
+      validateBetaFeedback({
+        category: "feedback",
+        summary: "Hello",
+        contactAllowed: false,
+      }).ok,
+      false,
+    );
+    assert.equal(
+      validateBetaFeedback({
+        category: "bug",
+        summary: "",
+        contactAllowed: false,
+      }).ok,
+      false,
     );
   });
 });

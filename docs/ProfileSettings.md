@@ -76,7 +76,11 @@ Table `account_deletion_requests` — one pending request per user. Manual proce
 
 ## Feedback
 
-Table `app_feedback` — private to author (+ future staff). Categories: feedback, technical, safety, other. Max 2000 chars.
+Table `beta_feedback` (Sprint 7.1) — structured private-beta feedback. Legacy `app_feedback` retained.
+
+Categories: `bug`, `confusing`, `suggestion`, `other`. Fields: summary, optional details, route, app_version, environment, user_agent, viewport, contact_allowed. Max summary 200 / details 2000.
+
+Staff read via `is_staff()` RLS. Users insert own rows only; duplicate submissions within 30s return calm idempotent success.
 
 ## Legal status
 

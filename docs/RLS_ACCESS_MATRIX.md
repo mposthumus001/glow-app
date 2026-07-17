@@ -24,7 +24,8 @@ Legend: **Staff** = moderator / support / admin. **Circle member** = active `cir
 | `hidden_messages` | Own | Own (member) | — | Own | RLS | `hideLogic.test.ts` |
 | `reports` | Own + staff | Member w/ message access | Staff | — | RLS | `reportLogic.test.ts` |
 | `account_deletion_requests` | Own + staff | Own pending | Own cancel / staff process | — | RLS | `trustContract.test.ts` |
-| `app_feedback` | Own + staff | Own | — | — | RLS | `trustContract.test.ts` |
+| `app_feedback` | Own + staff | Own | — | — | RLS | legacy Sprint 5.4 |
+| `beta_feedback` | Own + staff | Own | — | — | RLS | Sprint 7.1 |
 | `beta_testers` | Staff only (0010) | Staff | Staff | Staff | RLS + Auth hook | `rlsContract.test.ts`, `beta-access.test.ts` |
 | `subscriptions` | Own | — | — | — | RLS read-only | Manual |
 | `media_library` | All authenticated | Admin/support | Admin/support | Admin/support | RLS | `catalogue.test.ts` (client catalogue) |

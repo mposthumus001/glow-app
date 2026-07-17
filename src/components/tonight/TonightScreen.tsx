@@ -8,6 +8,7 @@ import { AnimatedCount } from "@/components/ui/AnimatedCount";
 import { GlowButton, GlowCard } from "@/components/ui";
 import { GlowContainer } from "@/components/layout";
 import { GlowAtlas, useMapClusterPresence } from "@/features/glow-atlas";
+import { FeatureErrorBoundary } from "@/components/errors/FeatureErrorBoundary";
 import { getTimeOfDayGreeting } from "@/lib/utils/greeting";
 import { textStyles } from "@/lib/theme";
 import { cn } from "@/lib/utils/cn";
@@ -217,12 +218,18 @@ export function TonightScreen({
           // reverts to the page's normal gutter from the sm breakpoint up.
           className="mb-8 -mx-3 sm:mx-0"
         >
-          <GlowAtlas
-            presence={presence}
-            countryCount={countryCount}
-            connection={connection}
-            lastUpdatedAt={lastUpdatedAt}
-          />
+          <FeatureErrorBoundary
+            featureArea="atlas"
+            title="Glow Atlas didn't load"
+            message="Tonight is still here. You can try again or check back soon."
+          >
+            <GlowAtlas
+              presence={presence}
+              countryCount={countryCount}
+              connection={connection}
+              lastUpdatedAt={lastUpdatedAt}
+            />
+          </FeatureErrorBoundary>
         </motion.div>
 
         <motion.section

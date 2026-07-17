@@ -2,7 +2,7 @@
 
 import { FeatureRouteError } from "@/components/errors/FeatureRouteError";
 
-export default function AppError({
+export default function BabyError({
   error,
   reset,
 }: {
@@ -13,7 +13,9 @@ export default function AppError({
     <FeatureRouteError
       error={error}
       reset={reset}
-      featureArea="global"
+      featureArea="baby"
+      title="Baby tracking didn't load"
+      message="Your logs are still here. Please try again in a moment."
     />
   );
 }

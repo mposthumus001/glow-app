@@ -1,6 +1,6 @@
 # Beta Test Checklist — Production Smoke Test
 
-Run against **production** (or production-like preview) after migrations `0001`–`0010` and Auth hook enablement.
+Run against **production** (or production-like preview) after migrations `0001`–`0014` and Auth hook enablement.
 
 Mark each item Pass / Fail / N/A.
 
@@ -10,9 +10,11 @@ Mark each item Pass / Fail / N/A.
 - [ ] `NEXT_PUBLIC_SUPABASE_ANON_KEY` set on Vercel
 - [ ] `NEXT_PUBLIC_SITE_URL` set to production URL
 - [ ] Supabase redirect URLs include production + preview
-- [ ] Migrations `0001`–`0010` applied
+- [ ] Migrations `0001`–`0014` applied
 - [ ] Before User Created hook **enabled** (`hook_before_user_created_beta_allowlist`)
 - [ ] `beta_testers` seeded with invited emails
+- [ ] `NEXT_PUBLIC_SENTRY_DSN` set (optional — verify events in Sentry when enabled)
+- [ ] `SENTRY_AUTH_TOKEN` + org/project on Vercel for source maps (optional)
 
 ---
 
@@ -52,7 +54,8 @@ Mark each item Pass / Fail / N/A.
 | 11 | Calm — play / pause / timer |
 | 12 | Navigate while Calm plays |
 | 13 | Edit profile + Atlas privacy |
-| 14 | Submit feedback |
+| 14 | Submit feedback (Bug / Suggestion + optional details) |
+| 14b | Confirm calm success state; rapid resubmit blocked |
 | 15 | Deletion request + cancel |
 | 16 | Sign out — audio stops |
 | 17 | Sign back in |

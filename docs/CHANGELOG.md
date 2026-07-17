@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+### Sprint 7.1 — Private Beta Hardening
+
+Production error monitoring and structured beta feedback before Moments.
+
+#### Added
+- `@sentry/nextjs` — client, server, edge instrumentation; Vercel source map upload when configured
+- `src/lib/monitoring/` — privacy scrubbing, operational vs unexpected error helpers
+- Feature-scoped error boundaries: global, Circle, Atlas, Baby, Calm, Profile
+- Migration `0014_beta_feedback.sql` — structured feedback (Bug / Confusing / Suggestion / Other)
+- Enhanced `FeedbackForm` — summary, optional details, route/version/viewport capture, contact permission
+
+#### Changed
+- Version `0.11.0-beta.1`
+- `reportClientError` delegates to Sentry when DSN configured
+- `/profile/about` shows deployment environment outside production
+
 ### Production Circle assignment (no auto-create)
 
 Automatic post-onboarding Circle membership into the best matching **active**

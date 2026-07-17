@@ -127,7 +127,7 @@ Sound catalogue source of truth for beta: static `src/features/calm/catalogue.ts
 - Tonight loads live Circle preview server-side (no mock data)
 - RLS migration `0009` — scoped parent reads, message update guard
 - Error mapping: `src/lib/errors/calm-messages.ts`
-- Monitoring: dev-only `reportClientError` — Sentry recommended separately
+- Monitoring (Sprint 7.1): `@sentry/nextjs` when `NEXT_PUBLIC_SENTRY_DSN` is set; privacy scrubbing in `src/lib/monitoring/sentry-privacy.ts`; structured helpers in `report-error.ts`; feature-scoped route `error.tsx` + Atlas `FeatureErrorBoundary`
 - Audit docs: `SECURITY_AUDIT.md`, `RLS_ACCESS_MATRIX.md`, `KNOWN_ISSUES.md`
 
 ### Closed beta access (Sprint 6.2)
@@ -149,4 +149,18 @@ Signup remains at `/signup` for invited testers. Login/signup copy states privat
 - Outcomes: `existing` | `assigned` | `no_match` (no auto-create Circles).
 - Holding UI: `/circle` and Tonight preview — “We're finding the right Circle for you.”
 - Details: `docs/GlowCircles.md`, admin SQL `supabase/ops/circle-assignment-admin-check.sql`.
+
+### Monitoring & beta feedback (Sprint 7.1)
+
+| Concern | Owner |
+|---------|-------|
+| Error monitoring | `@sentry/nextjs` — client, server, edge via `instrumentation.ts` |
+| Privacy scrubbing | `scrubSentryEvent` — no message bodies, tokens, email, GPS |
+| Operational vs unexpected | `reportOperationalFailure` / `reportUnexpectedException` |
+| Structured beta feedback | `public.beta_feedback` (migration `0014`) |
+| Legacy feedback rows | `public.app_feedback` (migration `0008`) — retained |
+
+Sentry is **disabled** when no DSN is configured. Release tag: `glow-app@{APP_VERSION}`. Source maps upload on Vercel when `SENTRY_AUTH_TOKEN` is set.
+
+Feedback UI: `/profile/help` → `FeedbackForm` (categories Bug / Confusing / Suggestion / Other). Staff read via `is_staff()` RLS only.
 

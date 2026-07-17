@@ -30,9 +30,9 @@ describe("circlePreviewFromLoad", () => {
     assert.equal(preview.primaryState, "VIC");
   });
 
-  it("maps unassigned state to calm matching copy", () => {
+  it("maps unassigned state to calm finding-circle copy", () => {
     const preview = circlePreviewFromLoad({ status: "unassigned" });
     assert.equal(preview.status, "unassigned");
-    assert.match(preview.message ?? "", /matching/i);
+    assert.match(preview.message ?? "", /finding the right Circle/i);
   });
 });

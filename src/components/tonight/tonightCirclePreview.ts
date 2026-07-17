@@ -14,6 +14,9 @@ export const TONIGHT_REMINDER = {
   lines: ["You are doing better than you think.", "And that is enough."],
 } as const;
 
+/** Keep in sync with CIRCLE_NO_MATCH_HOLDING_MESSAGE in assignmentLogic. */
+const FINDING_CIRCLE_COPY = "We're finding the right Circle for you.";
+
 export function circlePreviewFromLoad(
   result: CircleLoadResult,
 ): TonightCirclePreview {
@@ -34,8 +37,6 @@ export function circlePreviewFromLoad(
 
   return {
     status: "unassigned",
-    message:
-      result.message ??
-      "We're matching you with a small, trusted group. Your Circle will appear here when ready.",
+    message: result.message ?? FINDING_CIRCLE_COPY,
   };
 }
