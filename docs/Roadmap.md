@@ -129,6 +129,88 @@ App Store Launch
 
 ---
 
+## Milestone 9
+
+Glow Moments & Family
+
+**Status:** Architecture specification complete (2026-07-17). **No code, migrations, or Storage yet.**
+
+Docs: `docs/Moments.md`, `docs/Family.md`
+
+### Sprint 9.1 — Moments foundation
+
+⬜ Planned
+
+| Area | Deliverable |
+|------|-------------|
+| Schema | `moments`, `moment_children`, `moment_media`, `moment_tags`, `moment_tag_links` |
+| Storage | Private bucket `moments-private`, RLS policies, path convention |
+| Backend | Signed upload/download server actions; orphan cleanup job spec |
+| Testing | RLS contract tests, upload validation, ownership tests |
+| Risks | First Storage in project; EXIF strip pipeline; staging bucket setup |
+| Rollout | Feature flag; owner-only; no nav exposure |
+
+### Sprint 9.2 — Private child albums
+
+⬜ Planned
+
+| Area | Deliverable |
+|------|-------------|
+| UI | Baby → child selector → Moments grid, detail, create/edit |
+| Backend | Wire server actions; thumbnail generation |
+| Testing | Multi-baby isolation, soft-delete, age derivation |
+| Risks | Mobile upload size; iOS HEIC conversion |
+| Rollout | Beta testers with storage quota |
+
+### Sprint 9.3 — Tags, timeline, favourites
+
+⬜ Planned
+
+| Area | Deliverable |
+|------|-------------|
+| Schema | Seed system tags |
+| UI | Tag picker, timeline view, favourites |
+| Testing | Custom tag isolation, duplicate prevention |
+| Rollout | Enable for all beta users |
+
+### Sprint 9.4 — Family private album
+
+⬜ Planned
+
+| Area | Deliverable |
+|------|-------------|
+| Nav | Add Family → Family Moments |
+| UI | Multi-child linker, family-kind moments |
+| Testing | 0-child family moments, household baby validation |
+| Rollout | Family nav behind flag |
+
+### Sprint 9.5 — Shared Family groups
+
+⬜ Planned
+
+| Area | Deliverable |
+|------|-------------|
+| Schema | `shared_families`, `shared_family_members`, `shared_family_invitations`, audits |
+| Backend | Invite RPCs, accept flow, visibility change RPC |
+| UI | Members, Invitations, Settings, per-moment share toggle |
+| Testing | Invite lifecycle, revoked access, no auto-exposure |
+| Risks | Email delivery; token security |
+| Rollout | Opt-in beta subset |
+
+### Sprint 9.6 — Polish & export
+
+⬜ Planned
+
+| Area | Deliverable |
+|------|-------------|
+| UI | Share confirmations, audit visibility for owner |
+| Backend | Account deletion purge for Storage + moments |
+| Export | Parent-initiated archive (ZIP) — if approved |
+| Testing | Deletion cascade, orphan media cleanup |
+| Legal | Privacy/Terms update for photo storage |
+
+---
+
 ## Completed milestones (summary)
 
 Milestones 1–5 ✅ — see sections above

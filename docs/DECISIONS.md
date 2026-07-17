@@ -229,3 +229,28 @@ Limitation:
 Revocation does not force-logout existing sessions; Auth hook enablement is manual.
 
 ---
+
+## 2026-07-17 — Glow Moments & Family architecture (Milestone 9 spec)
+
+Decision:
+Introduce **Glow Moments** (private photo albums per child + Family Moments) and future **Shared Family** invite groups as a new subsystem. Do **not** reuse signup `public.families` as the sharing group — household scope stays for `babies` / `baby_events`. Use new `shared_families` for explicit Moment sharing.
+
+Schema highlights:
+- `moments` owned by `owner_parent_id`; default `visibility = private`
+- `moment_children` join table (no direct `baby_id` on moments) for 0..N child links
+- `moment_media` metadata + private bucket `moments-private`
+- Signed upload/download URLs only — never permanent public URLs
+- Age at occurred date **derived** from DOB/due date (extend `baby-age.ts`)
+- System milestone tags are **labels**, not medical assessments
+- Joining a Shared Family **never** auto-exposes existing private Moments
+
+Reason:
+Product requires flexible multi-child linking, explicit sharing, and separation from Circle peer support and baby tracking RLS. No Storage exists in repo today — clean-slate design.
+
+Deferred:
+Video v1; bulk download; co-parent implicit access (product TBD).
+
+Docs:
+`docs/Moments.md`, `docs/Family.md`
+
+---

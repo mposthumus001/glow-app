@@ -265,3 +265,47 @@ Reactions: existing policies from 0001 (members read/insert own delete). Read ma
 Reports are not exposed through normal Circle message queries.
 
 ---
+
+## Glow Moments & Family (Milestone 9 — proposed)
+
+**Status:** Specification only. See `docs/Moments.md`, `docs/Family.md`.
+
+### New tables (planned)
+
+| Table | Purpose |
+|-------|---------|
+| `moments` | Photo memory metadata; `owner_parent_id`, `occurred_on`, visibility |
+| `moment_children` | 0..N baby links (no direct `baby_id` on moments) |
+| `moment_media` | Storage path metadata, processing status |
+| `moment_tags` | System + custom tags |
+| `moment_tag_links` | Moment ↔ tag |
+| `shared_families` | Invite-based sharing groups (≠ signup `families`) |
+| `shared_family_members` | Roles: owner, contributor, viewer |
+| `shared_family_invitations` | Email invites, hashed token, expiry |
+| `moment_share_audits` | Share/unshare audit trail |
+
+### Storage (planned)
+
+| Bucket | Access |
+|--------|--------|
+| `moments-private` | Private; signed upload/download URLs only |
+
+Path: `{owner_parent_id}/{moment_id}/{media_id}/original.{ext}`
+
+### RLS principles
+
+- Default: owner-only read/write on moments and media metadata
+- Shared access only when `visibility = shared_family` AND active membership
+- Joining a group **does not** expose existing private rows
+- Storage policies mirror DB ownership via path prefix + server-minted signed URLs
+- Prefer SECURITY DEFINER RPCs for invite accept and visibility changes
+
+Full permission matrix: `docs/SECURITY_AUDIT.md` §7.
+
+### Distinction from existing tables
+
+| Existing | Moments relationship |
+|----------|---------------------|
+| `families` | Household scope for babies/events — not used for Moment sharing |
+| `milestones` | Text milestones in baby tracking — separate from Moment tags |
+| `media_library` | Calm audio URLs — not photo storage |

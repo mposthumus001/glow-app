@@ -2,7 +2,7 @@
 
 ## Date
 
-2026-07-16
+2026-07-17
 
 ## Current Version
 
@@ -10,7 +10,22 @@ v0.11.0-beta.1
 
 ## Active work
 
-**Sprint 7.1 — Private Beta Hardening (lint/build/test green; awaiting migration apply, Sentry project setup, manual QA, commit, push, deploy)**
+**Milestone 9 — Glow Moments & Family (architecture specification complete; no implementation yet)**
+
+### Delivered in docs
+
+- `docs/Moments.md` — Baby Moments, Storage, tags, age derivation, RLS design
+- `docs/Family.md` — Family Moments, Shared Family groups, invitation lifecycle
+- Updated: `Architecture.md`, `Database.md`, `SECURITY_AUDIT.md`, `DECISIONS.md`, `Roadmap.md`
+
+### Before implementation
+
+1. Product approval on unresolved decisions (Moments §15, Family §13)
+2. Legal review — children’s photos under APPs
+3. Confirm co-parent / household access policy for v1
+4. Storage bucket provisioning plan (staging + production)
+
+## Previous — Sprint 7.1
 
 ### Delivered in code
 

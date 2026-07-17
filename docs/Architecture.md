@@ -14,6 +14,8 @@ Every feature should reinforce safety, calmness and connection.
 - Glow Circles
 - Glow Calm
 - Glow Baby
+- Glow Moments
+- Glow Family
 - Glow Learn
 - Glow AI
 - Profile
@@ -163,4 +165,21 @@ Signup remains at `/signup` for invited testers. Login/signup copy states privat
 Sentry is **disabled** when no DSN is configured. Release tag: `glow-app@{APP_VERSION}`. Source maps upload on Vercel when `SENTRY_AUTH_TOKEN` is set.
 
 Feedback UI: `/profile/help` → `FeedbackForm` (categories Bug / Confusing / Suggestion / Other). Staff read via `is_staff()` RLS only.
+
+### Glow Moments & Family (Milestone 9 — specification)
+
+| Concern | Owner / status |
+|---------|----------------|
+| Baby Moments (per child) | `src/features/moments/` (proposed) under `/baby` → Moments |
+| Family Moments | `/family/moments` (proposed nav) |
+| Media storage | Private Supabase bucket `moments-private`; signed URLs only |
+| Sharing groups | `shared_families` — separate from signup `families` household |
+| Default visibility | **Private** — explicit share per Moment |
+| Age at photo date | Derived from DOB/due date — not stored |
+| Milestone tags | Curated + custom labels — not medical assessments |
+| Sentry | Extend scrubbing for captions, notes, storage paths; `feature_area: moments` |
+
+**Not implemented yet.** Full spec: `docs/Moments.md`, `docs/Family.md`.
+
+**Existing primitives:** `babies`, `families` (household), `milestones` (text, unused in UI), `baby-age.ts` helper. **No** Supabase Storage in repo today.
 
