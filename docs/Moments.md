@@ -1,7 +1,7 @@
 # Glow Moments — Architecture Specification
 
-**Status:** Specification only — no migrations, UI, or Storage implemented yet.  
-**Version:** 0.1 (2026-07-17)  
+**Status:** Sprint 9.1 foundation implemented (migration `0015`); UI deferred to Sprint 9.2.  
+**Version:** 0.2 (2026-07-17)  
 **Depends on:** existing `parents`, `babies`, `families`, Baby feature, Supabase Auth/RLS patterns.
 
 ---
@@ -30,7 +30,7 @@ Design goals:
 | Children | `public.babies` — `parent_id`, `family_id`, `name`, `date_of_birth`, `due_date`, soft-delete |
 | Baby UI | `/baby` — multi-baby selector, family-scoped `baby_events` |
 | Milestones table | `public.milestones` — family-scoped text milestones; **no photo UI** |
-| Storage | **None** — no Supabase Storage buckets or upload code |
+| Storage | **`moments-private` bucket** — signed URLs only (migration `0015`) |
 | Nav | 5 items: Tonight, Circle, Baby, Calm, You — **no Family nav yet** |
 | Age helper | `src/lib/utils/baby-age.ts` — derived display from DOB/due date |
 | Sentry | Scrubs `photo`, `baby_name`, GPS, message bodies from events |

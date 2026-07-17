@@ -103,9 +103,11 @@ Glow is **conditionally ready** for closed private beta after ops complete:
 
 ### Pre-implementation gate
 
+- [x] Sprint 9.1 schema + RLS authored (migration `0015`)
 - [ ] Product approval on unresolved decisions (`docs/Moments.md` §15, `docs/Family.md` §13)
 - [ ] Legal review for children’s photo storage
-- [ ] Storage bucket + RLS policies tested in staging
+- [ ] Storage bucket verified in staging (`moments-verify-rls.sql`)
+- [ ] `NEXT_PUBLIC_MOMENTS_ENABLED` remains false until Sprint 9.2 UI QA
 
 ---
 

@@ -1,6 +1,6 @@
 # Beta Test Checklist — Production Smoke Test
 
-Run against **production** (or production-like preview) after migrations `0001`–`0014` and Auth hook enablement.
+Run against **production** (or production-like preview) after migrations `0001`–`0015` and Auth hook enablement.
 
 Mark each item Pass / Fail / N/A.
 
@@ -10,7 +10,7 @@ Mark each item Pass / Fail / N/A.
 - [ ] `NEXT_PUBLIC_SUPABASE_ANON_KEY` set on Vercel
 - [ ] `NEXT_PUBLIC_SITE_URL` set to production URL
 - [ ] Supabase redirect URLs include production + preview
-- [ ] Migrations `0001`–`0014` applied
+- [ ] Migrations `0001`–`0015` applied
 - [ ] Before User Created hook **enabled** (`hook_before_user_created_beta_allowlist`)
 - [ ] `beta_testers` seeded with invited emails
 - [ ] `NEXT_PUBLIC_SENTRY_DSN` set (optional — verify events in Sentry when enabled)
@@ -86,6 +86,17 @@ Mark each item Pass / Fail / N/A.
 | 28 | No cross-circle messages |
 | 29 | No cross-family baby events |
 | 30 | No unrelated parent SELECT (0009) |
+
+---
+
+## Moments foundation (Sprint 9.1 — backend only)
+
+| # | Step | Expected |
+|---|------|----------|
+| M1 | Migration `0015` applied | Tables + bucket exist |
+| M2 | Run `moments-verify-rls.sql` | 12 system tags; storage policies present |
+| M3 | `NEXT_PUBLIC_MOMENTS_ENABLED=false` | Actions return unavailable (until 9.2) |
+| M4 | Bucket not public | `moments-private.public = false` |
 
 ---
 

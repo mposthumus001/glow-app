@@ -306,6 +306,41 @@ Full permission matrix: `docs/SECURITY_AUDIT.md` §7.
 
 | Existing | Moments relationship |
 |----------|---------------------|
-| `families` | Household scope for babies/events — not used for Moment sharing |
+| `families` | Internal household scope (`family_id` on moments) — not sharing |
 | `milestones` | Text milestones in baby tracking — separate from Moment tags |
 | `media_library` | Calm audio URLs — not photo storage |
+
+---
+
+## Glow Moments foundation (Sprint 9.1 — migration 0015)
+
+**Status:** Implemented in code; apply migration + bucket verification before use.
+
+### Tables
+
+| Table | Purpose |
+|-------|---------|
+| `moments` | Private metadata; `owner_parent_id`, `family_id`, `occurred_on`, CHECK private-only |
+| `moment_children` | Baby links (0..N) |
+| `moment_media` | Storage paths, processing status, quota bytes |
+| `moment_tags` | 12 seeded system tags + custom owner tags |
+| `moment_tag_links` | Moment ↔ tag |
+
+### RPCs
+
+| Function | Purpose |
+|----------|---------|
+| `create_private_moment` | Atomic moment + children + tags |
+| `create_moment_media_upload_slot` | Pending media + paths + quota check |
+| `finalize_moment_media_upload` | Post-upload metadata (ready blocked in 9.1) |
+| `moments_parent_media_bytes` | Quota calculation |
+
+### Storage
+
+Bucket `moments-private` (private, 8 MB, jpeg/png/webp). Ops: `supabase/ops/MOMENTS_ROLLOUT.md`.
+
+### Feature flag
+
+`NEXT_PUBLIC_MOMENTS_ENABLED=false` until Sprint 9.2 UI.
+
+Details: `docs/Moments.md`.

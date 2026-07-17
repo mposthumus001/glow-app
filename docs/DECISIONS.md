@@ -254,3 +254,21 @@ Docs:
 `docs/Moments.md`, `docs/Family.md`
 
 ---
+
+## 2026-07-17 — Glow Moments Sprint 9.1 foundation
+
+Decision:
+Implement private Moments foundation: migration `0015`, owner-only RLS (not household co-parent), `moment_children` join (no `baby_id` on moments), private bucket `moments-private`, signed URLs, 1 GB quota, 12 system tags, feature flag `NEXT_PUBLIC_MOMENTS_ENABLED`.
+
+Reason:
+Approved Milestone 9 architecture; separate sharing (`shared_families`) deferred to Sprint 9.5+.
+
+Sprint 9.1 constraints:
+- CHECK `moments_sprint91_private_only` + trigger blocks shared visibility
+- Image processing not implemented — media stays `pending`
+- No album UI until Sprint 9.2
+
+Ops:
+`supabase/ops/MOMENTS_ROLLOUT.md`, `moments-verify-rls.sql`
+
+---

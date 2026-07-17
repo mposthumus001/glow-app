@@ -2,6 +2,24 @@
 
 ## Unreleased
 
+### Sprint 9.1 — Glow Moments foundation
+
+Private photo Moments backend: schema, Storage, RLS, server actions. No album UI yet.
+
+#### Added
+- Migration `0015_moments_foundation.sql` — `moments`, `moment_children`, `moment_media`, `moment_tags`, `moment_tag_links`
+- Private Storage bucket `moments-private` (8 MB, JPEG/PNG/WebP)
+- RPCs: `create_private_moment`, `create_moment_media_upload_slot`, `finalize_moment_media_upload`, `moments_parent_media_bytes`
+- Feature module `src/features/moments/` — validation, quota (1 GB), signed upload/download actions, age-at-date helper
+- 12 seeded system milestone tags (labels only)
+- Feature flag `NEXT_PUBLIC_MOMENTS_ENABLED` (default false)
+- Ops: `supabase/ops/MOMENTS_ROLLOUT.md`, verify/cleanup/quota SQL
+
+#### Security
+- Owner-only RLS — household co-parents cannot read each other's private Moments
+- Storage path prefix validation; signed URLs only (120s TTL)
+- Sentry scrubbing extended for storage paths, captions, filenames, signed URLs
+
 ### Sprint 7.1 — Private Beta Hardening
 
 Production error monitoring and structured beta feedback before Moments.

@@ -5,7 +5,7 @@ const JWT_PATTERN = /eyJ[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+/g;
 const BEARER_PATTERN = /bearer\s+[a-z0-9._~+/=-]+/gi;
 
 const SENSITIVE_KEY_PATTERN =
-  /(password|passwd|token|secret|authorization|cookie|session|email|message|body|note|content|photo|image|latitude|longitude|lat|lng|feeding|health|baby_name|display_name|suburb|address)/i;
+  /(password|passwd|token|secret|authorization|cookie|session|email|message|body|note|content|photo|image|caption|filename|storage_path|signed_url|signedurl|thumbnail|exif|gps|latitude|longitude|lat|lng|feeding|health|baby_name|display_name|suburb|address|original_filename|mime_type)/i;
 
 const BLOCKED_BREADCRUMB_CATEGORIES = new Set([
   "console",

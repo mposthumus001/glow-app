@@ -61,4 +61,27 @@ describe("sentry privacy scrubbing", () => {
     assert.ok(event);
     assert.equal(event?.message, SENTRY_VERIFICATION_ERROR_MESSAGE);
   });
+
+  it("scrubs moment and photo related fields", () => {
+    const event = scrubSentryEvent({
+      message: "upload failed",
+      extra: {
+        storage_path: "uuid/moment/media/original.jpg",
+        caption: "First smile at the park",
+        original_filename: "IMG_0001.jpg",
+        signed_url: "https://example.com/signed",
+        processing_status: "pending",
+        file_size_category: "medium",
+      },
+    });
+
+    assert.ok(event);
+    const extra = event?.extra as Record<string, unknown>;
+    assert.equal(extra.storage_path, "[redacted]");
+    assert.equal(extra.caption, "[redacted]");
+    assert.equal(extra.original_filename, "[redacted]");
+    assert.equal(extra.signed_url, "[redacted]");
+    assert.equal(extra.processing_status, "pending");
+    assert.equal(extra.file_size_category, "medium");
+  });
 });

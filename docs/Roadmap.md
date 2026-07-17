@@ -139,16 +139,16 @@ Docs: `docs/Moments.md`, `docs/Family.md`
 
 ### Sprint 9.1 — Moments foundation
 
-⬜ Planned
+✅ Implemented (awaiting migration apply, bucket verify, lint/build/test, Sprint 9.2 UI)
 
 | Area | Deliverable |
 |------|-------------|
-| Schema | `moments`, `moment_children`, `moment_media`, `moment_tags`, `moment_tag_links` |
-| Storage | Private bucket `moments-private`, RLS policies, path convention |
-| Backend | Signed upload/download server actions; orphan cleanup job spec |
-| Testing | RLS contract tests, upload validation, ownership tests |
-| Risks | First Storage in project; EXIF strip pipeline; staging bucket setup |
-| Rollout | Feature flag; owner-only; no nav exposure |
+| Schema | Migration `0015_moments_foundation.sql` |
+| Storage | `moments-private` bucket + RLS |
+| Backend | RPCs + `src/features/moments/actions.ts` |
+| Feature flag | `NEXT_PUBLIC_MOMENTS_ENABLED=false` |
+| Tests | validation, quota, paths, age, RLS contract |
+| Ops | `supabase/ops/MOMENTS_ROLLOUT.md` |
 
 ### Sprint 9.2 — Private child albums
 

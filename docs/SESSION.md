@@ -10,22 +10,24 @@ v0.11.0-beta.1
 
 ## Active work
 
-**Milestone 9 — Glow Moments & Family (architecture specification complete; no implementation yet)**
+**Milestone 9 — Sprint 9.1 Moments foundation (implemented; awaiting migration apply, bucket verify, lint/build/test; UI in 9.2)**
 
-### Delivered in docs
+### Delivered in code
 
-- `docs/Moments.md` — Baby Moments, Storage, tags, age derivation, RLS design
-- `docs/Family.md` — Family Moments, Shared Family groups, invitation lifecycle
-- Updated: `Architecture.md`, `Database.md`, `SECURITY_AUDIT.md`, `DECISIONS.md`, `Roadmap.md`
+- Migration `0015_moments_foundation.sql`
+- Feature module `src/features/moments/` (actions, validation, quota, age, storage paths)
+- Private bucket `moments-private` + Storage RLS in migration
+- Feature flag `NEXT_PUBLIC_MOMENTS_ENABLED=false`
+- Ops: `supabase/ops/MOMENTS_ROLLOUT.md`
 
-### Before implementation
+### Before enabling UI (Sprint 9.2)
 
-1. Product approval on unresolved decisions (Moments §15, Family §13)
-2. Legal review — children’s photos under APPs
-3. Confirm co-parent / household access policy for v1
-4. Storage bucket provisioning plan (staging + production)
+1. Apply migration `0015` to staging/production
+2. Run `moments-verify-rls.sql`
+3. Legal review for children’s photos
+4. Image processing worker (mark media `ready`)
 
-## Previous — Sprint 7.1
+## Previous — Milestone 9 architecture spec
 
 ### Delivered in code
 

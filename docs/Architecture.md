@@ -181,5 +181,7 @@ Feedback UI: `/profile/help` → `FeedbackForm` (categories Bug / Confusing / Su
 
 **Not implemented yet.** Full spec: `docs/Moments.md`, `docs/Family.md`.
 
-**Existing primitives:** `babies`, `families` (household), `milestones` (text, unused in UI), `baby-age.ts` helper. **No** Supabase Storage in repo today.
+**Sprint 9.1 implemented:** migration `0015`, feature module `src/features/moments/`, private Storage bucket, RPCs, server actions. UI hidden behind `NEXT_PUBLIC_MOMENTS_ENABLED=false`.
+
+**Existing primitives:** `babies`, `families` (household), `milestones` (text, unused in UI), `baby-age.ts` + `ageAtDate.ts`.
 
