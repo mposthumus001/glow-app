@@ -17,6 +17,18 @@ Never prefix with `NEXT_PUBLIC_`. Required for Sprint 9.2A processing worker.
 
 `NEXT_PUBLIC_MOMENTS_ENABLED` must remain `false` until Sprint 9.2B album UI QA.
 
+## Partial 0016 repair (production)
+
+If `0016` started but did not finish (processing RPCs missing), **do not** rerun `0015` or `0016`.
+PostgreSQL cannot use a newly added enum value in the same transaction — apply these **in order, as separate runs**:
+
+1. `0017_add_moments_processing_enum.sql` — adds `processing` to `moment_processing_status` only
+2. `0018_repair_moments_image_processing.sql` — columns, RPCs, policies, grants
+3. `supabase/ops/moments-verify-0018-repair.sql` — all checks should read `PASS`
+
+In the Supabase SQL Editor, run 0017 first and confirm success before running 0018.
+Each file must commit in its own transaction.
+
 ## Storage bucket
 
 Migration creates **`moments-private`** automatically:
@@ -51,8 +63,9 @@ API route: `POST /api/moments/process` `{ "mediaId": "..." }` (auth cookie requi
 
 ## Production rollout checklist
 
-- [ ] Migration `0015` + `0016` applied to production
+- [ ] Migration `0015` + `0016` applied to production (or `0015` + `0017` + `0018` repair path)
 - [ ] `moments-verify-rls.sql` passes (12 system tags, table + storage policies)
+- [ ] After repair: `moments-verify-0018-repair.sql` passes (`ALL PASS`)
 - [ ] Bucket `moments-private` is **not** public
 - [ ] `SUPABASE_SERVICE_ROLE_KEY` set on Vercel (server env only)
 - [ ] `NEXT_PUBLIC_MOMENTS_ENABLED=false` until Sprint 9.2B UI QA
