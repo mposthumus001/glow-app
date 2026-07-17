@@ -1,6 +1,6 @@
 # Glow Moments — Architecture Specification
 
-**Status:** Sprint 9.1 foundation + Sprint 9.2A secure processing (migrations `0015`, `0016`); album UI deferred to Sprint 9.2B.  
+**Status:** Sprint 9.1 foundation + Sprint 9.2A secure processing + Sprint 9.2B album UI (code complete; flag off until QA).  
 **Version:** 0.2 (2026-07-17)  
 **Depends on:** existing `parents`, `babies`, `families`, Baby feature, Supabase Auth/RLS patterns.
 
@@ -318,11 +318,18 @@ Timezone: use **Australia/Sydney** calendar date for `occurred_on` boundaries (c
 
 ## 9. UX structure
 
-### 9.1 Navigation (proposed)
+### 9.1 Navigation (Sprint 9.2B)
 
 ```
-Baby → [child selector] → Moments        (existing Baby nav)
-Family → Family Moments                  (new nav item — phase 2+)
+Baby → [child selector] → Moments preview card
+/baby/[babyId]/moments              — album grid
+/baby/[babyId]/moments/new          — create flow
+/baby/[babyId]/moments/[momentId]   — detail
+```
+
+Feature flag: `NEXT_PUBLIC_MOMENTS_ENABLED=true` required for UI. Routes redirect to `/baby` when flag is off.
+
+Family → Family Moments (new nav item — phase 2+)
 Family → Members                         (future)
 Family → Invitations                     (future)
 Family → Settings                        (future)
@@ -330,17 +337,20 @@ Family → Settings                        (future)
 
 Nav config owner: `src/components/shell/nav.ts` — add `family` between `baby` and `calm` when ready (product approval).
 
-### 9.2 Baby Moments screens
+### 9.2 Baby Moments screens (Sprint 9.2B — implemented)
 
-| Screen | Purpose |
-|--------|---------|
-| Grid view | Default; square thumbnails, occurred date, favourite indicator |
-| Timeline view | Grouped by month/year |
-| Moment detail | Full image, title, note, tags, derived age, edit/delete |
-| Create / edit | Photo picker, crop (optional v1), metadata form, tag picker |
-| Empty state | Calm illustration + “Capture a moment” CTA |
-| Loading | Skeleton grid — no large spinners |
-| Error | Feature error boundary; Sentry `feature_area: baby` |
+| Screen | Route / component | Status |
+|--------|-------------------|--------|
+| Baby preview card | `MomentsPreviewCard` on `/baby` | ✅ |
+| Grid view | `/baby/[babyId]/moments` | ✅ |
+| Moment detail | `/baby/[babyId]/moments/[momentId]` | ✅ |
+| Create | `/baby/[babyId]/moments/new` | ✅ |
+| Processing / retry | `MomentMediaTile`, `useMomentProcessingPoll` | ✅ |
+| Empty state | `MomentsEmptyState` | ✅ |
+| Loading | route `loading.tsx` skeletons | ✅ |
+| Error | `/baby/error.tsx` (`feature_area: baby`) | ✅ |
+| Timeline view | grouped by month | ⬜ Sprint 9.3 |
+| Edit moment metadata | detail placeholder | ⬜ Sprint 9.3 |
 
 ### 9.3 Family Moments screens
 

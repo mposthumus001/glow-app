@@ -1,5 +1,7 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
+
 import { calmUserFacingError } from "@/lib/errors/calm-messages";
 import { reportOperationalFailure } from "@/lib/monitoring/report-error";
 import { createClient } from "@/lib/supabase/server";
@@ -10,6 +12,14 @@ import {
   MOMENTS_SIGNED_URL_TTL_SECONDS,
 } from "./constants";
 import { isMomentsEnabled } from "./config";
+import { loadBabyForMoments } from "./access";
+import {
+  loadMomentDetail,
+  loadMomentsForBaby,
+  loadMomentsPreviewForBaby,
+  loadSystemTags,
+  resolveMediaThumbnailById,
+} from "./queries";
 import {
   mapRpcError,
   validateCreateMomentInput,
@@ -24,6 +34,12 @@ import {
   outcomeAllowsRetry,
 } from "./processing/outcomes";
 import { processMomentMedia } from "./processing/processMomentMedia";
+import type {
+  MomentDetailView,
+  MomentListItem,
+  MomentPreviewItem,
+  SystemTagOption,
+} from "./types";
 
 export type MomentActionResult<T = undefined> =
   | { ok: true; data: T }
@@ -100,7 +116,22 @@ export async function createPrivateMoment(
     return { ok: false, error: mapRpcError(result.error) };
   }
 
+  const babyId = parsed.value.babyIds[0];
+  if (babyId) {
+    revalidateBabyMomentsPaths(babyId, result.moment_id);
+  } else {
+    revalidatePath("/baby");
+  }
+
   return { ok: true, data: { momentId: result.moment_id } };
+}
+
+function revalidateBabyMomentsPaths(babyId: string, momentId?: string) {
+  revalidatePath("/baby");
+  revalidatePath(`/baby/${babyId}/moments`);
+  if (momentId) {
+    revalidatePath(`/baby/${babyId}/moments/${momentId}`);
+  }
 }
 
 export async function requestMomentUploadSlot(
@@ -482,4 +513,255 @@ export async function getMomentQuotaStatus(): Promise<
       remainingBytes: Math.max(0, quotaBytes - usedBytes),
     },
   };
+}
+
+async function requireBabyContext(babyId: string) {
+  const { supabase, user, error } = await requireAuthenticatedParent();
+  if (error || !user) {
+    return { ok: false as const, error: error ?? "Please sign in again." };
+  }
+
+  const { data: parent } = await supabase
+    .from("parents")
+    .select("family_id")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (!parent?.family_id) {
+    return { ok: false as const, error: "That child could not be found." };
+  }
+
+  const baby = await loadBabyForMoments(supabase, babyId, parent.family_id);
+  if (!baby) {
+    return { ok: false as const, error: "That child could not be found." };
+  }
+
+  return { ok: true as const, supabase, user, baby, familyId: parent.family_id };
+}
+
+export async function fetchMomentsPreviewForBaby(
+  babyId: string,
+): Promise<MomentActionResult<{ items: MomentPreviewItem[] }>> {
+  if (!isMomentsEnabled()) {
+    return { ok: true, data: { items: [] } };
+  }
+
+  const ctx = await requireBabyContext(babyId);
+  if (!ctx.ok) return { ok: false, error: ctx.error };
+
+  const items = await loadMomentsPreviewForBaby(
+    ctx.supabase,
+    ctx.baby,
+    ctx.user.id,
+  );
+
+  return { ok: true, data: { items } };
+}
+
+export async function fetchMomentsAlbumForBaby(
+  babyId: string,
+): Promise<MomentActionResult<{ items: MomentListItem[] }>> {
+  if (!isMomentsEnabled()) {
+    return { ok: false, error: "Moments are not available yet." };
+  }
+
+  const ctx = await requireBabyContext(babyId);
+  if (!ctx.ok) return { ok: false, error: ctx.error };
+
+  const items = await loadMomentsForBaby(ctx.supabase, ctx.baby, ctx.user.id);
+  return { ok: true, data: { items } };
+}
+
+export async function fetchMomentDetailForBaby(input: {
+  babyId: string;
+  momentId: string;
+}): Promise<MomentActionResult<{ moment: MomentDetailView }>> {
+  if (!isMomentsEnabled()) {
+    return { ok: false, error: "Moments are not available yet." };
+  }
+
+  const ctx = await requireBabyContext(input.babyId);
+  if (!ctx.ok) return { ok: false, error: ctx.error };
+
+  const moment = await loadMomentDetail(
+    ctx.supabase,
+    input.momentId,
+    ctx.baby,
+    ctx.user.id,
+  );
+
+  if (!moment) {
+    return { ok: false, error: "That Moment could not be found." };
+  }
+
+  return { ok: true, data: { moment } };
+}
+
+export async function fetchSystemMomentTags(): Promise<
+  MomentActionResult<{ tags: SystemTagOption[] }>
+> {
+  if (!isMomentsEnabled()) {
+    return { ok: false, error: "Moments are not available yet." };
+  }
+
+  const { supabase, user, error } = await requireAuthenticatedParent();
+  if (error || !user) return { ok: false, error: error ?? "Please sign in again." };
+
+  const tags = await loadSystemTags(supabase);
+  return { ok: true, data: { tags } };
+}
+
+export async function deletePrivateMoment(input: {
+  babyId: string;
+  momentId: string;
+}): Promise<MomentActionResult> {
+  if (!isMomentsEnabled()) {
+    return { ok: false, error: "Moments are not available yet." };
+  }
+
+  const ctx = await requireBabyContext(input.babyId);
+  if (!ctx.ok) return { ok: false, error: ctx.error };
+
+  const momentId = input.momentId.trim();
+  if (!momentId) {
+    return { ok: false, error: "That Moment could not be found." };
+  }
+
+  const { data: moment, error: momentError } = await ctx.supabase
+    .from("moments")
+    .select("id")
+    .eq("id", momentId)
+    .eq("owner_parent_id", ctx.user.id)
+    .is("deleted_at", null)
+    .maybeSingle();
+
+  if (momentError || !moment) {
+    return { ok: false, error: "That Moment could not be found." };
+  }
+
+  const { data: childLink, error: childError } = await ctx.supabase
+    .from("moment_children")
+    .select("baby_id")
+    .eq("moment_id", momentId)
+    .eq("baby_id", ctx.baby.babyId)
+    .maybeSingle();
+
+  if (childError || !childLink) {
+    return { ok: false, error: "That Moment could not be found." };
+  }
+
+  const now = new Date().toISOString();
+
+  const { error: mediaError } = await ctx.supabase
+    .from("moment_media")
+    .update({ deleted_at: now })
+    .eq("moment_id", momentId)
+    .eq("owner_parent_id", ctx.user.id)
+    .is("deleted_at", null);
+
+  if (mediaError) {
+    reportOperationalFailure(mediaError.message, {
+      featureArea: "moments",
+      operation: "delete_moment_media",
+      userId: ctx.user.id,
+    });
+    return { ok: false, error: "Something didn't work just now. Please try again." };
+  }
+
+  const { error: deleteError } = await ctx.supabase
+    .from("moments")
+    .update({ deleted_at: now })
+    .eq("id", momentId)
+    .eq("owner_parent_id", ctx.user.id)
+    .is("deleted_at", null);
+
+  if (deleteError) {
+    reportOperationalFailure(deleteError.message, {
+      featureArea: "moments",
+      operation: "delete_moment",
+      userId: ctx.user.id,
+    });
+    return { ok: false, error: "Something didn't work just now. Please try again." };
+  }
+
+  revalidateBabyMomentsPaths(input.babyId, momentId);
+  return { ok: true, data: undefined };
+}
+
+export async function toggleMomentFavourite(input: {
+  babyId: string;
+  momentId: string;
+  isFavourite: boolean;
+}): Promise<MomentActionResult<{ isFavourite: boolean }>> {
+  if (!isMomentsEnabled()) {
+    return { ok: false, error: "Moments are not available yet." };
+  }
+
+  const ctx = await requireBabyContext(input.babyId);
+  if (!ctx.ok) return { ok: false, error: ctx.error };
+
+  const momentId = input.momentId.trim();
+  if (!momentId) {
+    return { ok: false, error: "That Moment could not be found." };
+  }
+
+  const { data: moment, error: momentError } = await ctx.supabase
+    .from("moments")
+    .select("id")
+    .eq("id", momentId)
+    .eq("owner_parent_id", ctx.user.id)
+    .is("deleted_at", null)
+    .maybeSingle();
+
+  if (momentError || !moment) {
+    return { ok: false, error: "That Moment could not be found." };
+  }
+
+  const { data: childLink, error: childError } = await ctx.supabase
+    .from("moment_children")
+    .select("baby_id")
+    .eq("moment_id", momentId)
+    .eq("baby_id", ctx.baby.babyId)
+    .maybeSingle();
+
+  if (childError || !childLink) {
+    return { ok: false, error: "That Moment could not be found." };
+  }
+
+  const { error: updateError } = await ctx.supabase
+    .from("moments")
+    .update({ is_favourite: input.isFavourite })
+    .eq("id", momentId)
+    .eq("owner_parent_id", ctx.user.id)
+    .is("deleted_at", null);
+
+  if (updateError) {
+    return { ok: false, error: "Something didn't work just now. Please try again." };
+  }
+
+  revalidateBabyMomentsPaths(input.babyId, momentId);
+  return { ok: true, data: { isFavourite: input.isFavourite } };
+}
+
+export async function getMomentMediaThumbnailUrl(
+  mediaId: string,
+): Promise<MomentActionResult<{ url: string }>> {
+  if (!isMomentsEnabled()) {
+    return { ok: false, error: "Moments are not available yet." };
+  }
+
+  const trimmed = mediaId?.trim();
+  if (!trimmed) {
+    return { ok: false, error: "That photo could not be found." };
+  }
+
+  const { supabase, user, error } = await requireAuthenticatedParent();
+  if (error || !user) return { ok: false, error: error ?? "Please sign in again." };
+
+  const url = await resolveMediaThumbnailById(supabase, trimmed, user.id);
+  if (!url) {
+    return { ok: false, error: "Your photo is still being prepared." };
+  }
+
+  return { ok: true, data: { url } };
 }

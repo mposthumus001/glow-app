@@ -89,16 +89,20 @@ Mark each item Pass / Fail / N/A.
 
 ---
 
-## Moments (Sprint 9.1 + 9.2A — backend only)
+## Moments (Sprint 9.1 + 9.2A + 9.2B)
 
 | # | Step | Expected |
 |---|------|----------|
-| M1 | Migrations `0015` + `0016` applied | Tables + processing RPCs exist |
-| M2 | Run `moments-verify-rls.sql` | 12 system tags; storage policies present |
-| M3 | `SUPABASE_SERVICE_ROLE_KEY` on Vercel | Processing worker can complete media |
-| M4 | `NEXT_PUBLIC_MOMENTS_ENABLED=false` | Actions return unavailable until 9.2B UI |
+| M1 | Migrations `0015` + `0017`/`0018` repair (or `0016` on fresh) | Processing RPCs + columns exist |
+| M2 | Run `moments-verify-0018-repair.sql` | Summary: ALL PASS |
+| M3 | `SUPABASE_SERVICE_ROLE_KEY` on Vercel | Processing completes to `ready` |
+| M4 | `NEXT_PUBLIC_MOMENTS_ENABLED=false` in production | No Moments card on Baby page |
 | M5 | Bucket not public | `moments-private.public = false` |
-| M6 | Upload → process → ready (API test) | Original deleted; display/thumb WebP exist |
+| M6 | Enable flag on preview only | Baby → Moments card → create → ready thumbnail |
+| M7 | Multi-baby isolation | Child A moments not visible on child B routes |
+| M8 | Delete moment | Soft-deleted; detail returns 404 |
+| M9 | Processing failure | Calm message + Try again (owner only) |
+| M10 | Privacy | No storage paths or signed URLs in page source/logs |
 
 ---
 

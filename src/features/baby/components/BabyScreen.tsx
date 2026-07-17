@@ -9,6 +9,7 @@ import { GlowContainer } from "@/components/layout";
 import { PageHeader } from "@/components/shell/PageHeader";
 import { cn } from "@/lib/utils/cn";
 
+import { MomentsPreviewCard } from "@/features/moments/components/MomentsPreviewCard";
 import type {
   BabyActivityItem,
   BabyProfile,
@@ -28,6 +29,7 @@ export type BabyScreenProps = {
   initialRecent: BabyActivityItem[];
   initialHasMore: boolean;
   initialError: string | null;
+  momentsEnabled?: boolean;
 };
 
 export function BabyScreen({
@@ -37,6 +39,7 @@ export function BabyScreen({
   initialRecent,
   initialHasMore,
   initialError,
+  momentsEnabled = false,
 }: BabyScreenProps) {
   const tracking = useBabyTracking({
     babies,
@@ -99,6 +102,12 @@ export function BabyScreen({
         {tracking.selectedBaby ? (
           <BabyProfileCard baby={tracking.selectedBaby} className="mb-5" />
         ) : null}
+
+        <MomentsPreviewCard
+          key={tracking.selectedBabyId ?? "none"}
+          babyId={tracking.selectedBabyId}
+          momentsEnabled={momentsEnabled}
+        />
 
         {tracking.error ? (
           <GlowCard

@@ -4,6 +4,7 @@ import {
   loadBabyTrackingBundle,
 } from "@/features/baby/tracking/eventApi";
 import { computeTodaySummary } from "@/features/baby/tracking/eventLogic";
+import { isMomentsEnabled } from "@/features/moments/config";
 import { requireAppUser } from "@/lib/auth/require-app-user";
 import { createClient } from "@/lib/supabase/server";
 
@@ -54,6 +55,7 @@ export default async function BabyPage() {
       initialRecent={bundle.recent}
       initialHasMore={bundle.hasMore}
       initialError={bundle.error ?? babiesError}
+      momentsEnabled={isMomentsEnabled()}
     />
   );
 }

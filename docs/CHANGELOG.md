@@ -2,6 +2,24 @@
 
 ## Unreleased
 
+### Sprint 9.2B — Baby Moments album UI
+
+Private child-scoped Moments experience on the Baby page (no new nav item).
+
+#### Added
+- `MomentsPreviewCard` on `/baby` (below child summary, above Today)
+- Routes: `/baby/[babyId]/moments`, `/new`, `/[momentId]`
+- Album grid, create flow (photo picker → signed upload → processing), detail with favourite/delete
+- Processing poll (`useMomentProcessingPoll`, 3s) and owner retry UI
+- Server queries + actions: preview/album/detail fetch, soft-delete, favourite toggle
+- Tests: `src/features/moments/momentsUi.test.ts`
+
+#### Security / privacy
+- Storage paths and signed upload URLs never rendered in markup
+- Short-lived signed display/thumbnail URLs resolved server-side only
+- Cross-child and cross-owner access returns 404 via `verifyMomentAccess`
+- Feature flag remains `NEXT_PUBLIC_MOMENTS_ENABLED=false` until QA sign-off
+
 ### Sprint 9.2A — Secure Moments image processing
 
 Trusted Node.js worker processes uploaded originals into privacy-safe WebP display + thumbnail.

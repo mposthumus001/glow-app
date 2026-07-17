@@ -170,7 +170,7 @@ Feedback UI: `/profile/help` → `FeedbackForm` (categories Bug / Confusing / Su
 
 | Concern | Owner / status |
 |---------|----------------|
-| Baby Moments (per child) | `src/features/moments/` (proposed) under `/baby` → Moments |
+| Baby Moments (per child) | `src/features/moments/` under `/baby/[babyId]/moments` |
 | Family Moments | `/family/moments` (proposed nav) |
 | Media storage | Private Supabase bucket `moments-private`; signed URLs only |
 | Sharing groups | `shared_families` — separate from signup `families` household |
@@ -183,7 +183,9 @@ Feedback UI: `/profile/help` → `FeedbackForm` (categories Bug / Confusing / Su
 
 **Sprint 9.1 implemented:** migration `0015`, feature module `src/features/moments/`, private Storage bucket, RPCs, server actions. UI hidden behind `NEXT_PUBLIC_MOMENTS_ENABLED=false`.
 
-**Sprint 9.2A implemented:** migration `0016`, trusted Node.js processing (`sharp` + server-only service role), `POST /api/moments/process`, EXIF strip, WebP display/thumb, original deletion. Album UI still deferred (9.2B).
+**Sprint 9.2A implemented:** migration `0016`, trusted Node.js processing (`sharp` + server-only service role), `POST /api/moments/process`, EXIF strip, WebP display/thumb, original deletion.
+
+**Sprint 9.2B implemented:** Baby preview card, album grid, create flow, detail with favourite/delete, processing poll + retry UI. Gated by `NEXT_PUBLIC_MOMENTS_ENABLED` (default false).
 
 **Existing primitives:** `babies`, `families` (household), `milestones` (text, unused in UI), `baby-age.ts` + `ageAtDate.ts`.
 

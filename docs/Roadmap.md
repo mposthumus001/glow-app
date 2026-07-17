@@ -133,7 +133,7 @@ App Store Launch
 
 Glow Moments & Family
 
-**Status:** Sprint 9.1 + 9.2A implemented in code. Album UI (9.2B) planned.
+**Status:** Sprint 9.1 + 9.2A + 9.2B implemented in code. Enable flag after QA.
 
 ### Sprint 9.1 — Moments foundation
 
@@ -161,15 +161,14 @@ Glow Moments & Family
 
 ### Sprint 9.2B — Private child albums (UI)
 
-⬜ Planned
+✅ Implemented (flag off until QA)
 
 | Area | Deliverable |
 |------|-------------|
-| UI | Baby → child selector → Moments grid, detail, create/edit |
-| Backend | Wire server actions; thumbnail generation |
-| Testing | Multi-baby isolation, soft-delete, age derivation |
-| Risks | Mobile upload size; iOS HEIC conversion |
-| Rollout | Beta testers with storage quota |
+| UI | Baby preview card → `/baby/[babyId]/moments` grid, detail, create |
+| Backend | Queries, delete/favourite actions, signed thumbnail/display URLs |
+| Testing | `momentsUi.test.ts` — flag, placement, upload, privacy, access |
+| Rollout | `NEXT_PUBLIC_MOMENTS_ENABLED=true` on preview after migration repair |
 
 ### Sprint 9.3 — Tags, timeline, favourites
 
