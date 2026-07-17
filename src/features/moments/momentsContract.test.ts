@@ -111,4 +111,10 @@ describe("moments delete contract", () => {
       "soft-delete first; admin remove display/thumb; storage_cleanup_required if cleanup fails";
     assert.match(rule, /storage_cleanup_required/);
   });
+
+  it("documents SELECT deleted_at clause blocks ordinary soft-delete NEW rows", () => {
+    const rule =
+      "moment_media_select_own deleted_at is null → UPDATE NEW row visibility failure; RPC uses row_security=off";
+    assert.match(rule, /row_security=off/);
+  });
 });

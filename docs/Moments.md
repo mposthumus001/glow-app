@@ -239,14 +239,18 @@ Defined in `docs/Family.md`: `shared_families`, `shared_family_members`, `shared
 
 ### 5.6 Delete behaviour
 
-- Owner-only soft-delete via `soft_delete_private_moment(moment_id, baby_id)` (SECURITY DEFINER)
+- Owner-only soft-delete via `soft_delete_private_moment(moment_id, baby_id)`
+- **RPC:** `SECURITY DEFINER` + `row_security = off` after `auth.uid()` ownership and baby-link checks (migration `0020`)
+- **Why:** Postgres requires UPDATE NEW rows to satisfy SELECT policies. `moment_media_select_own` includes `deleted_at is null`, which blocks soft-delete for ordinary roles. SELECT stays restrictive; the RPC is the trusted path.
 - Sets `moments.deleted_at` and related `moment_media.deleted_at` atomically
+- `guard_moment_media_update` blocks undelete and ownership/path mutations for non-service roles
 - Wrong baby link or non-owner → `not_found` / `wrong_baby` (calm UI copy)
 - Soft-delete moment → hide from album, Baby preview, and detail (`notFound` / 404)
 - Best-effort Storage removal of display/thumbnail/original paths via server-only admin client
 - If Storage cleanup fails → Moment stays deleted; `moment_media.storage_cleanup_required = true`
 - Hard delete / account deletion → delete Storage objects + metadata rows
 - Orphan cleanup: cron for `pending` > 24h with no `ready`
+- Verify after apply: `supabase/ops/moments-verify-0020-soft-delete.sql`
 
 ### 5.7 Video (future boundary)
 
