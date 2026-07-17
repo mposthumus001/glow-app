@@ -94,6 +94,59 @@ describe("Baby Moments UI — duplicate submit prevention", () => {
     assert.match(src, /submittingRef\.current/);
     assert.match(src, /if \(submittingRef\.current\) return/);
   });
+
+  it("guards delete confirmation against duplicate clicks", () => {
+    const src = readFileSync(
+      join(here, "components", "MomentDetailScreen.tsx"),
+      "utf8",
+    );
+    assert.match(src, /deleteLock\.current/);
+    assert.match(src, /if \(deleteLock\.current \|\| deleting\) return/);
+    assert.match(src, /Delete permanently from my album/);
+    assert.match(src, /Cancel/);
+    assert.match(src, /setDeleteError/);
+  });
+});
+
+describe("Baby Moments UI — delete behaviour", () => {
+  it("requires confirmation before invoking deletePrivateMoment", () => {
+    const src = readFileSync(
+      join(here, "components", "MomentDetailScreen.tsx"),
+      "utf8",
+    );
+    assert.match(src, /Delete moment/);
+    assert.match(src, /Delete this moment\?/);
+    assert.match(src, /deletePrivateMoment/);
+    assert.match(src, /setDeleteOpen\(true\)/);
+  });
+
+  it("redirects to the child album on successful delete", () => {
+    const src = readFileSync(
+      join(here, "components", "MomentDetailScreen.tsx"),
+      "utf8",
+    );
+    assert.match(src, /router\.push\(`\/baby\/\$\{babyId\}\/moments`\)/);
+    assert.match(src, /router\.refresh\(\)/);
+  });
+
+  it("surfaces calm mapped errors and never raw supabase text", () => {
+    const src = readFileSync(
+      join(here, "components", "MomentDetailScreen.tsx"),
+      "utf8",
+    );
+    assert.match(src, /deleteError/);
+    assert.match(src, /role="alert"/);
+    assert.doesNotMatch(src, /error\.message/);
+    assert.doesNotMatch(src, /Postgrest/);
+  });
+
+  it("revalidates baby and album paths from the delete action", () => {
+    const actions = readFileSync(join(here, "actions.ts"), "utf8");
+    assert.match(actions, /soft_delete_private_moment/);
+    assert.match(actions, /revalidateBabyMomentsPaths/);
+    assert.match(actions, /revalidatePath\("\/baby"\)/);
+    assert.match(actions, /revalidatePath\(`\/baby\/\$\{babyId\}\/moments`\)/);
+  });
 });
 
 describe("Baby Moments UI — processing and retry", () => {

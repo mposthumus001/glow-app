@@ -4,6 +4,10 @@ import { revalidatePath } from "next/cache";
 
 import { calmUserFacingError } from "@/lib/errors/calm-messages";
 import { reportOperationalFailure } from "@/lib/monitoring/report-error";
+import {
+  createAdminClient,
+  isMomentsProcessingConfigured,
+} from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 import {
@@ -13,6 +17,12 @@ import {
 } from "./constants";
 import { isMomentsEnabled } from "./config";
 import { loadBabyForMoments } from "./access";
+import {
+  filterOwnedStoragePaths,
+  mapSoftDeleteRpcError,
+  parseSoftDeleteRpcPayload,
+  validateDeleteMomentInput,
+} from "./deleteLogic";
 import {
   loadMomentDetail,
   loadMomentsForBaby,
@@ -614,78 +624,127 @@ export async function fetchSystemMomentTags(): Promise<
 export async function deletePrivateMoment(input: {
   babyId: string;
   momentId: string;
-}): Promise<MomentActionResult> {
+}): Promise<MomentActionResult<{ deleted: true }>> {
   if (!isMomentsEnabled()) {
     return { ok: false, error: "Moments are not available yet." };
   }
 
-  const ctx = await requireBabyContext(input.babyId);
+  const parsed = validateDeleteMomentInput(input);
+  if (!parsed.ok) return { ok: false, error: parsed.error };
+
+  const ctx = await requireBabyContext(parsed.babyId);
   if (!ctx.ok) return { ok: false, error: ctx.error };
 
-  const momentId = input.momentId.trim();
-  if (!momentId) {
-    return { ok: false, error: "That Moment could not be found." };
-  }
+  const { data, error: rpcError } = await ctx.supabase.rpc(
+    "soft_delete_private_moment",
+    {
+      p_moment_id: parsed.momentId,
+      p_baby_id: ctx.baby.babyId,
+    },
+  );
 
-  const { data: moment, error: momentError } = await ctx.supabase
-    .from("moments")
-    .select("id")
-    .eq("id", momentId)
-    .eq("owner_parent_id", ctx.user.id)
-    .is("deleted_at", null)
-    .maybeSingle();
-
-  if (momentError || !moment) {
-    return { ok: false, error: "That Moment could not be found." };
-  }
-
-  const { data: childLink, error: childError } = await ctx.supabase
-    .from("moment_children")
-    .select("baby_id")
-    .eq("moment_id", momentId)
-    .eq("baby_id", ctx.baby.babyId)
-    .maybeSingle();
-
-  if (childError || !childLink) {
-    return { ok: false, error: "That Moment could not be found." };
-  }
-
-  const now = new Date().toISOString();
-
-  const { error: mediaError } = await ctx.supabase
-    .from("moment_media")
-    .update({ deleted_at: now })
-    .eq("moment_id", momentId)
-    .eq("owner_parent_id", ctx.user.id)
-    .is("deleted_at", null);
-
-  if (mediaError) {
-    reportOperationalFailure(mediaError.message, {
+  if (rpcError) {
+    reportOperationalFailure(rpcError.message, {
       featureArea: "moments",
-      operation: "delete_moment_media",
+      operation: "delete",
+      supabaseCode: rpcError.code,
       userId: ctx.user.id,
     });
-    return { ok: false, error: "Something didn't work just now. Please try again." };
+    return {
+      ok: false,
+      error: "Something didn't work just now. Please try again.",
+    };
   }
 
-  const { error: deleteError } = await ctx.supabase
-    .from("moments")
-    .update({ deleted_at: now })
-    .eq("id", momentId)
-    .eq("owner_parent_id", ctx.user.id)
-    .is("deleted_at", null);
-
-  if (deleteError) {
-    reportOperationalFailure(deleteError.message, {
+  const result = parseSoftDeleteRpcPayload(data);
+  if (!result.ok) {
+    reportOperationalFailure(result.error, {
       featureArea: "moments",
-      operation: "delete_moment",
+      operation: "delete",
       userId: ctx.user.id,
     });
-    return { ok: false, error: "Something didn't work just now. Please try again." };
+    return { ok: false, error: mapSoftDeleteRpcError(result.error) };
   }
 
-  revalidateBabyMomentsPaths(input.babyId, momentId);
-  return { ok: true, data: undefined };
+  // Soft-delete is committed. Storage cleanup is best-effort and must not
+  // restore the Moment if it fails.
+  await cleanupMomentStorageBestEffort({
+    ownerParentId: ctx.user.id,
+    momentId: result.momentId,
+    storagePaths: result.storagePaths,
+  });
+
+  revalidateBabyMomentsPaths(parsed.babyId, result.momentId);
+  return { ok: true, data: { deleted: true } };
+}
+
+async function cleanupMomentStorageBestEffort(input: {
+  ownerParentId: string;
+  momentId: string;
+  storagePaths: string[];
+}): Promise<void> {
+  const ownedPaths = filterOwnedStoragePaths(
+    input.storagePaths,
+    input.ownerParentId,
+  );
+  if (ownedPaths.length === 0) return;
+
+  if (!isMomentsProcessingConfigured()) {
+    reportOperationalFailure("moments_storage_cleanup_not_configured", {
+      featureArea: "moments",
+      operation: "delete",
+      userId: input.ownerParentId,
+    });
+    await markStorageCleanupRequired(input.momentId, input.ownerParentId);
+    return;
+  }
+
+  try {
+    const admin = createAdminClient();
+    const { error } = await admin.storage
+      .from(MOMENTS_BUCKET)
+      .remove(ownedPaths);
+
+    if (error) {
+      reportOperationalFailure(error.message, {
+        featureArea: "moments",
+        operation: "delete",
+        userId: input.ownerParentId,
+      });
+      await markStorageCleanupRequired(input.momentId, input.ownerParentId, admin);
+    }
+  } catch (error) {
+    reportOperationalFailure(
+      error instanceof Error ? error.message : "storage_cleanup_failed",
+      {
+        featureArea: "moments",
+        operation: "delete",
+        userId: input.ownerParentId,
+      },
+    );
+    await markStorageCleanupRequired(input.momentId, input.ownerParentId);
+  }
+}
+
+async function markStorageCleanupRequired(
+  momentId: string,
+  ownerParentId: string,
+  adminClient?: ReturnType<typeof createAdminClient>,
+): Promise<void> {
+  try {
+    const admin = adminClient ?? (
+      isMomentsProcessingConfigured() ? createAdminClient() : null
+    );
+    if (!admin) return;
+
+    await admin
+      .from("moment_media")
+      .update({ storage_cleanup_required: true })
+      .eq("moment_id", momentId)
+      .eq("owner_parent_id", ownerParentId);
+  } catch {
+    // Soft-delete already succeeded; cleanup flag is best-effort.
+  }
 }
 
 export async function toggleMomentFavourite(input: {

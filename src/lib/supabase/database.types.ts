@@ -523,6 +523,7 @@ export type Database = {
           processing_status: "pending" | "processing" | "ready" | "failed";
           processing_error_code: string | null;
           original_cleanup_required: boolean;
+          storage_cleanup_required: boolean;
           processing_started_at: string | null;
           processing_completed_at: string | null;
           sort_order: number;
@@ -542,6 +543,7 @@ export type Database = {
           size_bytes?: number;
           processing_status?: "pending" | "processing" | "ready" | "failed";
           sort_order?: number;
+          storage_cleanup_required?: boolean;
         };
         Update: Partial<{
           size_bytes: number;
@@ -552,6 +554,7 @@ export type Database = {
           processing_status: "pending" | "processing" | "ready" | "failed";
           processing_error_code: string | null;
           original_cleanup_required: boolean;
+          storage_cleanup_required: boolean;
           deleted_at: string | null;
         }>;
         Relationships: [];
@@ -715,6 +718,10 @@ export type Database = {
       moments_parent_media_bytes: {
         Args: { p_parent_id: string };
         Returns: number;
+      };
+      soft_delete_private_moment: {
+        Args: { p_moment_id: string; p_baby_id: string };
+        Returns: Json;
       };
     };
     Enums: {

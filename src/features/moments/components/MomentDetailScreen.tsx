@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useId, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Heart, Trash2 } from "lucide-react";
@@ -45,10 +45,13 @@ export function MomentDetailScreen({
 }: MomentDetailScreenProps) {
   const router = useRouter();
   const deleteTitleId = useId();
+  const deleteLock = useRef(false);
   const [moment] = useState(initialMoment);
   const [isFavourite, setIsFavourite] = useState(initialMoment.isFavourite);
   const [busy, setBusy] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
   const primaryMedia = moment.media[0] ?? null;
@@ -91,12 +94,30 @@ export function MomentDetailScreen({
   }
 
   async function handleDelete() {
-    setBusy(true);
-    const result = await deletePrivateMoment({ babyId, momentId: moment.id });
-    setBusy(false);
-    if (result.ok) {
+    if (deleteLock.current || deleting) return;
+    deleteLock.current = true;
+    setDeleting(true);
+    setDeleteError(null);
+
+    try {
+      const result = await deletePrivateMoment({
+        babyId,
+        momentId: moment.id,
+      });
+
+      if (!result.ok) {
+        setDeleteError(result.error);
+        return;
+      }
+
+      setDeleteOpen(false);
       router.push(`/baby/${babyId}/moments`);
       router.refresh();
+    } catch {
+      setDeleteError("Something didn't work just now. Please try again.");
+    } finally {
+      deleteLock.current = false;
+      setDeleting(false);
     }
   }
 
@@ -212,6 +233,7 @@ export function MomentDetailScreen({
               />
             }
             isLoading={busy}
+            disabled={deleting}
             onClick={() => void handleFavourite()}
           >
             {isFavourite ? "Favourited" : "Favourite"}
@@ -222,9 +244,13 @@ export function MomentDetailScreen({
             variant="ghost"
             size="sm"
             leftIcon={<Trash2 className="h-4 w-4" aria-hidden="true" />}
-            onClick={() => setDeleteOpen(true)}
+            disabled={busy || deleting}
+            onClick={() => {
+              setDeleteError(null);
+              setDeleteOpen(true);
+            }}
           >
-            Delete
+            Delete moment
           </GlowButton>
         </div>
       </GlowContainer>
@@ -234,41 +260,57 @@ export function MomentDetailScreen({
           className="fixed inset-0 z-[70] flex items-end justify-center bg-black/50 p-4 sm:items-center"
           role="presentation"
           onMouseDown={(e) => {
-            if (e.target === e.currentTarget && !busy) setDeleteOpen(false);
+            if (e.target === e.currentTarget && !deleting) setDeleteOpen(false);
           }}
         >
           <div
             role="alertdialog"
             aria-modal="true"
             aria-labelledby={deleteTitleId}
+            aria-describedby={deleteError ? `${deleteTitleId}-error` : undefined}
             className="w-full max-w-sm rounded-[1.75rem] border border-white/[0.08] bg-[rgba(12,16,30,0.97)] p-5 shadow-xl"
           >
             <h2 id={deleteTitleId} className="text-lg font-semibold text-glow-text">
               Delete this moment?
             </h2>
             <p className="mt-2 text-sm leading-relaxed text-glow-text-secondary">
-              This removes the photo and details from your album. This cannot be undone.
+              This removes the photo and details from your album. You won&apos;t
+              see it in Moments or on Baby any more.
             </p>
-            <div className="mt-5 flex gap-2">
+            {deleteError ? (
+              <p
+                id={`${deleteTitleId}-error`}
+                className="mt-3 text-sm text-red-300"
+                role="alert"
+              >
+                {deleteError}
+              </p>
+            ) : null}
+            <div className="mt-5 flex flex-col gap-2 sm:flex-row">
               <GlowButton
                 type="button"
                 variant="ghost"
                 size="md"
                 fullWidth
-                disabled={busy}
-                onClick={() => setDeleteOpen(false)}
+                disabled={deleting}
+                onClick={() => {
+                  if (!deleting) {
+                    setDeleteError(null);
+                    setDeleteOpen(false);
+                  }
+                }}
               >
-                Keep
+                Cancel
               </GlowButton>
               <GlowButton
                 type="button"
                 variant="secondary"
                 size="md"
                 fullWidth
-                isLoading={busy}
+                isLoading={deleting}
                 onClick={() => void handleDelete()}
               >
-                Delete
+                Delete permanently from my album
               </GlowButton>
             </div>
           </div>

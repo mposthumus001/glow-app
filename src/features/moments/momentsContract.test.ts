@@ -92,3 +92,23 @@ describe("moments signed URL contract", () => {
     assert.match(rule, /non-ready/);
   });
 });
+
+describe("moments delete contract", () => {
+  it("documents atomic owner soft-delete RPC", () => {
+    const rule =
+      "soft_delete_private_moment — owner_parent_id = auth.uid(), baby link required";
+    assert.match(rule, /soft_delete_private_moment/);
+  });
+
+  it("documents deleted moments excluded from album/preview/detail", () => {
+    const rule =
+      "moments_select_own requires deleted_at is null → album/preview/detail 404";
+    assert.match(rule, /deleted_at is null/);
+  });
+
+  it("documents storage cleanup is best-effort after soft-delete", () => {
+    const rule =
+      "soft-delete first; admin remove display/thumb; storage_cleanup_required if cleanup fails";
+    assert.match(rule, /storage_cleanup_required/);
+  });
+});

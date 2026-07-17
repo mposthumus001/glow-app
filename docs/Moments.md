@@ -239,7 +239,12 @@ Defined in `docs/Family.md`: `shared_families`, `shared_family_members`, `shared
 
 ### 5.6 Delete behaviour
 
-- Soft-delete moment → hide from UI; Storage objects retained until hard purge (account deletion or retention job)
+- Owner-only soft-delete via `soft_delete_private_moment(moment_id, baby_id)` (SECURITY DEFINER)
+- Sets `moments.deleted_at` and related `moment_media.deleted_at` atomically
+- Wrong baby link or non-owner → `not_found` / `wrong_baby` (calm UI copy)
+- Soft-delete moment → hide from album, Baby preview, and detail (`notFound` / 404)
+- Best-effort Storage removal of display/thumbnail/original paths via server-only admin client
+- If Storage cleanup fails → Moment stays deleted; `moment_media.storage_cleanup_required = true`
 - Hard delete / account deletion → delete Storage objects + metadata rows
 - Orphan cleanup: cron for `pending` > 24h with no `ready`
 
