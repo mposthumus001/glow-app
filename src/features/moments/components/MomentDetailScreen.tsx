@@ -286,13 +286,14 @@ export function MomentDetailScreen({
                 {deleteError}
               </p>
             ) : null}
-            <div className="mt-5 flex flex-col gap-2 sm:flex-row">
+            <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:items-stretch">
               <GlowButton
                 type="button"
                 variant="ghost"
                 size="md"
                 fullWidth
                 disabled={deleting}
+                className="shrink-0 whitespace-nowrap"
                 onClick={() => {
                   if (!deleting) {
                     setDeleteError(null);
@@ -308,9 +309,10 @@ export function MomentDetailScreen({
                 size="md"
                 fullWidth
                 isLoading={deleting}
+                className="shrink-0 whitespace-nowrap"
                 onClick={() => void handleDelete()}
               >
-                Delete permanently from my album
+                Delete moment
               </GlowButton>
             </div>
           </div>

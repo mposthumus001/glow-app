@@ -102,7 +102,7 @@ describe("Baby Moments UI — duplicate submit prevention", () => {
     );
     assert.match(src, /deleteLock\.current/);
     assert.match(src, /if \(deleteLock\.current \|\| deleting\) return/);
-    assert.match(src, /Delete permanently from my album/);
+    assert.match(src, /Delete moment/);
     assert.match(src, /Cancel/);
     assert.match(src, /setDeleteError/);
   });
