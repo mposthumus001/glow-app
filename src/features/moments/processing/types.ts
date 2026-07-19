@@ -56,7 +56,19 @@ export { downloadAndValidateStoredWebp } from "./verifyStoredWebp.ts";
 export {
   buildPipelineBinaryTrace,
   classifyStoredSignature,
-  ensureUploadBuffer,
   hasWebpSignature,
   validateWebpBuffer,
 } from "./webpBuffer.ts";
+export {
+  describeStorageBinary,
+  detectStorageDataType,
+  ensureUploadBuffer,
+  storageDataToBuffer,
+  toWebpUploadBody,
+} from "./storageBinary.ts";
+export {
+  diagnosticFromValidation,
+  type MomentProcessingDiagnostic,
+  type MomentProcessingStage,
+} from "./momentProcessingDiagnostics.ts";
+export { reportMomentProcessingDiagnostic } from "./reportMomentProcessingDiagnostic.ts";

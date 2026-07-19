@@ -10,9 +10,9 @@ describe("processMomentMedia pipeline contract", () => {
   const src = readFileSync(join(here, "processMomentMedia.ts"), "utf8");
   const reprocessSrc = readFileSync(join(here, "reprocessMomentMedia.ts"), "utf8");
 
-  it("uploads raw Buffers with image/webp content type", () => {
+  it("uploads WebP Blob bodies with image/webp content type", () => {
     assert.match(src, /\.upload\(displayPath, displayUploadBody/);
-    assert.match(src, /\.upload\(thumbPath, thumbnailUploadBody/);
+    assert.match(src, /toWebpUploadBody/);
     assert.match(src, /contentType: "image\/webp"/);
     assert.doesNotMatch(src, /\.toString\(\)/);
     assert.doesNotMatch(src, /JSON\.stringify\(.*display/);
@@ -37,9 +37,19 @@ describe("processMomentMedia pipeline contract", () => {
   });
 
   it("cleans up partial uploads and marks processing failed on stored validation errors", () => {
-    assert.match(src, /failProcessing\(admin, mediaId, "stored_display_invalid"/);
-    assert.match(src, /failProcessing\(admin, mediaId, "stored_thumb_invalid"/);
-    assert.match(src, /failProcessing\(admin, mediaId, "upload_thumb_failed", \[displayPath\]\)/);
+    assert.match(src, /failProcessing\([\s\S]*"stored_display_invalid"/);
+    assert.match(src, /failProcessing\([\s\S]*"stored_thumb_invalid"/);
+    assert.match(src, /failProcessing\([\s\S]*"upload_thumb_failed"[\s\S]*\[displayPath\]/);
+  });
+
+  it("uses storageDataToBuffer for original and verification downloads", () => {
+    assert.match(src, /storageDataToBuffer/);
+    assert.match(src, /describeStorageBinary/);
+  });
+
+  it("reports structured stage diagnostics", () => {
+    assert.match(src, /reportMomentProcessingDiagnostic/);
+    assert.match(src, /post_upload_webp_validation_display/);
   });
 
   it("exposes an idempotent reprocess path when originals still exist", () => {

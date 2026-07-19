@@ -1,5 +1,9 @@
 import sharp from "sharp";
 
+import { ensureUploadBuffer } from "./storageBinary.ts";
+
+export { ensureUploadBuffer };
+
 export type WebpValidationErrorCode =
   | "empty_buffer"
   | "not_a_buffer"
@@ -26,14 +30,6 @@ export type StoredSignatureClass =
   | "png_signature"
   | "zero_empty"
   | "unknown_binary";
-
-/** Copy bytes into a dedicated Node Buffer safe for Storage upload. */
-export function ensureUploadBuffer(input: Buffer | Uint8Array): Buffer {
-  if (Buffer.isBuffer(input)) {
-    return Buffer.from(input.buffer, input.byteOffset, input.byteLength);
-  }
-  return Buffer.from(input);
-}
 
 export function hasWebpSignature(buffer: Buffer): boolean {
   if (buffer.length < 12) return false;

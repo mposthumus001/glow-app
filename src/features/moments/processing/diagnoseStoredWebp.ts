@@ -1,5 +1,6 @@
 import sharp from "sharp";
 
+import { storageDataToBuffer } from "./storageBinary.ts";
 import {
   classifyStoredSignature,
   type StoredSignatureClass,
@@ -60,7 +61,7 @@ export async function analyzeStoredWebpBuffer(
 }
 
 export async function bufferFromStorageDownload(
-  download: Blob,
+  download: Blob | ArrayBuffer | Uint8Array | Buffer,
 ): Promise<Buffer> {
-  return Buffer.from(await download.arrayBuffer());
+  return storageDataToBuffer(download);
 }
