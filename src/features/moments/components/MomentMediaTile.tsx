@@ -1,7 +1,10 @@
+"use client";
+
 import { ImageIcon, Loader2 } from "lucide-react";
 
 import { cn } from "@/lib/utils/cn";
 
+import { MomentSignedImage } from "./MomentSignedImage";
 import type { MomentMediaView } from "../types";
 
 export type MomentMediaTileProps = {
@@ -21,13 +24,18 @@ export function MomentMediaTile({
     ? `Photo for ${title.trim()}`
     : "Private moment photo";
 
+  const frameClass = cn(
+    "rounded-2xl border border-white/[0.08]",
+    aspect === "square" ? "aspect-square" : "aspect-[4/3]",
+    className,
+  );
+
   if (!media || media.status === "failed") {
     return (
       <div
         className={cn(
-          "flex flex-col items-center justify-center rounded-2xl border border-white/[0.08] bg-white/[0.03] p-3 text-center",
-          aspect === "square" ? "aspect-square" : "aspect-[4/3]",
-          className,
+          "flex flex-col items-center justify-center bg-white/[0.03] p-3 text-center",
+          frameClass,
         )}
       >
         <ImageIcon className="h-5 w-5 text-glow-text-tertiary" aria-hidden="true" />
@@ -42,9 +50,8 @@ export function MomentMediaTile({
     return (
       <div
         className={cn(
-          "flex flex-col items-center justify-center rounded-2xl border border-glow-primary/15 bg-glow-primary/[0.05] p-3 text-center",
-          aspect === "square" ? "aspect-square" : "aspect-[4/3]",
-          className,
+          "flex flex-col items-center justify-center border-glow-primary/15 bg-glow-primary/[0.05] p-3 text-center",
+          frameClass,
         )}
         aria-live="polite"
       >
@@ -59,36 +66,31 @@ export function MomentMediaTile({
     );
   }
 
-  if (!media.thumbnailUrl) {
+  if (media.status === "ready" && media.message === "Photo unavailable") {
     return (
       <div
         className={cn(
-          "flex items-center justify-center rounded-2xl border border-white/[0.08] bg-white/[0.03]",
-          aspect === "square" ? "aspect-square" : "aspect-[4/3]",
-          className,
+          "flex flex-col items-center justify-center bg-white/[0.03] p-3 text-center",
+          frameClass,
         )}
       >
         <ImageIcon className="h-5 w-5 text-glow-text-tertiary" aria-hidden="true" />
+        <p className="mt-2 text-xs leading-relaxed text-glow-text-secondary">
+          Photo unavailable
+        </p>
       </div>
     );
   }
 
   return (
-    <div
-      className={cn(
-        "overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.03]",
-        aspect === "square" ? "aspect-square" : "aspect-[4/3]",
-        className,
-      )}
-    >
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={media.thumbnailUrl}
-        alt={alt}
-        className="h-full w-full object-cover"
-        loading="lazy"
-        decoding="async"
-      />
-    </div>
+    <MomentSignedImage
+      key={media.id}
+      mediaId={media.id}
+      preferThumbnail
+      initialUrl={media.thumbnailUrl}
+      processingStatus={media.status}
+      alt={alt}
+      className={frameClass}
+    />
   );
 }

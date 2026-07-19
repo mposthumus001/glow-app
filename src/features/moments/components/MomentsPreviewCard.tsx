@@ -7,6 +7,7 @@ import { GlowButton, GlowCard } from "@/components/ui";
 import { fetchMomentsPreviewForBaby } from "@/features/moments/actions";
 import { cn } from "@/lib/utils/cn";
 
+import { formatOccurredOnShort } from "../formatOccurredOn";
 import { MomentMediaTile } from "./MomentMediaTile";
 import { MomentsEmptyState } from "./MomentsEmptyState";
 import type { MomentPreviewItem } from "../types";
@@ -16,17 +17,6 @@ export type MomentsPreviewCardProps = {
   momentsEnabled: boolean;
   className?: string;
 };
-
-function formatOccurredOn(value: string): string {
-  const [y, m, d] = value.split("-").map(Number);
-  if (!y || !m || !d) return value;
-  return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString(undefined, {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-    timeZone: "UTC",
-  });
-}
 
 export function MomentsPreviewCard({
   babyId,
@@ -96,7 +86,7 @@ export function MomentsPreviewCard({
               title={item.title ?? item.caption}
             />
             <p className="mt-1 truncate text-xs text-glow-text-secondary group-hover:text-glow-text">
-              {item.title?.trim() || item.caption?.trim() || formatOccurredOn(item.occurredOn)}
+              {item.title?.trim() || item.caption?.trim() || formatOccurredOnShort(item.occurredOn)}
             </p>
             {item.ageLabel ? (
               <p className="truncate text-[11px] text-glow-text-tertiary">{item.ageLabel}</p>

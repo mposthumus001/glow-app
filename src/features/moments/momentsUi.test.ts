@@ -106,6 +106,21 @@ describe("Baby Moments UI — duplicate submit prevention", () => {
     assert.match(src, /Cancel/);
     assert.match(src, /setDeleteError/);
   });
+
+  it("stacks delete actions on narrow screens and uses flex-1 from sm", () => {
+    const src = readFileSync(
+      join(here, "components", "MomentDetailScreen.tsx"),
+      "utf8",
+    );
+    assert.match(src, /flex w-full min-w-0 flex-col gap-3 sm:flex-row/);
+    assert.match(
+      src,
+      /box-border min-w-0 w-full max-w-full justify-center sm:w-auto sm:flex-1/,
+    );
+    assert.doesNotMatch(src, /fullWidth/);
+    assert.match(src, /w-full max-w-sm min-w-0 overflow-x-hidden/);
+    assert.match(src, /Delete moment/);
+  });
 });
 
 describe("Baby Moments UI — delete behaviour", () => {
@@ -168,6 +183,76 @@ describe("Baby Moments UI — processing and retry", () => {
     assert.match(src, /Preparing your photo/);
     assert.doesNotMatch(src, /processing_error_code/);
   });
+
+  it("album and preview tiles use MomentSignedImage for ready thumbnails", () => {
+    const tile = readFileSync(join(here, "components", "MomentMediaTile.tsx"), "utf8");
+    const album = readFileSync(join(here, "components", "MomentsAlbumScreen.tsx"), "utf8");
+    const preview = readFileSync(
+      join(here, "components", "MomentsPreviewCard.tsx"),
+      "utf8",
+    );
+    assert.match(tile, /MomentSignedImage/);
+    assert.match(tile, /preferThumbnail/);
+    assert.match(tile, /thumbnailUrl/);
+    assert.match(album, /MomentMediaTile/);
+    assert.match(preview, /MomentMediaTile/);
+  });
+
+  it("detail uses processed display image via signed refresh helper", () => {
+    const detail = readFileSync(
+      join(here, "components", "MomentDetailScreen.tsx"),
+      "utf8",
+    );
+    const signed = readFileSync(
+      join(here, "components", "MomentSignedImage.tsx"),
+      "utf8",
+    );
+    assert.match(detail, /preferThumbnail=\{false\}/);
+    assert.match(detail, /displayMediaId/);
+    assert.match(detail, /displayUrl/);
+    assert.match(signed, /getMomentMediaSignedUrl/);
+    assert.match(signed, /Photo unavailable/);
+    assert.match(signed, /onError/);
+  });
+
+  it("renders server signed URL directly without hydration-sensitive freshness checks", () => {
+    const signed = readFileSync(
+      join(here, "components", "MomentSignedImage.tsx"),
+      "utf8",
+    );
+    assert.match(signed, /useState<string \| null>\(initialUrl\)/);
+    assert.match(signed, /if \(initialUrl\) return;/);
+    assert.match(signed, /width=\{512\}/);
+    assert.match(signed, /height=\{512\}/);
+    assert.match(signed, /object-cover/);
+    assert.match(signed, /loading="lazy"/);
+    assert.match(signed, /refreshAttempted/);
+    assert.match(signed, /Photo unavailable/);
+    assert.doesNotMatch(signed, /isSignedUrlFresh/);
+    assert.doesNotMatch(signed, /Date\.now/);
+    assert.doesNotMatch(signed, /next\/image/);
+  });
+
+  it("uses hydration-safe occurred-on formatting", () => {
+    const album = readFileSync(
+      join(here, "components", "MomentsAlbumScreen.tsx"),
+      "utf8",
+    );
+    const preview = readFileSync(
+      join(here, "components", "MomentsPreviewCard.tsx"),
+      "utf8",
+    );
+    const detail = readFileSync(
+      join(here, "components", "MomentDetailScreen.tsx"),
+      "utf8",
+    );
+    assert.match(album, /formatOccurredOnShort/);
+    assert.match(preview, /formatOccurredOnShort/);
+    assert.match(detail, /formatOccurredOnLong/);
+    assert.doesNotMatch(album, /toLocaleDateString/);
+    assert.doesNotMatch(preview, /toLocaleDateString/);
+    assert.doesNotMatch(detail, /toLocaleDateString/);
+  });
 });
 
 describe("Baby Moments UI — privacy", () => {
@@ -185,6 +270,22 @@ describe("Baby Moments UI — privacy", () => {
     assert.doesNotMatch(src, /\{slot\.data\.signedUploadUrl\}/);
     assert.doesNotMatch(src, /originalPath/);
     assert.doesNotMatch(src, /storage_path/);
+  });
+
+  it("never renders storage paths in album, preview, or signed image markup", () => {
+    for (const file of [
+      "MomentMediaTile.tsx",
+      "MomentSignedImage.tsx",
+      "MomentsAlbumScreen.tsx",
+      "MomentsPreviewCard.tsx",
+      "MomentDetailScreen.tsx",
+    ]) {
+      const src = readFileSync(join(here, "components", file), "utf8");
+      assert.doesNotMatch(src, /storage_path/);
+      assert.doesNotMatch(src, /thumbnail_path/);
+      assert.doesNotMatch(src, /display\.webp/);
+      assert.doesNotMatch(src, /moments-private/);
+    }
   });
 });
 

@@ -16,7 +16,9 @@ import {
 import { outcomeAllowsRetry } from "@/features/moments/processing/outcomes";
 import { cn } from "@/lib/utils/cn";
 
+import { formatOccurredOnLong } from "../formatOccurredOn";
 import { MomentMediaTile } from "./MomentMediaTile";
+import { MomentSignedImage } from "./MomentSignedImage";
 import { useMomentProcessingPoll } from "../hooks/useMomentProcessingPoll";
 import type { MomentDetailView } from "../types";
 
@@ -25,18 +27,6 @@ export type MomentDetailScreenProps = {
   babyName: string;
   moment: MomentDetailView;
 };
-
-function formatOccurredOn(value: string): string {
-  const [y, m, d] = value.split("-").map(Number);
-  if (!y || !m || !d) return value;
-  return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString(undefined, {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-    timeZone: "UTC",
-  });
-}
 
 export function MomentDetailScreen({
   babyId,
@@ -143,15 +133,21 @@ export function MomentDetailScreen({
         />
 
         <GlowCard padding="md" className="mb-5 border-white/[0.06]">
-          {moment.displayUrl ? (
-            <div className="overflow-hidden rounded-2xl border border-white/[0.08]">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={moment.displayUrl}
-                alt={moment.title?.trim() ? `Photo: ${moment.title.trim()}` : "Private moment photo"}
-                className="w-full object-cover"
-              />
-            </div>
+          {moment.displayMediaId && primaryMedia?.status === "ready" ? (
+            <MomentSignedImage
+              key={moment.displayMediaId}
+              mediaId={moment.displayMediaId}
+              preferThumbnail={false}
+              initialUrl={moment.displayUrl}
+              processingStatus={primaryMedia.status}
+              alt={
+                moment.title?.trim()
+                  ? `Photo: ${moment.title.trim()}`
+                  : "Private moment photo"
+              }
+              className="overflow-hidden rounded-2xl border border-white/[0.08] aspect-[4/3]"
+              imgClassName="w-full"
+            />
           ) : (
             <MomentMediaTile
               media={primaryMedia}
@@ -185,7 +181,7 @@ export function MomentDetailScreen({
           <dl className="space-y-3 text-sm">
             <div>
               <dt className="text-glow-text-tertiary">Date</dt>
-              <dd className="mt-0.5 text-glow-text">{formatOccurredOn(moment.occurredOn)}</dd>
+              <dd className="mt-0.5 text-glow-text">{formatOccurredOnLong(moment.occurredOn)}</dd>
             </div>
             {moment.ageLabel ? (
               <div>
@@ -268,7 +264,7 @@ export function MomentDetailScreen({
             aria-modal="true"
             aria-labelledby={deleteTitleId}
             aria-describedby={deleteError ? `${deleteTitleId}-error` : undefined}
-            className="w-full max-w-sm rounded-[1.75rem] border border-white/[0.08] bg-[rgba(12,16,30,0.97)] p-5 shadow-xl"
+            className="box-border w-full max-w-sm min-w-0 overflow-x-hidden rounded-[1.75rem] border border-white/[0.08] bg-[rgba(12,16,30,0.97)] p-5 shadow-xl"
           >
             <h2 id={deleteTitleId} className="text-lg font-semibold text-glow-text">
               Delete this moment?
@@ -286,14 +282,13 @@ export function MomentDetailScreen({
                 {deleteError}
               </p>
             ) : null}
-            <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:items-stretch">
+            <div className="mt-5 flex w-full min-w-0 flex-col gap-3 sm:flex-row sm:items-stretch">
               <GlowButton
                 type="button"
                 variant="ghost"
                 size="md"
-                fullWidth
                 disabled={deleting}
-                className="shrink-0 whitespace-nowrap"
+                className="box-border min-w-0 w-full max-w-full justify-center sm:w-auto sm:flex-1"
                 onClick={() => {
                   if (!deleting) {
                     setDeleteError(null);
@@ -307,9 +302,8 @@ export function MomentDetailScreen({
                 type="button"
                 variant="secondary"
                 size="md"
-                fullWidth
                 isLoading={deleting}
-                className="shrink-0 whitespace-nowrap"
+                className="box-border min-w-0 w-full max-w-full justify-center sm:w-auto sm:flex-1"
                 onClick={() => void handleDelete()}
               >
                 Delete moment

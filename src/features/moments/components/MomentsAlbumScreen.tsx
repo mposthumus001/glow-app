@@ -7,6 +7,7 @@ import { GlowButton, GlowCard } from "@/components/ui";
 import { GlowContainer } from "@/components/layout";
 import { PageHeader } from "@/components/shell/PageHeader";
 
+import { formatOccurredOnShort } from "../formatOccurredOn";
 import { MomentMediaTile } from "./MomentMediaTile";
 import { MomentsEmptyState } from "./MomentsEmptyState";
 import type { MomentListItem } from "../types";
@@ -17,17 +18,6 @@ export type MomentsAlbumScreenProps = {
   items: MomentListItem[];
   error?: string | null;
 };
-
-function formatOccurredOn(value: string): string {
-  const [y, m, d] = value.split("-").map(Number);
-  if (!y || !m || !d) return value;
-  return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString(undefined, {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-    timeZone: "UTC",
-  });
-}
 
 export function MomentsAlbumScreen({
   babyId,
@@ -86,7 +76,7 @@ export function MomentsAlbumScreen({
                   />
                   <div className="mt-2 min-w-0">
                     <p className="truncate text-sm font-medium text-glow-text">
-                      {item.title?.trim() || formatOccurredOn(item.occurredOn)}
+                      {item.title?.trim() || formatOccurredOnShort(item.occurredOn)}
                     </p>
                     {item.caption?.trim() && item.title?.trim() ? (
                       <p className="truncate text-xs text-glow-text-secondary">
@@ -94,7 +84,7 @@ export function MomentsAlbumScreen({
                       </p>
                     ) : null}
                     <p className="mt-1 text-[11px] text-glow-text-tertiary">
-                      {[formatOccurredOn(item.occurredOn), item.ageLabel]
+                      {[formatOccurredOnShort(item.occurredOn), item.ageLabel]
                         .filter(Boolean)
                         .join(" · ")}
                     </p>
