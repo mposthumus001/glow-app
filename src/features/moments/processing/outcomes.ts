@@ -45,7 +45,13 @@ export function mapProcessingErrorToOutcome(
     case "processing_failed":
     case "decode_failed":
     case "malformed_image":
+    case "stored_display_invalid":
+    case "stored_thumb_invalid":
+    case "upload_display_failed":
+    case "upload_thumb_failed":
       return "processing_failed";
+    case "reupload_required":
+      return "retry_available";
     default:
       if (errorCode === "failed") return "retry_available";
       return "processing_failed";

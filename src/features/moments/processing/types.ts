@@ -46,3 +46,17 @@ export {
 } from "./processImageBuffer.ts";
 
 export { sniffImageMime } from "./sniffMime.ts";
+
+export {
+  analyzeStoredWebpBuffer,
+  bufferFromStorageDownload,
+} from "./diagnoseStoredWebp.ts";
+export { reprocessMomentMediaIfNeeded } from "./reprocessMomentMedia.ts";
+export { downloadAndValidateStoredWebp } from "./verifyStoredWebp.ts";
+export {
+  buildPipelineBinaryTrace,
+  classifyStoredSignature,
+  ensureUploadBuffer,
+  hasWebpSignature,
+  validateWebpBuffer,
+} from "./webpBuffer.ts";

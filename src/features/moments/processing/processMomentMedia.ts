@@ -11,11 +11,18 @@ import {
 import { processImageBuffer } from "./processImageBuffer.ts";
 import { isValidOriginalPath, pathsBelongToMedia } from "./paths.ts";
 import { sniffImageMime } from "./sniffMime.ts";
+import { downloadAndValidateStoredWebp } from "./verifyStoredWebp.ts";
+import {
+  buildPipelineBinaryTrace,
+  ensureUploadBuffer,
+  type PipelineBinaryTrace,
+} from "./webpBuffer.ts";
 
 export type ProcessMomentMediaResult = {
   outcome: MomentMediaOutcome;
   message: string;
   mediaId: string;
+  pipelineTrace?: PipelineBinaryTrace;
 };
 
 type ClaimPayload = {
@@ -33,6 +40,33 @@ type ClaimPayload = {
 function parseClaim(payload: unknown): ClaimPayload {
   if (payload && typeof payload === "object") return payload as ClaimPayload;
   return {};
+}
+
+function shouldTracePipeline(): boolean {
+  return process.env.MOMENTS_PIPELINE_TRACE === "1";
+}
+
+async function failProcessing(
+  admin: ReturnType<typeof createAdminClient>,
+  mediaId: string,
+  errorCode: string,
+  cleanupPaths: string[] = [],
+): Promise<ProcessMomentMediaResult> {
+  if (cleanupPaths.length > 0) {
+    await admin.storage.from(MOMENTS_BUCKET).remove(cleanupPaths);
+  }
+
+  await admin.rpc("fail_moment_media_processing", {
+    p_media_id: mediaId,
+    p_error_code: errorCode,
+  });
+
+  const outcome = mapProcessingErrorToOutcome(errorCode);
+  return {
+    outcome,
+    message: calmMessageForOutcome(outcome),
+    mediaId,
+  };
 }
 
 export async function processMomentMedia(
@@ -168,7 +202,8 @@ export async function processMomentMedia(
     };
   }
 
-  const bytes = Buffer.from(await download.arrayBuffer());
+  const originalArrayBuffer = await download.arrayBuffer();
+  const bytes = ensureUploadBuffer(Buffer.from(originalArrayBuffer));
   if (bytes.length > MOMENTS_MAX_UPLOAD_BYTES) {
     await admin.rpc("fail_moment_media_processing", {
       p_media_id: mediaId,
@@ -202,57 +237,70 @@ export async function processMomentMedia(
   }
 
   const { outputs } = processed;
+  const displayUploadBody = ensureUploadBuffer(outputs.display);
+  const thumbnailUploadBody = ensureUploadBuffer(outputs.thumbnail);
+
+  const pipelineTrace = buildPipelineBinaryTrace({
+    downloadedOriginalBytes: download.size,
+    originalArrayBufferBytes: originalArrayBuffer.byteLength,
+    originalBuffer: bytes,
+    displayBuffer: displayUploadBody,
+    thumbnailBuffer: thumbnailUploadBody,
+  });
+
+  if (shouldTracePipeline()) {
+    reportOperationalFailure("moments_pipeline_trace", {
+      featureArea: "moments",
+      operation: "process_moment_media_trace",
+      userId: user.id,
+      entityRef: mediaId,
+      responseCategory: JSON.stringify(pipelineTrace),
+    });
+  }
 
   const uploadDisplay = await admin.storage
     .from(MOMENTS_BUCKET)
-    .upload(displayPath, outputs.display, {
+    .upload(displayPath, displayUploadBody, {
       contentType: "image/webp",
       upsert: true,
     });
 
   if (uploadDisplay.error) {
-    await admin.rpc("fail_moment_media_processing", {
-      p_media_id: mediaId,
-      p_error_code: "upload_display_failed",
-    });
-    return {
-      outcome: "processing_failed",
-      message: calmMessageForOutcome("processing_failed"),
-      mediaId,
-    };
+    return failProcessing(admin, mediaId, "upload_display_failed");
+  }
+
+  const storedDisplay = await downloadAndValidateStoredWebp(
+    admin,
+    MOMENTS_BUCKET,
+    displayPath,
+  );
+  if (!storedDisplay.ok) {
+    return failProcessing(admin, mediaId, "stored_display_invalid", [
+      displayPath,
+    ]);
   }
 
   const uploadThumb = await admin.storage
     .from(MOMENTS_BUCKET)
-    .upload(thumbPath, outputs.thumbnail, {
+    .upload(thumbPath, thumbnailUploadBody, {
       contentType: "image/webp",
       upsert: true,
     });
 
   if (uploadThumb.error) {
-    await admin.rpc("fail_moment_media_processing", {
-      p_media_id: mediaId,
-      p_error_code: "upload_thumb_failed",
-    });
-    return {
-      outcome: "processing_failed",
-      message: calmMessageForOutcome("processing_failed"),
-      mediaId,
-    };
+    return failProcessing(admin, mediaId, "upload_thumb_failed", [displayPath]);
   }
 
-  const { error: deleteError } = await admin.storage
-    .from(MOMENTS_BUCKET)
-    .remove([originalPath]);
-
-  const originalDeleted = !deleteError;
-
-  if (deleteError) {
-    reportOperationalFailure(deleteError.message, {
-      featureArea: "moments",
-      operation: "delete_original_after_processing",
-      userId: user.id,
-    });
+  const storedThumb = await downloadAndValidateStoredWebp(
+    admin,
+    MOMENTS_BUCKET,
+    thumbPath,
+  );
+  if (!storedThumb.ok) {
+    return failProcessing(admin, mediaId, "stored_thumb_invalid", [
+      displayPath,
+      thumbPath,
+    ]);
   }
 
   const { data: completeData, error: completeError } = await admin.rpc(
@@ -261,9 +309,9 @@ export async function processMomentMedia(
       p_media_id: mediaId,
       p_width: outputs.width,
       p_height: outputs.height,
-      p_processed_size_bytes: outputs.displayBytes,
-      p_thumbnail_size_bytes: outputs.thumbnailBytes,
-      p_original_deleted: originalDeleted,
+      p_processed_size_bytes: storedDisplay.byteLength,
+      p_thumbnail_size_bytes: storedThumb.byteLength,
+      p_original_deleted: false,
       p_mime_type: "image/webp",
     },
   );
@@ -274,25 +322,45 @@ export async function processMomentMedia(
       operation: "complete_moment_media_processing",
       userId: user.id,
     });
-    return {
-      outcome: "processing_failed",
-      message: calmMessageForOutcome("processing_failed"),
-      mediaId,
-    };
+    return failProcessing(admin, mediaId, "processing_failed", [
+      displayPath,
+      thumbPath,
+    ]);
   }
 
   const complete = parseClaim(completeData);
   if (!complete.ok) {
-    return {
-      outcome: "processing_failed",
-      message: calmMessageForOutcome("processing_failed"),
-      mediaId,
-    };
+    return failProcessing(admin, mediaId, "processing_failed", [
+      displayPath,
+      thumbPath,
+    ]);
+  }
+
+  const { error: deleteError } = await admin.storage
+    .from(MOMENTS_BUCKET)
+    .remove([originalPath]);
+
+  if (deleteError) {
+    reportOperationalFailure(deleteError.message, {
+      featureArea: "moments",
+      operation: "delete_original_after_processing",
+      userId: user.id,
+    });
+    await admin
+      .from("moment_media")
+      .update({ original_cleanup_required: true })
+      .eq("id", mediaId);
+  } else {
+    await admin
+      .from("moment_media")
+      .update({ original_cleanup_required: false })
+      .eq("id", mediaId);
   }
 
   return {
     outcome: "ready",
     message: calmMessageForOutcome("ready"),
     mediaId,
+    pipelineTrace: shouldTracePipeline() ? pipelineTrace : undefined,
   };
 }

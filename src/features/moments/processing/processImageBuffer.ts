@@ -1,6 +1,11 @@
 import sharp from "sharp";
 
 import { MOMENTS_MAX_UPLOAD_BYTES } from "../constants.ts";
+import {
+  ensureUploadBuffer,
+  validateWebpBuffer,
+  type WebpValidationErrorCode,
+} from "./webpBuffer.ts";
 
 /** Longest edge for privacy-safe display output. */
 export const MOMENTS_DISPLAY_MAX_EDGE = 2048;
@@ -25,7 +30,8 @@ export type ProcessImageErrorCode =
   | "pixel_limit_exceeded"
   | "unsupported_image"
   | "decode_failed"
-  | "malformed_image";
+  | "malformed_image"
+  | WebpValidationErrorCode;
 
 export type ProcessImageResult =
   | { ok: true; outputs: ProcessedImageOutputs }
@@ -78,15 +84,28 @@ export async function processImageBuffer(
       .webp({ quality: 75, effort: 3 })
       .toBuffer({ resolveWithObject: true });
 
+    const displayBuffer = ensureUploadBuffer(display.data);
+    const thumbnailBuffer = ensureUploadBuffer(thumbnail.data);
+
+    const displayValidation = await validateWebpBuffer(displayBuffer);
+    if (!displayValidation.ok) {
+      return { ok: false, error: displayValidation.code };
+    }
+
+    const thumbnailValidation = await validateWebpBuffer(thumbnailBuffer);
+    if (!thumbnailValidation.ok) {
+      return { ok: false, error: thumbnailValidation.code };
+    }
+
     return {
       ok: true,
       outputs: {
-        display: display.data,
-        thumbnail: thumbnail.data,
-        width: display.info.width,
-        height: display.info.height,
-        displayBytes: display.data.length,
-        thumbnailBytes: thumbnail.data.length,
+        display: displayBuffer,
+        thumbnail: thumbnailBuffer,
+        width: displayValidation.width,
+        height: displayValidation.height,
+        displayBytes: displayBuffer.byteLength,
+        thumbnailBytes: thumbnailBuffer.byteLength,
       },
     };
   } catch (error) {

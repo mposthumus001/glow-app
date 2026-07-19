@@ -67,4 +67,19 @@ describe("processImageBuffer", () => {
     assert.equal(result.ok, false);
     if (!result.ok) assert.equal(result.error, "image_too_large");
   });
+
+  it("returns dedicated WebP buffers that pass signature and metadata checks", async () => {
+    const input = await tinyJpeg();
+    const result = await processImageBuffer(input);
+    assert.equal(result.ok, true);
+    if (!result.ok) return;
+
+    for (const buffer of [result.outputs.display, result.outputs.thumbnail]) {
+      assert.equal(Buffer.isBuffer(buffer), true);
+      assert.equal(buffer.subarray(0, 4).toString("ascii"), "RIFF");
+      assert.equal(buffer.subarray(8, 12).toString("ascii"), "WEBP");
+      const meta = await sharp(buffer).metadata();
+      assert.equal(meta.format, "webp");
+    }
+  });
 });

@@ -13,6 +13,8 @@ describe("moment media outcomes (Sprint 9.2B contract)", () => {
     assert.equal(mapProcessingErrorToOutcome("image_too_large"), "image_too_large");
     assert.equal(mapProcessingErrorToOutcome("quota_exceeded"), "quota_exceeded");
     assert.equal(mapProcessingErrorToOutcome("decode_failed"), "processing_failed");
+    assert.equal(mapProcessingErrorToOutcome("reupload_required"), "retry_available");
+    assert.equal(mapProcessingErrorToOutcome("stored_display_invalid"), "processing_failed");
   });
 
   it("returns calm parent-facing messages", () => {
