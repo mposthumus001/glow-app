@@ -10,6 +10,7 @@ import {
   verifyMomentAccess,
 } from "@/features/moments/access";
 import {
+  countReadyMomentsForBaby,
   loadMomentDetail,
   loadMomentsForBaby,
   loadSystemTags,
@@ -45,13 +46,17 @@ export async function requireBabyMomentsContext(babyId: string) {
 
 export async function renderMomentsAlbumPage(babyId: string) {
   const { user, supabase, baby } = await requireBabyMomentsContext(babyId);
-  const items = await loadMomentsForBaby(supabase, baby, user.id);
+  const [items, photoCount] = await Promise.all([
+    loadMomentsForBaby(supabase, baby, user.id),
+    countReadyMomentsForBaby(supabase, baby, user.id),
+  ]);
 
   return (
     <MomentsAlbumScreen
       babyId={baby.babyId}
       babyName={baby.babyName}
       items={items}
+      photoCount={photoCount}
     />
   );
 }

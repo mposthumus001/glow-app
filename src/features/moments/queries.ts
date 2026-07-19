@@ -5,6 +5,10 @@ import type { Database } from "@/lib/supabase/database.types";
 import { formatBabyAgeAtDate } from "./ageAtDate";
 import { MOMENTS_BUCKET, MOMENTS_SIGNED_URL_TTL_SECONDS } from "./constants";
 import {
+  countDistinctMomentsWithReadyMedia,
+  filterMomentIdsWithReadyMedia,
+} from "./momentPhotoCount.ts";
+import {
   signedUrlExpiresAt,
   type SignedMediaUrl,
 } from "./mediaUrl";
@@ -182,8 +186,20 @@ async function mapMediaRow(
 
 function primaryMediaRow(media: MediaRow[]): MediaRow | null {
   if (!media.length) return null;
-  const sorted = [...media].sort((a, b) => a.sort_order - b.sort_order);
+  const ready = media.filter((row) => row.processing_status === "ready");
+  const pool = ready.length > 0 ? ready : media;
+  const sorted = [...pool].sort((a, b) => a.sort_order - b.sort_order);
   return sorted[0] ?? null;
+}
+
+export async function countReadyMomentsForBaby(
+  supabase: SupabaseClient<Database>,
+  baby: BabyMomentsContext,
+  ownerId: string,
+): Promise<number> {
+  const momentIds = await loadMomentIdsForBaby(supabase, baby.babyId, ownerId);
+  const mediaMap = await loadMediaForMoments(supabase, momentIds, ownerId);
+  return countDistinctMomentsWithReadyMedia(momentIds, mediaMap);
 }
 
 function ageLabelForMoment(baby: BabyMomentsContext, occurredOn: string): string | null {
@@ -295,12 +311,9 @@ export async function loadMomentsPreviewForBaby(
   limit = 3,
 ): Promise<MomentPreviewItem[]> {
   const momentIds = await loadMomentIdsForBaby(supabase, baby.babyId, ownerId);
-  const moments = await loadMomentsBase(supabase, momentIds, ownerId, limit);
-  const mediaMap = await loadMediaForMoments(
-    supabase,
-    moments.map((row) => row.id),
-    ownerId,
-  );
+  const mediaMap = await loadMediaForMoments(supabase, momentIds, ownerId);
+  const readyMomentIds = filterMomentIdsWithReadyMedia(momentIds, mediaMap);
+  const moments = await loadMomentsBase(supabase, readyMomentIds, ownerId, limit);
 
   const items: MomentPreviewItem[] = [];
   for (const row of moments) {
@@ -323,8 +336,9 @@ export async function loadMomentsForBaby(
   ownerId: string,
 ): Promise<MomentListItem[]> {
   const momentIds = await loadMomentIdsForBaby(supabase, baby.babyId, ownerId);
-  const moments = await loadMomentsBase(supabase, momentIds, ownerId);
   const mediaMap = await loadMediaForMoments(supabase, momentIds, ownerId);
+  const readyMomentIds = filterMomentIdsWithReadyMedia(momentIds, mediaMap);
+  const moments = await loadMomentsBase(supabase, readyMomentIds, ownerId);
 
   const items: MomentListItem[] = [];
   for (const row of moments) {

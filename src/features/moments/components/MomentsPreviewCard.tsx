@@ -7,6 +7,7 @@ import { GlowButton, GlowCard } from "@/components/ui";
 import { fetchMomentsPreviewForBaby } from "@/features/moments/actions";
 import { cn } from "@/lib/utils/cn";
 
+import { formatMomentPhotoCount } from "../momentPhotoCount";
 import { formatOccurredOnShort } from "../formatOccurredOn";
 import { MomentMediaTile } from "./MomentMediaTile";
 import { MomentsEmptyState } from "./MomentsEmptyState";
@@ -24,6 +25,7 @@ export function MomentsPreviewCard({
   className,
 }: MomentsPreviewCardProps) {
   const [items, setItems] = useState<MomentPreviewItem[]>([]);
+  const [photoCount, setPhotoCount] = useState(0);
   const [pending, startTransition] = useTransition();
 
   useEffect(() => {
@@ -33,7 +35,13 @@ export function MomentsPreviewCard({
 
     startTransition(() => {
       void fetchMomentsPreviewForBaby(babyId).then((result) => {
-        setItems(result.ok ? result.data.items : []);
+        if (result.ok) {
+          setItems(result.data.items);
+          setPhotoCount(result.data.photoCount);
+        } else {
+          setItems([]);
+          setPhotoCount(0);
+        }
       });
     });
   }, [babyId, momentsEnabled]);
@@ -42,7 +50,7 @@ export function MomentsPreviewCard({
     return null;
   }
 
-  if (pending && items.length === 0) {
+  if (pending && items.length === 0 && photoCount === 0) {
     return (
       <GlowCard
         padding="md"
@@ -55,7 +63,7 @@ export function MomentsPreviewCard({
     );
   }
 
-  if (items.length === 0) {
+  if (photoCount === 0) {
     return <MomentsEmptyState babyId={babyId} compact className={cn("mb-5", className)} />;
   }
 
@@ -64,7 +72,9 @@ export function MomentsPreviewCard({
       <div className="flex items-start justify-between gap-3">
         <div>
           <h2 className="text-base font-semibold text-glow-text">Moments</h2>
-          <p className="mt-1 text-xs text-glow-text-tertiary">Private to you.</p>
+          <p className="mt-1 text-xs text-glow-text-tertiary">
+            {formatMomentPhotoCount(photoCount)} · Private to you.
+          </p>
         </div>
         <Link
           href={`/baby/${babyId}/moments`}

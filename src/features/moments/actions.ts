@@ -28,6 +28,7 @@ import {
   loadMomentsForBaby,
   loadMomentsPreviewForBaby,
   loadSystemTags,
+  countReadyMomentsForBaby,
   resolveMediaSignedUrlById,
 } from "./queries";
 import {
@@ -551,26 +552,25 @@ async function requireBabyContext(babyId: string) {
 
 export async function fetchMomentsPreviewForBaby(
   babyId: string,
-): Promise<MomentActionResult<{ items: MomentPreviewItem[] }>> {
+): Promise<MomentActionResult<{ items: MomentPreviewItem[]; photoCount: number }>> {
   if (!isMomentsEnabled()) {
-    return { ok: true, data: { items: [] } };
+    return { ok: true, data: { items: [], photoCount: 0 } };
   }
 
   const ctx = await requireBabyContext(babyId);
   if (!ctx.ok) return { ok: false, error: ctx.error };
 
-  const items = await loadMomentsPreviewForBaby(
-    ctx.supabase,
-    ctx.baby,
-    ctx.user.id,
-  );
+  const [items, photoCount] = await Promise.all([
+    loadMomentsPreviewForBaby(ctx.supabase, ctx.baby, ctx.user.id),
+    countReadyMomentsForBaby(ctx.supabase, ctx.baby, ctx.user.id),
+  ]);
 
-  return { ok: true, data: { items } };
+  return { ok: true, data: { items, photoCount } };
 }
 
 export async function fetchMomentsAlbumForBaby(
   babyId: string,
-): Promise<MomentActionResult<{ items: MomentListItem[] }>> {
+): Promise<MomentActionResult<{ items: MomentListItem[]; photoCount: number }>> {
   if (!isMomentsEnabled()) {
     return { ok: false, error: "Moments are not available yet." };
   }
@@ -578,8 +578,11 @@ export async function fetchMomentsAlbumForBaby(
   const ctx = await requireBabyContext(babyId);
   if (!ctx.ok) return { ok: false, error: ctx.error };
 
-  const items = await loadMomentsForBaby(ctx.supabase, ctx.baby, ctx.user.id);
-  return { ok: true, data: { items } };
+  const [items, photoCount] = await Promise.all([
+    loadMomentsForBaby(ctx.supabase, ctx.baby, ctx.user.id),
+    countReadyMomentsForBaby(ctx.supabase, ctx.baby, ctx.user.id),
+  ]);
+  return { ok: true, data: { items, photoCount } };
 }
 
 export async function fetchMomentDetailForBaby(input: {

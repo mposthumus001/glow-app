@@ -7,6 +7,7 @@ import { GlowButton, GlowCard } from "@/components/ui";
 import { GlowContainer } from "@/components/layout";
 import { PageHeader } from "@/components/shell/PageHeader";
 
+import { formatMomentPhotoCount } from "../momentPhotoCount";
 import { formatOccurredOnShort } from "../formatOccurredOn";
 import { MomentMediaTile } from "./MomentMediaTile";
 import { MomentsEmptyState } from "./MomentsEmptyState";
@@ -16,6 +17,7 @@ export type MomentsAlbumScreenProps = {
   babyId: string;
   babyName: string;
   items: MomentListItem[];
+  photoCount: number;
   error?: string | null;
 };
 
@@ -23,6 +25,7 @@ export function MomentsAlbumScreen({
   babyId,
   babyName,
   items,
+  photoCount,
   error,
 }: MomentsAlbumScreenProps) {
   return (
@@ -38,7 +41,7 @@ export function MomentsAlbumScreen({
 
         <PageHeader
           title="Moments"
-          subtitle={`Private memories for ${babyName}.`}
+          subtitle={`${formatMomentPhotoCount(photoCount)} · Private memories for ${babyName}.`}
         />
 
         <div className="mb-5">
@@ -59,7 +62,7 @@ export function MomentsAlbumScreen({
           </GlowCard>
         ) : null}
 
-        {items.length === 0 ? (
+        {photoCount === 0 ? (
           <MomentsEmptyState babyId={babyId} />
         ) : (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
