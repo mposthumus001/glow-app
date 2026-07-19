@@ -222,15 +222,32 @@ describe("Baby Moments UI — processing and retry", () => {
     );
     assert.match(signed, /useState<string \| null>\(initialUrl\)/);
     assert.match(signed, /if \(initialUrl\) return;/);
+    assert.match(signed, /remountKey/);
+    assert.match(signed, /resolveRefreshAttempt/);
+    assert.match(signed, /resolveAfterRefreshFailed/);
+    assert.match(signed, /onLoad/);
     assert.match(signed, /width=\{512\}/);
-    assert.match(signed, /height=\{512\}/);
     assert.match(signed, /object-cover/);
-    assert.match(signed, /loading="lazy"/);
-    assert.match(signed, /refreshAttempted/);
     assert.match(signed, /Photo unavailable/);
     assert.doesNotMatch(signed, /isSignedUrlFresh/);
     assert.doesNotMatch(signed, /Date\.now/);
     assert.doesNotMatch(signed, /next\/image/);
+  });
+
+  it("logs only safe dev diagnostics for signed-image lifecycle", () => {
+    const signed = readFileSync(
+      join(here, "components", "MomentSignedImage.tsx"),
+      "utf8",
+    );
+    const diagnostics = readFileSync(
+      join(here, "momentMediaDevDiagnostics.ts"),
+      "utf8",
+    );
+    assert.match(signed, /logMomentMediaDevDiagnostic/);
+    assert.match(diagnostics, /hasInitialUrl/);
+    assert.match(diagnostics, /refreshReturnedUrl/);
+    assert.match(diagnostics, /feature: "moments"/);
+    assert.doesNotMatch(diagnostics, /signedUrl|storage_path|token|caption/);
   });
 
   it("uses hydration-safe occurred-on formatting", () => {
@@ -252,6 +269,59 @@ describe("Baby Moments UI — processing and retry", () => {
     assert.doesNotMatch(album, /toLocaleDateString/);
     assert.doesNotMatch(preview, /toLocaleDateString/);
     assert.doesNotMatch(detail, /toLocaleDateString/);
+  });
+});
+
+describe("Baby Moments UI — preview card layout", () => {
+  const preview = readFileSync(
+    join(here, "components", "MomentsPreviewCard.tsx"),
+    "utf8",
+  );
+
+  it("uses a horizontal featured row for a single ready photo", () => {
+    assert.match(preview, /photoCount === 1/);
+    assert.match(preview, /FeaturedPreviewRow/);
+    assert.match(preview, /min-\[340px\]:flex-row/);
+    assert.match(preview, /aspect="portrait"/);
+    assert.match(preview, /w-24 shrink-0 sm:w-28/);
+  });
+
+  it("shows caption clamped to two lines beside the thumbnail", () => {
+    assert.match(preview, /line-clamp-2/);
+    assert.match(preview, /previewPrimaryText/);
+    assert.match(preview, /previewMetaLine/);
+  });
+
+  it("keeps a compact empty state with count label and add button", () => {
+    assert.match(preview, /photoCount === 0/);
+    assert.match(preview, /PreviewEmptyBody/);
+    assert.match(preview, /The little things worth keeping\./);
+    assert.doesNotMatch(preview, /MomentsEmptyState/);
+    assert.doesNotMatch(preview, /grid-cols-3/);
+  });
+
+  it("stacks preview content below 340px without horizontal overflow", () => {
+    assert.match(preview, /min-w-0 overflow-hidden/);
+    assert.match(preview, /min-\[340px\]:flex-row/);
+    assert.match(preview, /flex-col/);
+  });
+
+  it("separates thumbnail, caption, and add button without overlap", () => {
+    assert.match(preview, /border-t border-white\/\[0\.06\]/);
+    assert.match(preview, /min-h-11/);
+    assert.match(preview, /Add a moment/);
+  });
+
+  it("limits multi-photo preview to two compact thumbnails plus overflow copy", () => {
+    assert.match(preview, /MultiPreviewRow/);
+    assert.match(preview, /slice\(0, 2\)/);
+    assert.match(preview, /more in album/);
+  });
+
+  it("keeps View all and ready-only count label in the header", () => {
+    assert.match(preview, /View all/);
+    assert.match(preview, /formatMomentPhotoCount\(photoCount\)/);
+    assert.match(preview, /PreviewHeader/);
   });
 });
 

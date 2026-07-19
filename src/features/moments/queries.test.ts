@@ -46,6 +46,7 @@ describe("moments UI — photo count labels", () => {
     );
     assert.match(album, /photoCount === 0/);
     assert.match(preview, /photoCount === 0/);
+    assert.match(preview, /PreviewEmptyBody/);
   });
 });
 

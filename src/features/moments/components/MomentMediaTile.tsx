@@ -11,13 +11,15 @@ export type MomentMediaTileProps = {
   media: MomentMediaView | null;
   title?: string | null;
   className?: string;
-  aspect?: "square" | "wide";
+  imgClassName?: string;
+  aspect?: "square" | "wide" | "portrait";
 };
 
 export function MomentMediaTile({
   media,
   title,
   className,
+  imgClassName,
   aspect = "square",
 }: MomentMediaTileProps) {
   const alt = title?.trim()
@@ -26,7 +28,11 @@ export function MomentMediaTile({
 
   const frameClass = cn(
     "rounded-2xl border border-white/[0.08]",
-    aspect === "square" ? "aspect-square" : "aspect-[4/3]",
+    aspect === "square"
+      ? "aspect-square"
+      : aspect === "portrait"
+        ? "aspect-[3/4]"
+        : "aspect-[4/3]",
     className,
   );
 
@@ -91,6 +97,7 @@ export function MomentMediaTile({
       processingStatus={media.status}
       alt={alt}
       className={frameClass}
+      imgClassName={imgClassName}
     />
   );
 }
