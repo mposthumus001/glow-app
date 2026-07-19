@@ -9,7 +9,10 @@ export type MomentMediaDisplayStatus =
 export type MomentMediaView = {
   id: string;
   status: MomentMediaDisplayStatus;
+  /** Short-lived signed thumbnail URL; may be null until client refresh. */
   thumbnailUrl: string | null;
+  /** Epoch ms when thumbnailUrl expires; null when no URL. */
+  urlExpiresAt: number | null;
   canRetry: boolean;
   message: string | null;
 };
@@ -49,7 +52,10 @@ export type MomentDetailView = {
   babyIds: string[];
   tags: MomentTagView[];
   media: MomentMediaView[];
+  /** Short-lived signed display.webp URL for the primary ready media. */
   displayUrl: string | null;
+  displayUrlExpiresAt: number | null;
+  displayMediaId: string | null;
 };
 
 export type SystemTagOption = {

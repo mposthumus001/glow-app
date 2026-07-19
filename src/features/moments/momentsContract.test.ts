@@ -1,5 +1,10 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, it } from "node:test";
+
+const here = dirname(fileURLToPath(import.meta.url));
 
 describe("moments RLS contract (Sprint 9.1)", () => {
   it("documents owner-only private moment reads", () => {
@@ -90,6 +95,39 @@ describe("moments signed URL contract", () => {
   it("documents ready-only download for originals in UI", () => {
     const rule = "getMomentDownloadUrl rejects non-ready originals";
     assert.match(rule, /non-ready/);
+  });
+
+  it("documents dynamic Moments pages and no-store for signed URLs", () => {
+    const album = readFileSync(
+      join(here, "..", "..", "app", "(app)", "baby", "[babyId]", "moments", "page.tsx"),
+      "utf8",
+    );
+    const detail = readFileSync(
+      join(
+        here,
+        "..",
+        "..",
+        "app",
+        "(app)",
+        "baby",
+        "[babyId]",
+        "moments",
+        "[momentId]",
+        "page.tsx",
+      ),
+      "utf8",
+    );
+    const pages = readFileSync(join(here, "server", "pages.tsx"), "utf8");
+    assert.match(album, /force-dynamic/);
+    assert.match(detail, /force-dynamic/);
+    assert.match(pages, /unstable_noStore|noStore/);
+  });
+
+  it("documents mediaId refresh endpoint for expired signed URLs", () => {
+    const actions = readFileSync(join(here, "actions.ts"), "utf8");
+    assert.match(actions, /getMomentMediaSignedUrl/);
+    assert.match(actions, /preferThumbnail/);
+    assert.match(actions, /expiresAt/);
   });
 });
 

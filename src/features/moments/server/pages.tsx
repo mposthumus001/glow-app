@@ -1,4 +1,5 @@
 import { notFound, redirect } from "next/navigation";
+import { unstable_noStore as noStore } from "next/cache";
 
 import { MomentsAlbumScreen } from "@/features/moments/components/MomentsAlbumScreen";
 import { MomentDetailScreen } from "@/features/moments/components/MomentDetailScreen";
@@ -16,7 +17,14 @@ import {
 import { requireAppUser } from "@/lib/auth/require-app-user";
 import { createClient } from "@/lib/supabase/server";
 
+/** Moments pages mint short-lived signed URLs — never statically cache. */
+function preventMomentsSignedUrlCache() {
+  noStore();
+}
+
 export async function requireBabyMomentsContext(babyId: string) {
+  preventMomentsSignedUrlCache();
+
   if (!isMomentsEnabled()) {
     redirect("/baby");
   }

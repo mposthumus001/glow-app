@@ -5,11 +5,16 @@ import type { Database } from "@/lib/supabase/database.types";
 import { formatBabyAgeAtDate } from "./ageAtDate";
 import { MOMENTS_BUCKET, MOMENTS_SIGNED_URL_TTL_SECONDS } from "./constants";
 import {
+  signedUrlExpiresAt,
+  type SignedMediaUrl,
+} from "./mediaUrl";
+import {
   calmMessageForOutcome,
   mapProcessingErrorToOutcome,
   outcomeAllowsRetry,
   type MomentMediaOutcome,
 } from "./processing/outcomes";
+import { reportMomentsMediaIssue } from "./reportMomentsMediaIssue";
 import type {
   BabyMomentsContext,
   MomentDetailView,
@@ -61,34 +66,83 @@ function mediaOutcomeFromRow(row: MediaRow): MomentMediaOutcome {
   }
 }
 
+async function createSignedMediaUrl(
+  supabase: SupabaseClient<Database>,
+  path: string,
+): Promise<SignedMediaUrl | null> {
+  const { data, error } = await supabase.storage
+    .from(MOMENTS_BUCKET)
+    .createSignedUrl(path, MOMENTS_SIGNED_URL_TTL_SECONDS);
+
+  if (error || !data?.signedUrl) return null;
+
+  return {
+    url: data.signedUrl,
+    expiresIn: MOMENTS_SIGNED_URL_TTL_SECONDS,
+    expiresAt: signedUrlExpiresAt(),
+  };
+}
+
 async function signedThumbnailUrl(
   supabase: SupabaseClient<Database>,
-  row: Pick<MediaRow, "processing_status" | "thumbnail_path">,
-): Promise<string | null> {
-  if (row.processing_status !== "ready" || !row.thumbnail_path) {
+  row: Pick<MediaRow, "id" | "processing_status" | "thumbnail_path">,
+): Promise<SignedMediaUrl | null> {
+  if (row.processing_status !== "ready") {
     return null;
   }
 
-  const { data, error } = await supabase.storage
-    .from(MOMENTS_BUCKET)
-    .createSignedUrl(row.thumbnail_path, MOMENTS_SIGNED_URL_TTL_SECONDS);
+  if (!row.thumbnail_path) {
+    reportMomentsMediaIssue({
+      mediaId: row.id,
+      processingStatus: row.processing_status,
+      responseCategory: "missing_object",
+      operation: "signed_thumbnail_missing_path",
+    });
+    return null;
+  }
 
-  if (error || !data?.signedUrl) return null;
-  return data.signedUrl;
+  const signed = await createSignedMediaUrl(supabase, row.thumbnail_path);
+  if (!signed) {
+    reportMomentsMediaIssue({
+      mediaId: row.id,
+      processingStatus: row.processing_status,
+      responseCategory: "sign_failed",
+      operation: "signed_thumbnail_create",
+    });
+    return null;
+  }
+
+  return signed;
 }
 
 async function signedDisplayUrl(
   supabase: SupabaseClient<Database>,
-  row: Pick<MediaRow, "processing_status" | "storage_path">,
-): Promise<string | null> {
+  row: Pick<MediaRow, "id" | "processing_status" | "storage_path">,
+): Promise<SignedMediaUrl | null> {
   if (row.processing_status !== "ready") return null;
 
-  const { data, error } = await supabase.storage
-    .from(MOMENTS_BUCKET)
-    .createSignedUrl(row.storage_path, MOMENTS_SIGNED_URL_TTL_SECONDS);
+  if (!row.storage_path) {
+    reportMomentsMediaIssue({
+      mediaId: row.id,
+      processingStatus: row.processing_status,
+      responseCategory: "missing_object",
+      operation: "signed_display_missing_path",
+    });
+    return null;
+  }
 
-  if (error || !data?.signedUrl) return null;
-  return data.signedUrl;
+  const signed = await createSignedMediaUrl(supabase, row.storage_path);
+  if (!signed) {
+    reportMomentsMediaIssue({
+      mediaId: row.id,
+      processingStatus: row.processing_status,
+      responseCategory: "sign_failed",
+      operation: "signed_display_create",
+    });
+    return null;
+  }
+
+  return signed;
 }
 
 async function mapMediaRow(
@@ -107,10 +161,18 @@ async function mapMediaRow(
     message = calmMessageForOutcome(status === "pending" ? "uploaded" : "processing");
   }
 
+  const signed =
+    status === "ready" ? await signedThumbnailUrl(supabase, row) : null;
+
+  if (status === "ready" && !signed) {
+    message = "Photo unavailable";
+  }
+
   return {
     id: row.id,
     status,
-    thumbnailUrl: await signedThumbnailUrl(supabase, row),
+    thumbnailUrl: signed?.url ?? null,
+    urlExpiresAt: signed?.expiresAt ?? null,
     canRetry:
       status === "failed" &&
       outcomeAllowsRetry(outcome === "processing_failed" ? "retry_available" : outcome),
@@ -325,8 +387,8 @@ export async function loadMomentDetail(
   const mediaMap = await loadMediaForMoments(supabase, [momentId], ownerId);
   const mediaRows = mediaMap.get(momentId) ?? [];
   const media = await Promise.all(mediaRows.map((row) => mapMediaRow(supabase, row)));
-  const primary = mediaRows[0] ?? null;
-  const displayUrl = primary ? await signedDisplayUrl(supabase, primary) : null;
+  const primary = primaryMediaRow(mediaRows);
+  const display = primary ? await signedDisplayUrl(supabase, primary) : null;
 
   return {
     id: moment.id,
@@ -338,7 +400,9 @@ export async function loadMomentDetail(
     babyIds: (allChildren ?? []).map((row) => row.baby_id),
     tags,
     media,
-    displayUrl,
+    displayUrl: display?.url ?? null,
+    displayUrlExpiresAt: display?.expiresAt ?? null,
+    displayMediaId: primary?.id ?? null,
   };
 }
 
@@ -356,11 +420,12 @@ export async function loadSystemTags(
   return data.map((tag) => ({ id: tag.id, label: tag.label }));
 }
 
-export async function resolveMediaThumbnailById(
+export async function resolveMediaSignedUrlById(
   supabase: SupabaseClient<Database>,
   mediaId: string,
   ownerId: string,
-): Promise<string | null> {
+  preferThumbnail: boolean,
+): Promise<SignedMediaUrl | null> {
   const { data, error } = await supabase
     .from("moment_media")
     .select(
@@ -372,5 +437,25 @@ export async function resolveMediaThumbnailById(
     .maybeSingle();
 
   if (error || !data) return null;
-  return signedThumbnailUrl(supabase, data as MediaRow);
+  const row = data as MediaRow;
+
+  if (preferThumbnail) {
+    return signedThumbnailUrl(supabase, row);
+  }
+  return signedDisplayUrl(supabase, row);
+}
+
+/** @deprecated Prefer resolveMediaSignedUrlById */
+export async function resolveMediaThumbnailById(
+  supabase: SupabaseClient<Database>,
+  mediaId: string,
+  ownerId: string,
+): Promise<string | null> {
+  const signed = await resolveMediaSignedUrlById(
+    supabase,
+    mediaId,
+    ownerId,
+    true,
+  );
+  return signed?.url ?? null;
 }

@@ -16,6 +16,10 @@ export type OperationalFailureContext = {
   route?: string;
   userId?: string | null;
   circleAssignmentOutcome?: string | null;
+  /** Opaque entity reference (e.g. media UUID). Avoid sensitive key names. */
+  entityRef?: string | null;
+  responseCategory?: string | null;
+  processingStatus?: string | null;
 };
 
 export type UnexpectedExceptionContext = {
@@ -39,6 +43,9 @@ function applyGlowContext(
     userId?: string | null;
     supabaseCode?: string | null;
     circleAssignmentOutcome?: string | null;
+    entityRef?: string | null;
+    responseCategory?: string | null;
+    processingStatus?: string | null;
   },
 ): void {
   scope.setTag("feature_area", context.featureArea);
@@ -59,6 +66,15 @@ function applyGlowContext(
       "circle_assignment_outcome",
       context.circleAssignmentOutcome,
     );
+  }
+  if (context.entityRef) {
+    scope.setExtra("entity_ref", context.entityRef.slice(0, 80));
+  }
+  if (context.responseCategory) {
+    scope.setExtra("response_category", context.responseCategory.slice(0, 40));
+  }
+  if (context.processingStatus) {
+    scope.setExtra("processing_status", context.processingStatus.slice(0, 40));
   }
 }
 

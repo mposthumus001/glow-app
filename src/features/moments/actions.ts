@@ -28,7 +28,7 @@ import {
   loadMomentsForBaby,
   loadMomentsPreviewForBaby,
   loadSystemTags,
-  resolveMediaThumbnailById,
+  resolveMediaSignedUrlById,
 } from "./queries";
 import {
   mapRpcError,
@@ -802,14 +802,17 @@ export async function toggleMomentFavourite(input: {
   return { ok: true, data: { isFavourite: input.isFavourite } };
 }
 
-export async function getMomentMediaThumbnailUrl(
-  mediaId: string,
-): Promise<MomentActionResult<{ url: string }>> {
+export async function getMomentMediaSignedUrl(input: {
+  mediaId: string;
+  preferThumbnail?: boolean;
+}): Promise<
+  MomentActionResult<{ url: string; expiresIn: number; expiresAt: number }>
+> {
   if (!isMomentsEnabled()) {
     return { ok: false, error: "Moments are not available yet." };
   }
 
-  const trimmed = mediaId?.trim();
+  const trimmed = input.mediaId?.trim();
   if (!trimmed) {
     return { ok: false, error: "That photo could not be found." };
   }
@@ -817,10 +820,39 @@ export async function getMomentMediaThumbnailUrl(
   const { supabase, user, error } = await requireAuthenticatedParent();
   if (error || !user) return { ok: false, error: error ?? "Please sign in again." };
 
-  const url = await resolveMediaThumbnailById(supabase, trimmed, user.id);
-  if (!url) {
-    return { ok: false, error: "Your photo is still being prepared." };
+  const signed = await resolveMediaSignedUrlById(
+    supabase,
+    trimmed,
+    user.id,
+    input.preferThumbnail !== false,
+  );
+
+  if (!signed) {
+    return { ok: false, error: "Photo unavailable" };
   }
 
-  return { ok: true, data: { url } };
+  return {
+    ok: true,
+    data: {
+      url: signed.url,
+      expiresIn: signed.expiresIn,
+      expiresAt: signed.expiresAt,
+    },
+  };
+}
+
+export async function getMomentMediaThumbnailUrl(
+  mediaId: string,
+): Promise<
+  MomentActionResult<{ url: string; expiresIn: number; expiresAt: number }>
+> {
+  return getMomentMediaSignedUrl({ mediaId, preferThumbnail: true });
+}
+
+export async function getMomentMediaDisplayUrl(
+  mediaId: string,
+): Promise<
+  MomentActionResult<{ url: string; expiresIn: number; expiresAt: number }>
+> {
+  return getMomentMediaSignedUrl({ mediaId, preferThumbnail: false });
 }
