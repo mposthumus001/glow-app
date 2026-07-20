@@ -37,6 +37,12 @@ Legend: **Staff** = moderator / support / admin. **Circle member** = active `cir
 | `connections` | Party/staff | Requester | Party/staff + trigger | Either party | RLS + trigger | Manual |
 | `daily_activity` | Own + staff | Own | Own | — | RLS | Manual |
 | `daily_messages` | Active | Admin/support | Admin/support | Admin/support | RLS | Manual |
+| `shared_families` | Active members + owner (0021) | RPC only | Owner | — | RLS + RPC | `sharedFamilyContract.test.ts` |
+| `shared_family_members` | Active co-members (0021) | RPC only | Owner remove / member leave | — | RLS + triggers | `sharedFamilyContract.test.ts` |
+| `shared_family_invites` | Owner (0021) | RPC only | Owner revoke | — | RLS + RPC | `sharedFamilyContract.test.ts` |
+| `shared_family_moments` | Active members (0021) | RPC only | Owner unshare | — | RLS + RPC | `sharedFamilyContract.test.ts` |
+| `moments` (shared read) | Owner (existing) + shared-family member for explicit shares (0021) | Owner RPC | Owner | Owner soft-delete RPC | RLS | `momentsContract.test.ts`, `sharedFamilyContract.test.ts` |
+| `moment_media` (shared read) | Owner + shared-family member, `ready` only (0021) | Owner | Owner | Owner soft-delete | RLS; signed URLs server-side | `sharedFamilyContract.test.ts` |
 
 ## SECURITY DEFINER RPCs (user-callable)
 
@@ -49,6 +55,15 @@ Legend: **Staff** = moderator / support / admin. **Circle member** = active `cir
 | `shares_active_circle_with` | Authenticated | Used in RLS only |
 | `is_beta_email_allowed` | anon / authenticated | Boolean only — no allowlist rows |
 | `hook_before_user_created_beta_allowlist` | `supabase_auth_admin` | Before User Created |
+| `create_shared_family` | Authenticated | Creates group + owner membership atomically |
+| `create_shared_family_invite` | Active owner | SHA-256 token hash; 7-day expiry; rejects self/already member |
+| `accept_shared_family_invite` | Authenticated invitee | Email match; atomic; idempotent accept |
+| `revoke_shared_family_invite` | Owner | Pending invites only |
+| `remove_shared_family_member` | Owner | Cannot remove self |
+| `leave_shared_family` | Active member | Owner must archive instead |
+| `share_private_moment` / `unshare_private_moment` | Owner | Explicit per-moment link; visibility stays private |
+| `archive_shared_family` / `rename_shared_family` | Owner | Active groups only |
+| `shared_family_can_access_moment_media` | Authenticated | Server boundary before signed URL |
 
 ## Service-role only
 
@@ -71,6 +86,17 @@ Legend: **Staff** = moderator / support / admin. **Circle member** = active `cir
 3. `is_beta_email_allowed` boolean RPC for app UX.
 4. `hook_before_user_created_beta_allowlist` for Auth Before User Created (Dashboard enable required).
 5. `handle_new_user` activates invited → active on signup.
+
+## Sprint 9.3 changes (migration `0021`)
+
+1. New tables: `shared_families`, `shared_family_members`, `shared_family_invites`, `shared_family_moments`.
+2. Separate from `public.families` — household scope unchanged.
+3. Owner-only moment sharing via `shared_family_moments`; `moments.visibility` stays private.
+4. Invite tokens stored as SHA-256 hash only; raw token returned once from RPC.
+5. Shared-family SELECT policies on `moments`, `moment_media`, `moment_children`, `moment_tag_links`, `moment_tags`.
+6. INSERT on shared-family tables blocked (`with check (false)`); creation via SECURITY DEFINER RPCs.
+7. Membership guards: `guard_shared_family_members_update`, `guard_shared_family_owner_membership`.
+8. Verification: `supabase/ops/shared-family-verify-0021.sql`.
 
 ## Remaining risks (documented, not fixed this sprint)
 

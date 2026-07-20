@@ -273,6 +273,33 @@ Ops:
 
 ---
 
+## 2026-07-20 — Glow Family Album foundation (Sprint 9.3)
+
+Decision:
+Ship Shared Family Album **database foundation only** in migration `0021`. New tables (`shared_families`, `shared_family_members`, `shared_family_invites`, `shared_family_moments`) are separate from signup `public.families`. Moments stay `visibility = private`; sharing is explicit per Moment via `shared_family_moments`. v1 roles: **owner** and **member** only — owner-only share/unshare. Invite tokens: 32-byte random hex, SHA-256 hash stored, **7-day** expiry, accept requires authenticated email match. Signed media via server boundary calling `shared_family_can_access_moment_media` — no broad Storage policies.
+
+Reason:
+Product requires trusted invite-based sharing without auto-exposing private child albums or conflating household RLS. Foundation-first lets UI/API ship in a later sprint with enforcement already in Postgres.
+
+Schema:
+- `owner_parent_id` / `parent_id` (= `auth.uid()`)
+- Archive (not soft-delete) for shared families
+- Membership history: `active` / `removed` / `left`
+- No migration data backfill — zero `shared_family_moments` rows on deploy
+
+Security:
+- RPC-only group/member/invite/share creation (RLS INSERT blocked)
+- Triggers prevent role escalation and final-owner removal
+- Generic `invalid_invite` errors — no email enumeration
+
+Deferred:
+Family Album UI, invite email delivery, member-contributed Moments, ownership transfer on account deletion.
+
+Docs:
+`docs/FamilyAlbum.md`, `supabase/ops/shared-family-verify-0021.sql`, `sharedFamilyContract.test.ts`
+
+---
+
 ## 2026-07-17 — Glow Moments Sprint 9.2A secure processing
 
 Decision:
