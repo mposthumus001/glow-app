@@ -1,15 +1,17 @@
 import { LoginForm } from "@/components/auth/LoginForm";
 import { isParentOnboarded } from "@/lib/auth/onboarding";
+import { safeAuthNextPath } from "@/lib/auth/safe-auth-next";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ reset?: string }>;
+  searchParams: Promise<{ reset?: string; next?: string }>;
 }) {
   const params = await searchParams;
   const passwordResetSuccess = params.reset === "success";
+  const nextPath = safeAuthNextPath(params.next);
 
   const supabase = await createClient();
   const {
@@ -24,10 +26,19 @@ export default async function LoginPage({
       .maybeSingle();
 
     if (isParentOnboarded(parent)) {
-      redirect("/");
+      redirect(nextPath);
     }
-    redirect("/onboarding");
+    redirect(
+      nextPath === "/"
+        ? "/onboarding"
+        : `/onboarding?next=${encodeURIComponent(nextPath)}`,
+    );
   }
 
-  return <LoginForm passwordResetSuccess={passwordResetSuccess} />;
+  return (
+    <LoginForm
+      passwordResetSuccess={passwordResetSuccess}
+      nextPath={params.next ? nextPath : undefined}
+    />
+  );
 }

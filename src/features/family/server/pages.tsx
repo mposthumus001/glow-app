@@ -1,13 +1,27 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
+import { isParentOnboarded } from "@/lib/auth/onboarding";
 import { requireAppUser } from "@/lib/auth/require-app-user";
 import { createClient } from "@/lib/supabase/server";
 
+import { acceptSharedFamilyInviteAction } from "../actions";
 import { CreateFamilyScreen } from "../components/CreateFamilyScreen";
 import { FamilyDetailScreen } from "../components/FamilyDetailScreen";
 import { FamilyHomeScreen } from "../components/FamilyHomeScreen";
+import {
+  FamilyInviteAcceptScreen,
+  type FamilyInviteAcceptScreenProps,
+} from "../components/FamilyInviteAcceptScreen";
+import { FamilyMembersScreen } from "../components/FamilyMembersScreen";
 import { isFamilyAlbumEnabled } from "../config";
-import { getSharedFamilyDetail, listMySharedFamilies } from "../queries";
+import { isValidInviteTokenFormat } from "../inviteUtils";
+import {
+  getSharedFamilyDetail,
+  getSharedFamilyMembersPageData,
+  listMySharedFamilies,
+} from "../queries";
+import type { InviteAcceptCategory } from "../types";
+import { mapInviteAcceptMessage } from "../validation";
 
 export async function renderFamilyHomePage() {
   if (!isFamilyAlbumEnabled()) {
@@ -48,4 +62,98 @@ export async function renderFamilyDetailPage(sharedFamilyId: string) {
   }
 
   return <FamilyDetailScreen family={family} />;
+}
+
+export async function renderFamilyMembersPage(sharedFamilyId: string) {
+  if (!isFamilyAlbumEnabled()) {
+    notFound();
+  }
+
+  const { user } = await requireAppUser();
+  const supabase = await createClient();
+  const data = await getSharedFamilyMembersPageData(
+    supabase,
+    user.id,
+    sharedFamilyId,
+  );
+
+  if (!data) {
+    notFound();
+  }
+
+  return (
+    <FamilyMembersScreen {...data} currentUserId={user.id} />
+  );
+}
+
+function mapCategoryToScreenState(
+  category: InviteAcceptCategory,
+): FamilyInviteAcceptScreenProps["state"] {
+  switch (category) {
+    case "email_mismatch":
+      return "email_mismatch";
+    case "expired":
+      return "expired";
+    case "revoked":
+      return "revoked";
+    case "invalid":
+      return "invalid";
+    default:
+      return "unavailable";
+  }
+}
+
+export async function renderFamilyInviteAcceptPage(token: string) {
+  if (!isFamilyAlbumEnabled()) {
+    notFound();
+  }
+
+  const trimmed = token.trim();
+
+  if (!isValidInviteTokenFormat(trimmed)) {
+    return (
+      <FamilyInviteAcceptScreen
+        token={trimmed}
+        state="invalid"
+        message={mapInviteAcceptMessage("invalid")}
+      />
+    );
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return <FamilyInviteAcceptScreen token={trimmed} state="signed_out" />;
+  }
+
+  const { data: parent } = await supabase
+    .from("parents")
+    .select("*")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (!isParentOnboarded(parent)) {
+    redirect(`/onboarding?next=${encodeURIComponent(`/family/invite/${trimmed}`)}`);
+  }
+
+  const result = await acceptSharedFamilyInviteAction(trimmed);
+
+  if (result.ok) {
+    redirect(`/family/${result.sharedFamilyId}`);
+  }
+
+  if (result.category === "needs_auth") {
+    return <FamilyInviteAcceptScreen token={trimmed} state="signed_out" />;
+  }
+
+  return (
+    <FamilyInviteAcceptScreen
+      token={trimmed}
+      state={mapCategoryToScreenState(result.category)}
+      message={result.error}
+    />
+  );
 }

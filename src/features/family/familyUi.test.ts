@@ -239,6 +239,7 @@ describe("family detail access and copy", () => {
     assert.match(detail, /No Moments have been shared here yet\./);
     assert.match(detail, /There are no shared Moments here yet\./);
     assert.match(detail, /family\.isOwner/);
+    assert.match(detail, /Manage members/);
   });
 
   it("19. No emails or internal IDs appear in rendered markup patterns", () => {
@@ -393,6 +394,10 @@ describe("family nav active state and dates", () => {
     assert.equal(resolveActiveNav("/family/new"), "family");
     assert.equal(
       resolveActiveNav("/family/11111111-1111-1111-1111-111111111111"),
+      "family",
+    );
+    assert.equal(
+      resolveActiveNav("/family/11111111-1111-1111-1111-111111111111/members"),
       "family",
     );
   });

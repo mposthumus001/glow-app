@@ -2,7 +2,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { Database } from "@/lib/supabase/database.types";
 
-import type { SharedFamilyDetail, SharedFamilyListItem, SharedFamilyRole } from "./types";
+import type { SharedFamilyDetail, SharedFamilyListItem, SharedFamilyRole, SharedFamilyMembersPageData, SharedFamilyMemberRow, SharedFamilyPendingInviteRow } from "./types";
+import { maskInviteEmail, memberDisplayName } from "./inviteUtils.ts";
 
 type Client = SupabaseClient<Database>;
 
@@ -161,4 +162,81 @@ export async function getSharedFamilyDetail(
     createdAt: family.created_at,
     isOwner: role === "owner",
   };
+}
+
+type MemberQueryRow = {
+  id: string;
+  parent_id: string;
+  role: SharedFamilyRole;
+  joined_at: string;
+};
+
+export async function getSharedFamilyMembersPageData(
+  supabase: Client,
+  parentId: string,
+  sharedFamilyId: string,
+): Promise<SharedFamilyMembersPageData | null> {
+  const family = await getSharedFamilyDetail(supabase, parentId, sharedFamilyId);
+  if (!family?.isOwner) return null;
+
+  const { data: memberRows, error: membersError } = await supabase
+    .from("shared_family_members")
+    .select("id, parent_id, role, joined_at")
+    .eq("shared_family_id", sharedFamilyId)
+    .eq("status", "active")
+    .order("joined_at", { ascending: true });
+
+  if (membersError) {
+    return null;
+  }
+
+  const typedRows = (memberRows ?? []) as MemberQueryRow[];
+  const parentIds = [...new Set(typedRows.map((row) => row.parent_id))];
+
+  const displayNamesByParentId = new Map<string, string>();
+  if (parentIds.length > 0) {
+    const { data: parents } = await supabase
+      .from("parents")
+      .select("id, display_name")
+      .in("id", parentIds);
+
+    for (const parent of parents ?? []) {
+      displayNamesByParentId.set(parent.id, parent.display_name);
+    }
+  }
+
+  const members: SharedFamilyMemberRow[] = typedRows.map((row) => {
+    const role = row.role as SharedFamilyRole;
+
+    return {
+      id: row.id,
+      parentId: row.parent_id,
+      role,
+      roleLabel: roleLabel(role),
+      displayName: memberDisplayName(displayNamesByParentId.get(row.parent_id)),
+      joinedAt: row.joined_at,
+    };
+  });
+
+  const { data: inviteRows, error: invitesError } = await supabase
+    .from("shared_family_invites")
+    .select("id, invited_email_normalized, expires_at, created_at")
+    .eq("shared_family_id", sharedFamilyId)
+    .eq("status", "pending")
+    .order("created_at", { ascending: false });
+
+  if (invitesError) {
+    return null;
+  }
+
+  const pendingInvites: SharedFamilyPendingInviteRow[] = (inviteRows ?? []).map(
+    (invite) => ({
+      id: invite.id,
+      maskedEmail: maskInviteEmail(invite.invited_email_normalized),
+      expiresAt: invite.expires_at,
+      createdAt: invite.created_at,
+    }),
+  );
+
+  return { family, members, pendingInvites };
 }

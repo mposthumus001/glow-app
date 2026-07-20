@@ -8,13 +8,16 @@ import { AuthShell } from "@/components/auth/AuthShell";
 import { ForgotPasswordForm } from "@/components/auth/ForgotPasswordForm";
 import { GlowButton, GlowInput } from "@/components/ui";
 import { PASSWORD_RESET_SUCCESS_MESSAGE } from "@/lib/auth/password-recovery";
+import { safeAuthNextPath } from "@/lib/auth/safe-auth-next";
 import { createClient } from "@/lib/supabase/client";
 import { calmAuthErrorMessage } from "@/lib/errors/calm-messages";
 
 export function LoginForm({
   passwordResetSuccess = false,
+  nextPath,
 }: {
   passwordResetSuccess?: boolean;
+  nextPath?: string;
 }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
@@ -40,10 +43,14 @@ export function LoginForm({
         return;
       }
 
-      router.replace("/");
+      router.replace(safeAuthNextPath(nextPath));
       router.refresh();
     });
   }
+
+  const signupHref = nextPath
+    ? `/signup?next=${encodeURIComponent(nextPath)}`
+    : "/signup";
 
   return (
     <AuthShell
@@ -53,7 +60,7 @@ export function LoginForm({
         <>
           Invited to the private beta?{" "}
           <Link
-            href="/signup"
+            href={signupHref}
             className="font-medium text-glow-primary-light hover:underline"
           >
             Create your account

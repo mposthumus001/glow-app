@@ -20,9 +20,11 @@ const initialState: OnboardingState = {};
 export function OnboardingForm({
   defaultDisplayName,
   defaultState,
+  nextPath,
 }: {
   defaultDisplayName?: string;
   defaultState?: string;
+  nextPath?: string;
 }) {
   const [state, formAction, isPending] = useActionState(
     completeOnboarding,
@@ -53,6 +55,9 @@ export function OnboardingForm({
             action={formAction}
             className="flex flex-col gap-5 rounded-glow-card border border-glow-card-border bg-glow-card p-6 shadow-glow-card"
           >
+            {nextPath ? (
+              <input type="hidden" name="next" value={nextPath} />
+            ) : null}
             <GlowInput
               label="Display name"
               name="display_name"

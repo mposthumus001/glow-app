@@ -13,6 +13,7 @@ import {
   postOnboardingRedirectPath,
   shouldFailOnboardingForAssignment,
 } from "@/features/circles/assignment/assignmentLogic";
+import { safeAuthNextPath } from "@/lib/auth/safe-auth-next";
 import { createClient } from "@/lib/supabase/server";
 
 export type OnboardingState = {
@@ -182,5 +183,6 @@ export async function completeOnboarding(
 
   revalidatePath("/");
   revalidatePath("/circle");
-  redirect(postOnboardingRedirectPath());
+  const next = safeAuthNextPath(asString(formData, "next"));
+  redirect(next === "/" ? postOnboardingRedirectPath() : next);
 }

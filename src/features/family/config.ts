@@ -10,3 +10,6 @@ export function isFamilyAlbumEnabled(
 }
 
 export const FAMILY_NAME_MAX = 80;
+
+/** Hex length for invite raw tokens (32 bytes → 64 hex chars). */
+export const FAMILY_INVITE_TOKEN_HEX_LENGTH = 64;

@@ -1,6 +1,6 @@
 # Glow Family Album — Architecture (Sprint 9.3 foundation)
 
-**Status:** Database foundation in migration `0021`. Sprint 9.4A ships Family home / create / detail shell behind `NEXT_PUBLIC_FAMILY_ALBUM_ENABLED`.  
+**Status:** Database foundation in migration `0021`. Sprint 9.4A ships Family home / create / detail shell; Sprint 9.4B adds owner member management and invite acceptance behind `NEXT_PUBLIC_FAMILY_ALBUM_ENABLED`.  
 **Companion:** `docs/Moments.md`, `docs/Family.md` (earlier spec; this doc reflects implemented schema)
 
 ---
@@ -149,8 +149,8 @@ Direct INSERT on shared-family tables blocked by RLS (`with check (false)`); mut
 | `/family` | List shared families the parent belongs to | ✅ 9.4A |
 | `/family/new` | Create a new shared family | ✅ 9.4A |
 | `/family/[sharedFamilyId]` | Detail shell + empty album | ✅ 9.4A |
-| `/family/invite/[token]` | Accept invitation landing | Future |
-| `/family/[sharedFamilyId]/members` | Members + pending invites (owner) | Future |
+| `/family/invite/[token]` | Accept invitation landing | ✅ 9.4B |
+| `/family/[sharedFamilyId]/members` | Members + pending invites (owner) | ✅ 9.4B |
 | `/baby/[babyId]/moments/[momentId]/share` | Owner share/unshare picker | Future |
 
 Family Album nav entry is separate from Baby Moments (`/baby/[babyId]/moments`).

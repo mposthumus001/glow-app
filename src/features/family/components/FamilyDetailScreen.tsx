@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { ArrowLeft, Lock } from "lucide-react";
+import { ArrowLeft, Lock, Users } from "lucide-react";
 
-import { GlowCard } from "@/components/ui";
+import { GlowButton, GlowCard } from "@/components/ui";
 import { textStyles } from "@/lib/theme";
 import { cn } from "@/lib/utils/cn";
 
@@ -71,10 +71,22 @@ export function FamilyDetailScreen({ family }: FamilyDetailScreenProps) {
               padding="sm"
               className="border-white/[0.06] bg-white/[0.02]"
             >
-              <p className="text-sm leading-relaxed text-glow-text-tertiary">
-                Invites and sharing arrive in a later update. For now, this space
-                is ready — your album stays empty until you choose what to share.
+              <p className="text-sm leading-relaxed text-glow-text-secondary">
+                Invite the people you trust and manage who has access.
               </p>
+              <div className="mt-4">
+                <Link href={`/family/${family.id}/members`}>
+                  <GlowButton
+                    type="button"
+                    variant="secondary"
+                    size="md"
+                    className="min-h-11"
+                    leftIcon={<Users className="h-4 w-4" aria-hidden="true" />}
+                  >
+                    Manage members
+                  </GlowButton>
+                </Link>
+              </div>
             </GlowCard>
           </div>
         ) : null}

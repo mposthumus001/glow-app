@@ -14,7 +14,7 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { calmAuthErrorMessage } from "@/lib/errors/calm-messages";
 
-export function SignupForm() {
+export function SignupForm({ nextPath }: { nextPath?: string }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -65,10 +65,18 @@ export function SignupForm() {
         return;
       }
 
-      router.replace("/onboarding");
+      router.replace(
+        nextPath
+          ? `/onboarding?next=${encodeURIComponent(nextPath)}`
+          : "/onboarding",
+      );
       router.refresh();
     });
   }
+
+  const loginHref = nextPath
+    ? `/login?next=${encodeURIComponent(nextPath)}`
+    : "/login";
 
   return (
     <AuthShell
@@ -78,7 +86,7 @@ export function SignupForm() {
         <>
           Already invited?{" "}
           <Link
-            href="/login"
+            href={loginHref}
             className="font-medium text-glow-primary-light hover:underline"
           >
             Sign in
@@ -127,7 +135,7 @@ export function SignupForm() {
               <p className="mt-2 text-glow-text-secondary">
                 Already have an account?{" "}
                 <Link
-                  href="/login"
+                  href={loginHref}
                   className="font-medium text-glow-primary-light hover:underline"
                 >
                   Sign in
