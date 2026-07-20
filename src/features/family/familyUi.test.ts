@@ -275,12 +275,74 @@ describe("family detail access and copy", () => {
     const detail = readSrc(
       "src/features/family/components/FamilyDetailScreen.tsx",
     );
-    for (const src of [home, empty, create, detail]) {
-      assert.match(src, /overflow-x-hidden|min-w-0/);
-    }
-    assert.match(home, /overflow-x-hidden/);
-    assert.match(create, /max-w-full/);
-    assert.match(detail, /max-w-full/);
+    const shell = readSrc("src/features/family/components/FamilyPageShell.tsx");
+    const layout = readSrc("src/features/family/components/familyPageLayout.ts");
+
+    assert.match(shell, /overflow-x-hidden/);
+    assert.match(layout, /min-w-0/);
+    assert.match(empty, /min-w-0/);
+    assert.match(home, /FamilyPageShell/);
+    assert.match(create, /FamilyPageShell/);
+    assert.match(detail, /FamilyPageShell/);
+  });
+});
+
+describe("family page layout polish", () => {
+  const layout = readSrc("src/features/family/components/familyPageLayout.ts");
+  const shell = readSrc("src/features/family/components/FamilyPageShell.tsx");
+  const create = readSrc(
+    "src/features/family/components/CreateFamilyScreen.tsx",
+  );
+  const detail = readSrc(
+    "src/features/family/components/FamilyDetailScreen.tsx",
+  );
+  const home = readSrc("src/features/family/components/FamilyHomeScreen.tsx");
+
+  it("uses a shared centred Family page column around 960px", () => {
+    assert.match(layout, /max-w-\[960px\]/);
+    assert.match(shell, /FamilyPageShell/);
+    assert.match(shell, /FAMILY_PAGE_COLUMN_CLASS/);
+    assert.match(home, /FamilyPageShell/);
+    assert.match(create, /FamilyPageShell/);
+    assert.match(detail, /FamilyPageShell/);
+  });
+
+  it("constrains the create form card on desktop", () => {
+    assert.match(create, /FAMILY_CONTENT_CARD_CLASS/);
+    assert.match(layout, /max-w-\[680px\]/);
+    assert.match(create, /sm:w-auto sm:min-w-\[12rem\]/);
+    assert.match(create, /min-h-11/);
+  });
+
+  it("keeps the create form full width inside the card on mobile", () => {
+    assert.match(create, /fullWidth/);
+    assert.match(create, /w-full sm:w-auto/);
+    assert.match(create, /FAMILY_CONTENT_CARD_CLASS/);
+    assert.match(layout, /max-w-\[680px\]/);
+  });
+
+  it("groups detail header role badge with title content", () => {
+    assert.match(detail, /FamilyRoleBadge/);
+    assert.match(detail, /sm:flex-row sm:flex-wrap sm:items-center/);
+    assert.doesNotMatch(detail, /PageHeader/);
+    assert.doesNotMatch(detail, /sm:justify-between/);
+    assert.match(detail, /self-start/);
+  });
+
+  it("aligns notice banner and album card to the same content column", () => {
+    assert.match(detail, /FAMILY_CONTENT_CARD_CLASS/);
+    assert.match(detail, /FAMILY_SECTION_STACK_CLASS/);
+    assert.match(detail, /padding="sm"/);
+  });
+
+  it("uses a compact empty album state", () => {
+    assert.match(detail, /py-3 text-center sm:py-4/);
+    assert.doesNotMatch(detail, /py-6/);
+  });
+
+  it("stacks detail header cleanly on mobile", () => {
+    assert.match(detail, /flex-col gap-2\.5/);
+    assert.match(detail, /flex-wrap items-center gap-x-4/);
   });
 });
 
@@ -289,8 +351,10 @@ describe("family home empty state layout", () => {
     const home = readSrc(
       "src/features/family/components/FamilyHomeScreen.tsx",
     );
-    assert.match(home, /max-w-\[960px\]/);
-    assert.match(home, /min-w-0/);
+    const layout = readSrc("src/features/family/components/familyPageLayout.ts");
+    assert.match(home, /FamilyPageShell/);
+    assert.match(layout, /max-w-\[960px\]/);
+    assert.match(layout, /min-w-0/);
   });
 
   it("centres empty-state content within a narrower inner width", () => {

@@ -6,12 +6,16 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 
 import { GlowButton, GlowCard, GlowInput } from "@/components/ui";
-import { GlowContainer } from "@/components/layout";
 import { PageHeader } from "@/components/shell/PageHeader";
 
 import { createSharedFamilyAction } from "../actions";
 import { FAMILY_NAME_MAX } from "../config";
 import { validateCreateSharedFamilyInput } from "../validation";
+import {
+  FAMILY_BACK_LINK_CLASS,
+  FAMILY_CONTENT_CARD_CLASS,
+} from "./familyPageLayout";
+import { FamilyPageShell } from "./FamilyPageShell";
 
 export function CreateFamilyScreen() {
   const router = useRouter();
@@ -57,21 +61,19 @@ export function CreateFamilyScreen() {
   }
 
   return (
-    <div className="overflow-x-hidden overflow-y-auto pt-safe">
-      <GlowContainer size="md" as="div" className="max-w-full pb-10 pt-6">
-        <Link
-          href="/family"
-          className="mb-4 inline-flex min-h-11 items-center gap-1.5 rounded-lg text-sm text-glow-text-secondary transition-colors hover:text-glow-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-glow-primary/40"
-        >
-          <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-          Back to Family
-        </Link>
+    <FamilyPageShell>
+      <Link href="/family" className={FAMILY_BACK_LINK_CLASS}>
+        <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+        Back to Family
+      </Link>
 
-        <PageHeader
-          title="Create a family"
-          subtitle="Create a private space for the people you choose."
-        />
+      <PageHeader
+        title="Create a family"
+        subtitle="Create a private space for the people you choose."
+        className="pb-4"
+      />
 
+      <div className={FAMILY_CONTENT_CARD_CLASS}>
         <GlowCard padding="md" className="border-white/[0.08]">
           <form
             onSubmit={handleSubmit}
@@ -94,19 +96,22 @@ export function CreateFamilyScreen() {
               placeholder="e.g. The Parkers"
             />
 
-            <GlowButton
-              type="submit"
-              variant="primary"
-              size="lg"
-              fullWidth
-              isLoading={isSaving}
-              disabled={isSaving}
-            >
-              Create family
-            </GlowButton>
+            <div className="pt-1">
+              <GlowButton
+                type="submit"
+                variant="primary"
+                size="lg"
+                fullWidth
+                isLoading={isSaving}
+                disabled={isSaving}
+                className="min-h-11 w-full sm:w-auto sm:min-w-[12rem]"
+              >
+                Create family
+              </GlowButton>
+            </div>
           </form>
         </GlowCard>
-      </GlowContainer>
-    </div>
+      </div>
+    </FamilyPageShell>
   );
 }

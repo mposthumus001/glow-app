@@ -2,11 +2,17 @@ import Link from "next/link";
 import { ArrowLeft, Lock } from "lucide-react";
 
 import { GlowCard } from "@/components/ui";
-import { GlowContainer } from "@/components/layout";
-import { PageHeader } from "@/components/shell/PageHeader";
+import { textStyles } from "@/lib/theme";
 import { cn } from "@/lib/utils/cn";
 
 import type { SharedFamilyDetail } from "../types";
+import {
+  FAMILY_BACK_LINK_CLASS,
+  FAMILY_CONTENT_CARD_CLASS,
+  FAMILY_SECTION_STACK_CLASS,
+} from "./familyPageLayout";
+import { FamilyPageShell } from "./FamilyPageShell";
+import { FamilyRoleBadge } from "./FamilyRoleBadge";
 
 export type FamilyDetailScreenProps = {
   family: SharedFamilyDetail;
@@ -18,37 +24,37 @@ export function FamilyDetailScreen({ family }: FamilyDetailScreenProps) {
     : "There are no shared Moments here yet.";
 
   return (
-    <div className="overflow-x-hidden overflow-y-auto pt-safe">
-      <GlowContainer size="md" as="div" className="max-w-full pb-10 pt-6">
-        <Link
-          href="/family"
-          className="mb-4 inline-flex min-h-11 items-center gap-1.5 text-sm text-glow-text-secondary transition-colors hover:text-glow-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-glow-primary/40 rounded-lg"
-        >
-          <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-          Back to Family
-        </Link>
+    <FamilyPageShell>
+      <Link href="/family" className={FAMILY_BACK_LINK_CLASS}>
+        <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+        Back to Family
+      </Link>
 
-        <PageHeader
-          title={family.name}
-          subtitle="Private family album"
-          action={
-            <span
+      <header className="mb-4 space-y-3">
+        <div className="flex flex-col gap-2.5 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-3 sm:gap-y-2">
+          <div className="min-w-0 flex-1">
+            <h1
               className={cn(
-                "inline-flex items-center rounded-full px-2.5 py-1",
-                "text-[11px] font-medium tracking-wide",
-                family.isOwner
-                  ? "bg-glow-primary/15 text-glow-primary-light"
-                  : "bg-white/[0.06] text-glow-text-secondary",
+                textStyles.h1,
+                "break-words text-[1.5rem] sm:text-[1.75rem]",
               )}
             >
-              {family.roleLabel}
-            </span>
-          }
-        />
+              {family.name}
+            </h1>
+            <p className="mt-1.5 text-base leading-relaxed text-glow-text-secondary">
+              Private family album
+            </p>
+          </div>
+          <FamilyRoleBadge
+            label={family.roleLabel}
+            isOwner={family.isOwner}
+            className="self-start"
+          />
+        </div>
 
-        <div className="mb-5 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-glow-text-secondary">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm text-glow-text-secondary">
           <span className="inline-flex items-center gap-1.5">
-            <Lock className="h-3.5 w-3.5" aria-hidden="true" />
+            <Lock className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
             Private
           </span>
           <span>
@@ -56,27 +62,33 @@ export function FamilyDetailScreen({ family }: FamilyDetailScreenProps) {
             {family.memberCount === 1 ? "member" : "members"}
           </span>
         </div>
+      </header>
 
+      <div className={FAMILY_SECTION_STACK_CLASS}>
         {family.isOwner ? (
-          <GlowCard
-            padding="md"
-            className="mb-5 border-white/[0.06] bg-white/[0.02]"
-          >
-            <p className="text-sm leading-relaxed text-glow-text-tertiary">
-              Invites and sharing arrive in a later update. For now, this space
-              is ready — your album stays empty until you choose what to share.
-            </p>
-          </GlowCard>
+          <div className={FAMILY_CONTENT_CARD_CLASS}>
+            <GlowCard
+              padding="sm"
+              className="border-white/[0.06] bg-white/[0.02]"
+            >
+              <p className="text-sm leading-relaxed text-glow-text-tertiary">
+                Invites and sharing arrive in a later update. For now, this space
+                is ready — your album stays empty until you choose what to share.
+              </p>
+            </GlowCard>
+          </div>
         ) : null}
 
-        <GlowCard padding="md" className="border-white/[0.08]">
-          <div className="py-6 text-center">
-            <p className="text-base leading-relaxed text-glow-text-secondary">
-              {emptyCopy}
-            </p>
-          </div>
-        </GlowCard>
-      </GlowContainer>
-    </div>
+        <div className={FAMILY_CONTENT_CARD_CLASS}>
+          <GlowCard padding="sm" className="border-white/[0.08]">
+            <div className="px-2 py-3 text-center sm:py-4">
+              <p className="text-sm leading-relaxed text-glow-text-secondary">
+                {emptyCopy}
+              </p>
+            </div>
+          </GlowCard>
+        </div>
+      </div>
+    </FamilyPageShell>
   );
 }

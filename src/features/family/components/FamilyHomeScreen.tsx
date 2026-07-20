@@ -1,12 +1,12 @@
 import Link from "next/link";
 
 import { GlowButton } from "@/components/ui";
-import { GlowContainer } from "@/components/layout";
 import { PageHeader } from "@/components/shell/PageHeader";
 
 import type { SharedFamilyListItem } from "../types";
 import { FamilyCard } from "./FamilyCard";
 import { FamilyEmptyState } from "./FamilyEmptyState";
+import { FamilyPageShell } from "./FamilyPageShell";
 
 export type FamilyHomeScreenProps = {
   families: SharedFamilyListItem[];
@@ -16,9 +16,8 @@ export function FamilyHomeScreen({ families }: FamilyHomeScreenProps) {
   const hasFamilies = families.length > 0;
 
   return (
-    <div className="overflow-x-hidden overflow-y-auto pt-safe">
-      <GlowContainer size="full" as="div" className="min-w-0 max-w-[960px] pb-10 pt-6">
-        <PageHeader
+    <FamilyPageShell>
+      <PageHeader
           title="Family"
           subtitle="A private shared space for the people you invite — only Moments you choose to share appear here."
           action={
@@ -43,7 +42,6 @@ export function FamilyHomeScreen({ families }: FamilyHomeScreenProps) {
         ) : (
           <FamilyEmptyState />
         )}
-      </GlowContainer>
-    </div>
+    </FamilyPageShell>
   );
 }
