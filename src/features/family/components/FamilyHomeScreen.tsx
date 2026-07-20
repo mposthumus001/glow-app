@@ -17,7 +17,7 @@ export function FamilyHomeScreen({ families }: FamilyHomeScreenProps) {
 
   return (
     <div className="overflow-x-hidden overflow-y-auto pt-safe">
-      <GlowContainer size="md" as="div" className="max-w-full pb-10 pt-6">
+      <GlowContainer size="full" as="div" className="min-w-0 max-w-[960px] pb-10 pt-6">
         <PageHeader
           title="Family"
           subtitle="A private shared space for the people you invite — only Moments you choose to share appear here."

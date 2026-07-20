@@ -1,8 +1,12 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, it } from "node:test";
 
-import { resolveActiveNav } from "./nav.ts";
-import { getAppNavItems } from "./nav.ts";
+import { buildNavEnv, getAppNavItems, resolveActiveNav } from "./nav.ts";
+
+const here = dirname(fileURLToPath(import.meta.url));
 
 describe("resolveActiveNav", () => {
   it("marks Tonight active on home", () => {
@@ -28,6 +32,10 @@ describe("resolveActiveNav", () => {
   it("marks Family from /family roots", () => {
     assert.equal(resolveActiveNav("/family"), "family");
     assert.equal(resolveActiveNav("/family/new"), "family");
+    assert.equal(
+      resolveActiveNav("/family/11111111-1111-1111-1111-111111111111"),
+      "family",
+    );
   });
 
   it("ignores query strings", () => {
@@ -53,5 +61,40 @@ describe("getAppNavItems", () => {
     const ids = items.map((i) => i.id);
     assert.ok(ids.includes("family"));
     assert.equal(ids.indexOf("family"), ids.indexOf("baby") + 1);
+    assert.equal(ids.indexOf("calm"), ids.indexOf("family") + 1);
+  });
+});
+
+describe("buildNavEnv", () => {
+  it("uses server-resolved boolean when provided", () => {
+    assert.equal(
+      getAppNavItems(buildNavEnv(true)).some((item) => item.id === "family"),
+      true,
+    );
+    assert.equal(
+      getAppNavItems(buildNavEnv(false)).some((item) => item.id === "family"),
+      false,
+    );
+  });
+});
+
+describe("shell nav consumers", () => {
+  it("desktop and mobile nav use getAppNavItems, not stale APP_NAV_ITEMS", () => {
+    const desktop = readFileSync(join(here, "DesktopSideNav.tsx"), "utf8");
+    const mobile = readFileSync(join(here, "MobileBottomNav.tsx"), "utf8");
+    const shell = readFileSync(join(here, "AppShell.tsx"), "utf8");
+    const layout = readFileSync(
+      join(here, "..", "..", "app", "(app)", "layout.tsx"),
+      "utf8",
+    );
+
+    for (const src of [desktop, mobile]) {
+      assert.match(src, /getAppNavItems\(buildNavEnv\(familyAlbumEnabled\)\)/);
+      assert.doesNotMatch(src, /APP_NAV_ITEMS/);
+    }
+
+    assert.match(shell, /familyAlbumEnabled/);
+    assert.match(layout, /isFamilyAlbumEnabled\(\)/);
+    assert.match(layout, /familyAlbumEnabled=\{familyAlbumEnabled\}/);
   });
 });

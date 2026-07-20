@@ -5,24 +5,29 @@ import { usePathname } from "next/navigation";
 
 import { cn } from "@/lib/utils/cn";
 
-import { APP_NAV_ITEMS, resolveActiveNav, type AppNavId } from "./nav";
+import { buildNavEnv, getAppNavItems, resolveActiveNav, type AppNavId } from "./nav";
 
 export type MobileBottomNavProps = {
   activeId?: AppNavId;
   className?: string;
   circleUnreadHint?: string | null;
+  /** Server-resolved flag so nav matches /family route gating. */
+  familyAlbumEnabled?: boolean;
 };
 
 /**
- * Permanent mobile bottom navigation — five destinations, safe-area aware.
+ * Permanent mobile bottom navigation — safe-area aware.
+ * Family appears only when Family Album is enabled.
  */
 export function MobileBottomNav({
   activeId: activeIdProp,
   className,
   circleUnreadHint = null,
+  familyAlbumEnabled,
 }: MobileBottomNavProps) {
   const pathname = usePathname();
   const activeId = activeIdProp ?? resolveActiveNav(pathname);
+  const navItems = getAppNavItems(buildNavEnv(familyAlbumEnabled));
 
   return (
     <nav
@@ -41,7 +46,7 @@ export function MobileBottomNav({
           "backdrop-blur-2xl",
         )}
       >
-        {APP_NAV_ITEMS.map((item) => {
+        {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = item.id === activeId;
           const hint =

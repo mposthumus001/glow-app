@@ -1,3 +1,4 @@
+import { isFamilyAlbumEnabled } from "@/features/family/config";
 import { AppShell } from "@/components/shell";
 import { loadCircleNavUnreadHint } from "@/features/circles/service/ReadStateRepository";
 import { requireAppUser } from "@/lib/auth/require-app-user";
@@ -13,6 +14,11 @@ export default async function AuthenticatedAppLayout({
 }) {
   const { user } = await requireAppUser();
   const circleNavHint = await loadCircleNavUnreadHint(user.id);
+  const familyAlbumEnabled = isFamilyAlbumEnabled();
 
-  return <AppShell circleNavHint={circleNavHint}>{children}</AppShell>;
+  return (
+    <AppShell circleNavHint={circleNavHint} familyAlbumEnabled={familyAlbumEnabled}>
+      {children}
+    </AppShell>
+  );
 }

@@ -5,12 +5,14 @@ import { usePathname } from "next/navigation";
 
 import { cn } from "@/lib/utils/cn";
 
-import { APP_NAV_ITEMS, resolveActiveNav, type AppNavId } from "./nav";
+import { buildNavEnv, getAppNavItems, resolveActiveNav, type AppNavId } from "./nav";
 
 export type DesktopSideNavProps = {
   activeId?: AppNavId;
   className?: string;
   circleUnreadHint?: string | null;
+  /** Server-resolved flag so nav matches /family route gating. */
+  familyAlbumEnabled?: boolean;
 };
 
 /**
@@ -20,9 +22,11 @@ export function DesktopSideNav({
   activeId: activeIdProp,
   className,
   circleUnreadHint = null,
+  familyAlbumEnabled,
 }: DesktopSideNavProps) {
   const pathname = usePathname();
   const activeId = activeIdProp ?? resolveActiveNav(pathname);
+  const navItems = getAppNavItems(buildNavEnv(familyAlbumEnabled));
 
   return (
     <aside
@@ -47,7 +51,7 @@ export function DesktopSideNav({
         </Link>
 
         <nav className="flex flex-1 flex-col gap-1" aria-label="Primary">
-          {APP_NAV_ITEMS.map((item) => {
+          {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = item.id === activeId;
             const hint =

@@ -44,6 +44,8 @@ describe("isFamilyAlbumEnabled", () => {
       items.some((item) => item.href.includes("/baby/") && item.id === "family"),
       false,
     );
+    const ids = items.map((item) => item.id);
+    assert.equal(ids.indexOf("family"), ids.indexOf("baby") + 1);
   });
 });
 
@@ -264,16 +266,60 @@ describe("family detail access and copy", () => {
     const home = readSrc(
       "src/features/family/components/FamilyHomeScreen.tsx",
     );
+    const empty = readSrc(
+      "src/features/family/components/FamilyEmptyState.tsx",
+    );
     const create = readSrc(
       "src/features/family/components/CreateFamilyScreen.tsx",
     );
     const detail = readSrc(
       "src/features/family/components/FamilyDetailScreen.tsx",
     );
-    for (const src of [home, create, detail]) {
-      assert.match(src, /overflow-x-hidden/);
-      assert.match(src, /max-w-full/);
+    for (const src of [home, empty, create, detail]) {
+      assert.match(src, /overflow-x-hidden|min-w-0/);
     }
+    assert.match(home, /overflow-x-hidden/);
+    assert.match(create, /max-w-full/);
+    assert.match(detail, /max-w-full/);
+  });
+});
+
+describe("family home empty state layout", () => {
+  it("constrains desktop page content to a centred column", () => {
+    const home = readSrc(
+      "src/features/family/components/FamilyHomeScreen.tsx",
+    );
+    assert.match(home, /max-w-\[960px\]/);
+    assert.match(home, /min-w-0/);
+  });
+
+  it("centres empty-state content within a narrower inner width", () => {
+    const empty = readSrc(
+      "src/features/family/components/FamilyEmptyState.tsx",
+    );
+    assert.match(empty, /max-w-\[520px\]/);
+    assert.match(empty, /items-center/);
+    assert.match(empty, /text-center/);
+    assert.match(empty, /justify-center/);
+  });
+
+  it("keeps the create CTA visible with an accessible tap target", () => {
+    const empty = readSrc(
+      "src/features/family/components/FamilyEmptyState.tsx",
+    );
+    assert.match(empty, /Create a family/);
+    assert.match(empty, /variant="primary"/);
+    assert.match(empty, /min-h-11/);
+    assert.match(empty, /\/family\/new/);
+  });
+
+  it("uses full-width mobile behaviour within page gutters", () => {
+    const empty = readSrc(
+      "src/features/family/components/FamilyEmptyState.tsx",
+    );
+    assert.match(empty, /w-full min-w-0/);
+    assert.match(empty, /fullWidth/);
+    assert.match(empty, /sm:w-auto/);
   });
 });
 

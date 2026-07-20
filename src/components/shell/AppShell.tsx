@@ -19,6 +19,7 @@ import { ReconnectBanner } from "./ReconnectBanner";
 export type AppShellProps = {
   children: React.ReactNode;
   circleNavHint?: string | null;
+  familyAlbumEnabled?: boolean;
 };
 
 /**
@@ -34,6 +35,7 @@ export type AppShellProps = {
 export function AppShell({
   children,
   circleNavHint = null,
+  familyAlbumEnabled,
 }: AppShellProps) {
   const pathname = usePathname();
   const activeId = resolveActiveNav(pathname);
@@ -71,6 +73,7 @@ export function AppShell({
       <DesktopSideNav
         activeId={activeId}
         circleUnreadHint={circleNavHint}
+        familyAlbumEnabled={familyAlbumEnabled}
       />
 
       <div className="flex min-h-dvh flex-col">
@@ -90,6 +93,7 @@ export function AppShell({
       <MobileBottomNav
         activeId={activeId}
         circleUnreadHint={circleNavHint}
+        familyAlbumEnabled={familyAlbumEnabled}
       />
     </GlowPage>
   );

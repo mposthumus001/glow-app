@@ -21,6 +21,7 @@ export {
   APP_NAV_ITEMS,
   CORE_NAV_ITEMS,
   FAMILY_NAV_ITEM,
+  buildNavEnv,
   getAppNavItems,
   resolveActiveNav,
   isAppNavId,

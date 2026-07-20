@@ -84,6 +84,21 @@ export const FAMILY_NAV_ITEM: AppNavItem = {
 export const APP_NAV_ITEMS = CORE_NAV_ITEMS;
 
 /**
+ * Build env for nav gating. When `familyAlbumEnabled` is passed from the server
+ * layout, nav matches route gating even if the client bundle has a stale build-time flag.
+ */
+export function buildNavEnv(
+  familyAlbumEnabled?: boolean,
+): Record<string, string | undefined> {
+  if (typeof familyAlbumEnabled === "boolean") {
+    return {
+      NEXT_PUBLIC_FAMILY_ALBUM_ENABLED: familyAlbumEnabled ? "true" : "false",
+    };
+  }
+  return process.env;
+}
+
+/**
  * Nav items for the current environment (Family gated by feature flag).
  */
 export function getAppNavItems(
