@@ -1,6 +1,22 @@
-import { Baby, Leaf, Moon, User, Users, type LucideIcon } from "lucide-react";
+import {
+  Baby,
+  Leaf,
+  Moon,
+  User,
+  Users,
+  HeartHandshake,
+  type LucideIcon,
+} from "lucide-react";
 
-export type AppNavId = "tonight" | "circle" | "baby" | "calm" | "profile";
+import { isFamilyAlbumEnabled } from "../../features/family/config.ts";
+
+export type AppNavId =
+  | "tonight"
+  | "circle"
+  | "baby"
+  | "family"
+  | "calm"
+  | "profile";
 
 export type AppNavItem = {
   id: AppNavId;
@@ -13,10 +29,10 @@ export type AppNavItem = {
 };
 
 /**
- * Permanent primary navigation — five destinations maximum.
- * Order is product-intentional: Tonight first (default landing).
+ * Core primary navigation destinations.
+ * Family is appended when NEXT_PUBLIC_FAMILY_ALBUM_ENABLED=true.
  */
-export const APP_NAV_ITEMS: readonly AppNavItem[] = [
+export const CORE_NAV_ITEMS: readonly AppNavItem[] = [
   {
     id: "tonight",
     label: "Tonight",
@@ -54,9 +70,39 @@ export const APP_NAV_ITEMS: readonly AppNavItem[] = [
   },
 ] as const;
 
+export const FAMILY_NAV_ITEM: AppNavItem = {
+  id: "family",
+  label: "Family",
+  desktopLabel: "Family",
+  href: "/family",
+  icon: HeartHandshake,
+};
+
+/**
+ * @deprecated Prefer getAppNavItems() — kept for tests that inspect core set.
+ */
+export const APP_NAV_ITEMS = CORE_NAV_ITEMS;
+
+/**
+ * Nav items for the current environment (Family gated by feature flag).
+ */
+export function getAppNavItems(
+  env: Record<string, string | undefined> = process.env,
+): readonly AppNavItem[] {
+  if (!isFamilyAlbumEnabled(env)) {
+    return CORE_NAV_ITEMS;
+  }
+
+  // Insert Family after Baby — separate from Moments, still near parenting areas.
+  const items = [...CORE_NAV_ITEMS];
+  const babyIndex = items.findIndex((item) => item.id === "baby");
+  items.splice(babyIndex + 1, 0, FAMILY_NAV_ITEM);
+  return items;
+}
+
 /**
  * Resolve active nav from pathname.
- * Nested Circle routes keep Circle active.
+ * Nested Family / Circle / Baby routes keep their parent tab active.
  */
 export function resolveActiveNav(pathname: string): AppNavId {
   const path = pathname.split("?")[0] || "/";
@@ -64,6 +110,7 @@ export function resolveActiveNav(pathname: string): AppNavId {
   if (path === "/" || path === "") return "tonight";
   if (path === "/circle" || path.startsWith("/circle/")) return "circle";
   if (path === "/baby" || path.startsWith("/baby/")) return "baby";
+  if (path === "/family" || path.startsWith("/family/")) return "family";
   if (path === "/calm" || path.startsWith("/calm/")) return "calm";
   if (path === "/profile" || path.startsWith("/profile/")) return "profile";
 
@@ -71,5 +118,7 @@ export function resolveActiveNav(pathname: string): AppNavId {
 }
 
 export function isAppNavId(value: string): value is AppNavId {
-  return APP_NAV_ITEMS.some((item) => item.id === value);
+  return (
+    CORE_NAV_ITEMS.some((item) => item.id === value) || value === "family"
+  );
 }

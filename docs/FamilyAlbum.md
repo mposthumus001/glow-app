@@ -1,6 +1,6 @@
 # Glow Family Album — Architecture (Sprint 9.3 foundation)
 
-**Status:** Database foundation shipped in migration `0021` — no UI in this sprint.  
+**Status:** Database foundation in migration `0021`. Sprint 9.4A ships Family home / create / detail shell behind `NEXT_PUBLIC_FAMILY_ALBUM_ENABLED`.  
 **Companion:** `docs/Moments.md`, `docs/Family.md` (earlier spec; this doc reflects implemented schema)
 
 ---
@@ -142,18 +142,29 @@ Direct INSERT on shared-family tables blocked by RLS (`with check (false)`); mut
 
 ---
 
-## 8. Planned routes (UI — not implemented)
+## 8. Routes (Sprint 9.4A UI)
 
-| Route | Purpose |
-|-------|---------|
-| `/family` | List shared families the parent belongs to |
-| `/family/new` | Create a new shared family |
-| `/family/invite/[token]` | Accept invitation landing |
-| `/family/[sharedFamilyId]` | Shared album grid (explicit shares only) |
-| `/family/[sharedFamilyId]/members` | Members + pending invites (owner) |
-| `/baby/[babyId]/moments/[momentId]/share` | Owner share/unshare picker |
+| Route | Purpose | Status |
+|-------|---------|--------|
+| `/family` | List shared families the parent belongs to | ✅ 9.4A |
+| `/family/new` | Create a new shared family | ✅ 9.4A |
+| `/family/[sharedFamilyId]` | Detail shell + empty album | ✅ 9.4A |
+| `/family/invite/[token]` | Accept invitation landing | Future |
+| `/family/[sharedFamilyId]/members` | Members + pending invites (owner) | Future |
+| `/baby/[babyId]/moments/[momentId]/share` | Owner share/unshare picker | Future |
 
 Family Album nav entry is separate from Baby Moments (`/baby/[babyId]/moments`).
+
+### Feature flag
+
+```env
+NEXT_PUBLIC_FAMILY_ALBUM_ENABLED=true
+```
+
+- Defaults **off** when missing (must be exactly `"true"`).
+- Hides Family from primary nav when off.
+- `/family*` routes call `notFound()` when off.
+- Documented in `.env.example`.
 
 ---
 

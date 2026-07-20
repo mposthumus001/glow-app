@@ -459,6 +459,108 @@ export type Database = {
         Update: Record<string, never>;
         Relationships: [];
       };
+      shared_families: {
+        Row: {
+          id: string;
+          owner_parent_id: string;
+          name: string;
+          status: "active" | "archived";
+          created_at: string;
+          updated_at: string;
+          archived_at: string | null;
+        };
+        Insert: {
+          owner_parent_id: string;
+          name: string;
+          status?: "active" | "archived";
+          archived_at?: string | null;
+        };
+        Update: Partial<{
+          name: string;
+          status: "active" | "archived";
+          archived_at: string | null;
+        }>;
+        Relationships: [];
+      };
+      shared_family_members: {
+        Row: {
+          id: string;
+          shared_family_id: string;
+          parent_id: string;
+          role: "owner" | "member";
+          status: "active" | "removed" | "left";
+          joined_at: string;
+          removed_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          shared_family_id: string;
+          parent_id: string;
+          role: "owner" | "member";
+          status?: "active" | "removed" | "left";
+          removed_at?: string | null;
+        };
+        Update: Partial<{
+          role: "owner" | "member";
+          status: "active" | "removed" | "left";
+          removed_at: string | null;
+        }>;
+        Relationships: [];
+      };
+      shared_family_invites: {
+        Row: {
+          id: string;
+          shared_family_id: string;
+          invited_email_normalized: string;
+          invite_token_hash: string;
+          invited_by_parent_id: string;
+          status: "pending" | "accepted" | "revoked" | "expired";
+          expires_at: string;
+          accepted_at: string | null;
+          accepted_by_parent_id: string | null;
+          revoked_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          shared_family_id: string;
+          invited_email_normalized: string;
+          invite_token_hash: string;
+          invited_by_parent_id: string;
+          status?: "pending" | "accepted" | "revoked" | "expired";
+          expires_at: string;
+        };
+        Update: Partial<{
+          status: "pending" | "accepted" | "revoked" | "expired";
+          accepted_at: string | null;
+          accepted_by_parent_id: string | null;
+          revoked_at: string | null;
+        }>;
+        Relationships: [];
+      };
+      shared_family_moments: {
+        Row: {
+          id: string;
+          shared_family_id: string;
+          moment_id: string;
+          shared_by_parent_id: string;
+          shared_at: string;
+          removed_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          shared_family_id: string;
+          moment_id: string;
+          shared_by_parent_id: string;
+          removed_at?: string | null;
+        };
+        Update: Partial<{
+          removed_at: string | null;
+        }>;
+        Relationships: [];
+      };
       moments: {
         Row: {
           id: string;
@@ -722,6 +824,55 @@ export type Database = {
       soft_delete_private_moment: {
         Args: { p_moment_id: string; p_baby_id: string };
         Returns: Json;
+      };
+      create_shared_family: {
+        Args: { p_name: string };
+        Returns: Json;
+      };
+      create_shared_family_invite: {
+        Args: { p_shared_family_id: string; p_email: string };
+        Returns: Json;
+      };
+      accept_shared_family_invite: {
+        Args: { p_raw_token: string };
+        Returns: Json;
+      };
+      revoke_shared_family_invite: {
+        Args: { p_invite_id: string };
+        Returns: Json;
+      };
+      remove_shared_family_member: {
+        Args: { p_member_id: string };
+        Returns: Json;
+      };
+      leave_shared_family: {
+        Args: { p_shared_family_id: string };
+        Returns: Json;
+      };
+      share_private_moment: {
+        Args: { p_shared_family_id: string; p_moment_id: string };
+        Returns: Json;
+      };
+      unshare_private_moment: {
+        Args: { p_shared_family_id: string; p_moment_id: string };
+        Returns: Json;
+      };
+      archive_shared_family: {
+        Args: { p_shared_family_id: string };
+        Returns: Json;
+      };
+      rename_shared_family: {
+        Args: { p_shared_family_id: string; p_name: string };
+        Returns: Json;
+      };
+      shared_family_can_access_moment_media: {
+        Args: {
+          p_shared_family_id?: string | null;
+          p_moment_id?: string | null;
+          p_media_id: string;
+          p_parent_id?: string | null;
+        };
+        Returns: boolean;
       };
     };
     Enums: {

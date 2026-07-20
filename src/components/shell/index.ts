@@ -19,6 +19,9 @@ export type { ShellErrorProps } from "./ShellError";
 
 export {
   APP_NAV_ITEMS,
+  CORE_NAV_ITEMS,
+  FAMILY_NAV_ITEM,
+  getAppNavItems,
   resolveActiveNav,
   isAppNavId,
 } from "./nav";

@@ -6,6 +6,7 @@ export const GLOW_FEATURE_AREAS = [
   "calm",
   "profile",
   "moments",
+  "family",
 ] as const;
 
 export type GlowFeatureArea = (typeof GLOW_FEATURE_AREAS)[number];
