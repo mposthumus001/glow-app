@@ -11,6 +11,8 @@ import {
   BETA_SIGNUP_DENIED_MESSAGE,
   isBetaSignupDeniedMessage,
 } from "@/lib/auth/beta-access";
+import { navigateAfterAuth } from "@/lib/auth/post-login-navigation";
+import { safeAuthNextPath } from "@/lib/auth/safe-auth-next";
 import { createClient } from "@/lib/supabase/client";
 import { calmAuthErrorMessage } from "@/lib/errors/calm-messages";
 
@@ -65,11 +67,14 @@ export function SignupForm({ nextPath }: { nextPath?: string }) {
         return;
       }
 
-      router.replace(
-        nextPath
-          ? `/onboarding?next=${encodeURIComponent(nextPath)}`
-          : "/onboarding",
-      );
+      if (nextPath) {
+        navigateAfterAuth(
+          `/onboarding?next=${encodeURIComponent(safeAuthNextPath(nextPath))}`,
+        );
+        return;
+      }
+
+      router.replace("/onboarding");
       router.refresh();
     });
   }

@@ -43,8 +43,13 @@ export function isValidInviteTokenFormat(token: string): boolean {
   );
 }
 
+/** Lowercase hex token for RPC hash lookup — tokens are generated as lowercase hex. */
+export function normalizeInviteToken(rawToken: string): string {
+  return rawToken.trim().toLowerCase();
+}
+
 export function buildInvitePath(rawToken: string): string {
-  return `/family/invite/${rawToken.trim()}`;
+  return `/family/invite/${normalizeInviteToken(rawToken)}`;
 }
 
 /** Prefer NEXT_PUBLIC_SITE_URL; returns relative path when unset. */

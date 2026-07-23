@@ -7,7 +7,13 @@ import { reportOperationalFailure } from "@/lib/monitoring/report-error";
 import { createClient } from "@/lib/supabase/server";
 
 import { isFamilyAlbumEnabled } from "./config";
-import { buildInvitePath, buildInviteUrl, isValidInviteTokenFormat, maskInviteEmail } from "./inviteUtils";
+import {
+  buildInvitePath,
+  buildInviteUrl,
+  isValidInviteTokenFormat,
+  maskInviteEmail,
+  normalizeInviteToken,
+} from "./inviteUtils";
 import type {
   CreateInviteResultData,
   FamilyActionResult,
@@ -223,9 +229,11 @@ export async function acceptSharedFamilyInviteAction(
     };
   }
 
+  const token = normalizeInviteToken(rawToken);
+
   const { data, error: rpcError } = await supabase.rpc(
     "accept_shared_family_invite",
-    { p_raw_token: rawToken.trim() },
+    { p_raw_token: token },
   );
 
   if (rpcError) {

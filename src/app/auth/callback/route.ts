@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { buildAuthCallbackFailureLoginHref } from "@/lib/auth/post-login-navigation";
 import { safeAuthNextPath } from "@/lib/auth/safe-auth-next";
 import { createClient } from "@/lib/supabase/server";
 
@@ -20,5 +21,7 @@ export async function GET(request: Request) {
     }
   }
 
-  return NextResponse.redirect(`${origin}/login`);
+  return NextResponse.redirect(
+    `${origin}${buildAuthCallbackFailureLoginHref(next)}`,
+  );
 }
