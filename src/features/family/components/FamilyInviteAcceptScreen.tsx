@@ -14,7 +14,6 @@ import type { InviteAcceptCategory } from "../types";
 export type FamilyInviteAcceptScreenProps = {
   token: string;
   state:
-    | "signed_out"
     | "invalid"
     | "email_mismatch"
     | "expired"
@@ -29,34 +28,6 @@ export function FamilyInviteAcceptScreen({
   message,
 }: FamilyInviteAcceptScreenProps) {
   const invitePath = safeAuthNextPath(buildInvitePath(token), "/family");
-  const loginHref = `/login?next=${encodeURIComponent(invitePath)}`;
-  const signupHref = `/signup?next=${encodeURIComponent(invitePath)}`;
-
-  if (state === "signed_out") {
-    return (
-      <AuthShell
-        title="Family invitation"
-        subtitle="You've been invited to a private family album on Glow."
-      >
-        <p className="text-sm leading-relaxed text-glow-text-secondary">
-          Sign in or create an account with the email address that received this
-          invitation.
-        </p>
-        <div className="mt-5 flex flex-col gap-3">
-          <Link href={loginHref}>
-            <GlowButton type="button" variant="primary" fullWidth className="min-h-11">
-              Sign in
-            </GlowButton>
-          </Link>
-          <Link href={signupHref}>
-            <GlowButton type="button" variant="secondary" fullWidth className="min-h-11">
-              Create account
-            </GlowButton>
-          </Link>
-        </div>
-      </AuthShell>
-    );
-  }
 
   const displayMessage = message ?? defaultMessage(state);
 

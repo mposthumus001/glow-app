@@ -13,6 +13,7 @@ import {
   maskInviteEmail,
   memberDisplayName,
   normalizeInviteEmail,
+  normalizeInviteToken,
 } from "./inviteUtils.ts";
 import { isFamilyAlbumEnabled } from "./config.ts";
 import {
@@ -258,16 +259,13 @@ describe("Sprint 9.4B — revoke and remove confirmations", () => {
 
 describe("Sprint 9.4B — invite acceptance flow", () => {
   it("31. Signed-out visitors see auth CTAs without processing token", () => {
-    const accept = readSrc(
-      "src/features/family/components/FamilyInviteAcceptScreen.tsx",
-    );
+    const flow = readSrc("src/features/family/components/InviteSignedOutFlow.tsx");
     const pages = readSrc("src/features/family/server/pages.tsx");
-    assert.match(accept, /state === "signed_out"/);
-    assert.match(accept, /Sign in/);
-    assert.match(accept, /Create account/);
-    assert.match(pages, /state="signed_out"/);
+    assert.match(flow, /Sign in/);
+    assert.match(flow, /Create account/);
+    assert.match(pages, /InviteSignedOutFlow/);
     assert.match(pages, /if \(!user\)/);
-    assert.doesNotMatch(accept, /family\.name/);
+    assert.doesNotMatch(flow, /family\.name/);
   });
 
   it("32. Successful accept redirects to family detail", () => {
@@ -302,8 +300,9 @@ describe("Sprint 9.4B — auth redirect preservation", () => {
     const loginForm = readSrc("src/components/auth/LoginForm.tsx");
     const onboarding = readSrc("src/lib/auth/complete-onboarding.ts");
 
-    assert.match(login, /safeAuthNextPath\(params\.next\)/);
-    assert.match(loginForm, /safeAuthNextPath\(nextPath\)/);
+    assert.match(login, /coerceAuthNextParam\(params\.next\)/);
+    assert.match(login, /safeAuthNextPath\(nextRaw\)/);
+    assert.match(loginForm, /navigateAfterAuth\(nextPath\)/);
     assert.match(onboarding, /safeAuthNextPath\(asString\(formData, "next"\)\)/);
     assert.equal(safeAuthNextPath("https://evil.example/phish"), "/");
     assert.equal(safeAuthNextPath("//evil.example"), "/");
@@ -331,5 +330,105 @@ describe("Sprint 9.4B — monitoring and accept categories", () => {
       mapInviteAcceptMessage("email_mismatch"),
       "This invitation was sent to a different email address.",
     );
+  });
+});
+
+describe("Sprint 9.4B — existing-account invite return flow", () => {
+  it("38. Sign-in link preserves exact invite path via next param", () => {
+    const flow = readSrc("src/features/family/components/InviteSignedOutFlow.tsx");
+    const token = "f".repeat(64);
+    const invitePath = `/family/invite/${token}`;
+    assert.match(flow, /\/login\?next=\$\{encodeURIComponent\(invitePath\)\}/);
+    assert.match(flow, /buildInvitePath\(token\)/);
+    assert.equal(safeAuthNextPath(invitePath), invitePath);
+  });
+
+  it("39. Accept action normalises token to lowercase before RPC", () => {
+    const actions = readSrc("src/features/family/actions.ts");
+    assert.match(actions, /normalizeInviteToken\(rawToken\)/);
+    assert.match(actions, /p_raw_token: token/);
+  });
+
+  it("40. Invite page normalises token before accept", () => {
+    const pages = readSrc("src/features/family/server/pages.tsx");
+    assert.match(pages, /normalizeInviteToken\(token\)/);
+  });
+
+  it("41. Login normalises email case-insensitively", () => {
+    assert.equal(normalizeInviteEmail("  User@Example.COM  "), "user@example.com");
+    const loginForm = readSrc("src/components/auth/LoginForm.tsx");
+    assert.match(loginForm, /normalizeInviteEmail/);
+  });
+
+  it("42. Wrong-account mismatch preserves invite path on sign out", () => {
+    const accept = readSrc(
+      "src/features/family/components/FamilyInviteAcceptScreen.tsx",
+    );
+    assert.match(accept, /Sign out and try another email/);
+    assert.match(accept, /encodeURIComponent\(invitePath\)/);
+  });
+
+  it("43. Signed-out invite does not call accept RPC on server", () => {
+    const pages = readSrc("src/features/family/server/pages.tsx");
+    const signedOutBlock = pages.slice(
+      pages.indexOf("if (!user)"),
+      pages.indexOf("const { data: parent }"),
+    );
+    assert.doesNotMatch(signedOutBlock, /acceptSharedFamilyInviteAction/);
+    assert.match(signedOutBlock, /InviteSignedOutFlow/);
+  });
+
+  it("44. Accept monitoring never logs raw token", () => {
+    const actions = readSrc("src/features/family/actions.ts");
+    assert.doesNotMatch(actions, /console\.(log|info|debug).*token/i);
+    const acceptBlock = actions.slice(
+      actions.indexOf("export async function acceptSharedFamilyInviteAction"),
+      actions.indexOf("export async function revokeSharedFamilyInviteAction"),
+    );
+    assert.doesNotMatch(acceptBlock, /invite_token_hash/);
+    assert.doesNotMatch(acceptBlock, /reportOperationalFailure\([\s\S]*rawToken/);
+    assert.doesNotMatch(acceptBlock, /console\.(log|info|debug)/);
+  });
+
+  it("45. normalizeInviteToken lowercases hex tokens", () => {
+    const mixed = `${"A".repeat(32)}${"B".repeat(32)}`;
+    assert.equal(normalizeInviteToken(mixed), mixed.toLowerCase());
+  });
+
+  it("46. Existing user path does not require signup on invite screen", () => {
+    const flow = readSrc("src/features/family/components/InviteSignedOutFlow.tsx");
+    assert.match(flow, /Sign in/);
+    assert.match(flow, /private family space in Glow/);
+  });
+
+  it("47. Auth callback uses configured origin with validated next path", () => {
+    const callback = readSrc("src/app/auth/callback/route.ts");
+    assert.match(callback, /\$\{origin\}\$\{next\}/);
+    assert.match(callback, /safeAuthNextPath\(searchParams\.get\("next"\)/);
+  });
+
+  it("48. Successful accept remains idempotent via server redirect", () => {
+    const pages = readSrc("src/features/family/server/pages.tsx");
+    assert.match(pages, /if \(result\.ok\)/);
+    assert.match(pages, /redirect\(`\/family\/\$\{result\.sharedFamilyId\}`\)/);
+  });
+
+  it("49. Invite path uses next not returnTo", () => {
+    const repoLogin = readSrc("src/app/login/page.tsx");
+    assert.match(repoLogin, /next\?: string/);
+    assert.doesNotMatch(repoLogin, /returnTo/);
+  });
+
+  it("50. Email mismatch UI does not expose invited email", () => {
+    const accept = readSrc(
+      "src/features/family/components/FamilyInviteAcceptScreen.tsx",
+    );
+    assert.doesNotMatch(accept, /invited_email/);
+    assert.doesNotMatch(accept, /invitedEmail/);
+  });
+
+  it("51. Pending invite not consumed on signed-out view", () => {
+    const pages = readSrc("src/features/family/server/pages.tsx");
+    assert.match(pages, /if \(!user\) \{\s*return <InviteSignedOutFlow token=\{trimmed\} \/>/);
   });
 });

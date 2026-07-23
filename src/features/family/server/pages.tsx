@@ -13,8 +13,9 @@ import {
   type FamilyInviteAcceptScreenProps,
 } from "../components/FamilyInviteAcceptScreen";
 import { FamilyMembersScreen } from "../components/FamilyMembersScreen";
+import { InviteSignedOutFlow } from "../components/InviteSignedOutFlow";
 import { isFamilyAlbumEnabled } from "../config";
-import { isValidInviteTokenFormat } from "../inviteUtils";
+import { isValidInviteTokenFormat, normalizeInviteToken } from "../inviteUtils";
 import {
   getSharedFamilyDetail,
   getSharedFamilyMembersPageData,
@@ -108,7 +109,7 @@ export async function renderFamilyInviteAcceptPage(token: string) {
     notFound();
   }
 
-  const trimmed = token.trim();
+  const trimmed = normalizeInviteToken(token);
 
   if (!isValidInviteTokenFormat(trimmed)) {
     return (
@@ -126,7 +127,7 @@ export async function renderFamilyInviteAcceptPage(token: string) {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return <FamilyInviteAcceptScreen token={trimmed} state="signed_out" />;
+    return <InviteSignedOutFlow token={trimmed} />;
   }
 
   const { data: parent } = await supabase
@@ -146,7 +147,7 @@ export async function renderFamilyInviteAcceptPage(token: string) {
   }
 
   if (result.category === "needs_auth") {
-    return <FamilyInviteAcceptScreen token={trimmed} state="signed_out" />;
+    return <InviteSignedOutFlow token={trimmed} />;
   }
 
   return (

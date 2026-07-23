@@ -8,7 +8,11 @@ import { AuthShell } from "@/components/auth/AuthShell";
 import { ForgotPasswordForm } from "@/components/auth/ForgotPasswordForm";
 import { GlowButton, GlowInput } from "@/components/ui";
 import { PASSWORD_RESET_SUCCESS_MESSAGE } from "@/lib/auth/password-recovery";
-import { safeAuthNextPath } from "@/lib/auth/safe-auth-next";
+import {
+  navigateAfterAuth,
+  resolvePostAuthDestination,
+} from "@/lib/auth/post-login-navigation";
+import { normalizeInviteEmail } from "@/features/family/inviteUtils";
 import { createClient } from "@/lib/supabase/client";
 import { calmAuthErrorMessage } from "@/lib/errors/calm-messages";
 
@@ -28,7 +32,7 @@ export function LoginForm({
     setError(null);
 
     const formData = new FormData(event.currentTarget);
-    const email = String(formData.get("email") ?? "").trim();
+    const email = normalizeInviteEmail(String(formData.get("email") ?? ""));
     const password = String(formData.get("password") ?? "");
 
     startTransition(async () => {
@@ -43,7 +47,15 @@ export function LoginForm({
         return;
       }
 
-      router.replace(safeAuthNextPath(nextPath));
+      // Ensure session cookies are persisted before hard navigation to SSR invite accept.
+      await supabase.auth.getSession();
+
+      if (nextPath) {
+        navigateAfterAuth(nextPath);
+        return;
+      }
+
+      router.replace(resolvePostAuthDestination(undefined));
       router.refresh();
     });
   }

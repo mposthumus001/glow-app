@@ -1,16 +1,17 @@
 import { SignupForm } from "@/components/auth/SignupForm";
 import { isParentOnboarded } from "@/lib/auth/onboarding";
-import { safeAuthNextPath } from "@/lib/auth/safe-auth-next";
+import { coerceAuthNextParam, safeAuthNextPath } from "@/lib/auth/safe-auth-next";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 
 export default async function SignupPage({
   searchParams,
 }: {
-  searchParams: Promise<{ next?: string }>;
+  searchParams: Promise<{ next?: string | string[] }>;
 }) {
   const params = await searchParams;
-  const nextPath = safeAuthNextPath(params.next);
+  const nextRaw = coerceAuthNextParam(params.next);
+  const nextPath = safeAuthNextPath(nextRaw);
 
   const supabase = await createClient();
   const {
@@ -35,6 +36,6 @@ export default async function SignupPage({
   }
 
   return (
-    <SignupForm nextPath={params.next ? nextPath : undefined} />
+    <SignupForm nextPath={nextRaw ? nextPath : undefined} />
   );
 }

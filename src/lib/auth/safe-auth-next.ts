@@ -1,14 +1,28 @@
 /**
+ * Normalise a `next` search param (Next.js may supply string | string[]).
+ */
+export function coerceAuthNextParam(
+  next: string | string[] | null | undefined,
+): string | null {
+  if (next == null) return null;
+  const raw = Array.isArray(next) ? next[0] : next;
+  if (typeof raw !== "string") return null;
+  const trimmed = raw.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
+/**
  * Validates a post-auth `next` path so callback redirects cannot become open redirects.
  * Allows same-origin relative paths only (single leading `/`, no protocol-relative URLs).
  */
 export function safeAuthNextPath(
-  next: string | null | undefined,
+  next: string | string[] | null | undefined,
   fallback = "/",
 ): string {
-  if (!next) return fallback;
+  const coerced = coerceAuthNextParam(next);
+  if (!coerced) return fallback;
 
-  const trimmed = next.trim();
+  const trimmed = coerced;
   if (!trimmed.startsWith("/")) return fallback;
   if (trimmed.startsWith("//")) return fallback;
   if (trimmed.includes("://")) return fallback;
