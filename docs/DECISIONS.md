@@ -1,3 +1,36 @@
+## 2026-07-24 — Calm 1B production-gated Sounds architecture
+
+Decision:
+Keep `AppShell` as the one authenticated lifecycle owner of the singleton
+`CalmPlayerService`, but create its one `HTMLAudioElement` lazily only after
+track selection. Add a separate `NEXT_PUBLIC_CALM_SOUNDS_ENABLED` production
+flag with production precedence over preview. Keep preview and production
+catalogues physically separate and require a matching approved asset/licensing
+registry entry before a production record can render.
+
+Playback:
+Explicit Play is always required. Playback continues across authenticated
+routes; Pause retains position; Stop rewinds and clears the timer while keeping
+selection; reload restores selection paused without creating audio; logout and
+shell disposal unload audio and clear selection. Sleep timing uses one absolute
+wall-clock deadline and one replaceable timeout, with resume-time correction
+after browser suspension.
+
+Privacy and scope:
+Favourites remain versioned device-local preferences for private beta. There is
+no migration, cross-device sync, download, offline promise, listening history,
+wellbeing inference, artwork, or final audio acquisition. Media Session
+Play/Pause/Stop is a feature-detected enhancement, not a universal lock-screen
+promise.
+
+Release blocker:
+The production catalogue is intentionally empty. The production flag remains
+off until an approved compressed, seamless-loop asset is registered with
+licence proof and checksum, passes catalogue validation, and completes agreed
+iOS Safari, Android Chrome, and desktop QA.
+
+---
+
 ## 2026-07-24 — Calm 1A Support-first boundary
 
 Decision:

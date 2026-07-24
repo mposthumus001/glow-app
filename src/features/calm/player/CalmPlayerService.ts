@@ -1,141 +1,181 @@
-import { getSoundById } from "../catalogue";
+import {
+  getSoundById,
+  getSoundsForMode,
+  isKnownCalmSoundId,
+} from "../sounds/catalogue.ts";
+import { getCalmSoundsMode } from "../sounds/flags.ts";
 import type {
   CalmPlayerSnapshot,
   CalmSoundId,
+  CalmSoundsMode,
   SleepTimerMinutes,
-} from "../types";
+} from "../types.ts";
 import {
-  readPersistedPrefs,
+  readPersistedPrefsV2,
   writePersistedPrefs,
-} from "./persistence";
+} from "./persistence.ts";
 import {
   applyTimerExpiry,
   calmErrorMessage,
   clampVolume,
   clearTimerSnapshot,
   hydrateSnapshotFromPrefs,
-  isSleepTimerExpired,
   isSleepTimerMinutes,
   logoutSnapshot,
   sleepTimerEndsAt,
   CalmSnapshotCache,
-} from "./playerLogic";
+} from "./playerLogic.ts";
+import { SleepTimerScheduler } from "./SleepTimerScheduler.ts";
+
+export type CalmPlayerServiceOptions = {
+  createAudio?: () => HTMLAudioElement;
+  getMode?: () => CalmSoundsMode;
+  getStorage?: () => Storage | null;
+  now?: () => number;
+  sleepTimerScheduler?: SleepTimerScheduler;
+};
 
 /**
- * Single owner of Calm playback for the authenticated shell.
- *
- * - One HTMLAudioElement for the whole app session
- * - Survives route changes while AppShell is mounted
- * - Never auto-resumes audible playback after a full page refresh
- * - Stops on logout / explicit stop
- * - Caches one snapshot object; replaces it only on meaningful change
+ * The only owner of Calm playback for an authenticated app-shell session.
+ * Audio creation is lazy: mounting the owner or opening Support creates no
+ * HTMLAudioElement. The element is retained through route transitions and is
+ * disposed when the shell owner leaves or logout is explicit.
  */
 export class CalmPlayerService {
   private audio: HTMLAudioElement | null = null;
-  private refCount = 0;
+  private loadedSoundId: CalmSoundId | null = null;
   private readonly cache = new CalmSnapshotCache();
-  private timerWatch: ReturnType<typeof setInterval> | null = null;
+  private readonly createAudio: () => HTMLAudioElement;
+  private readonly getMode: () => CalmSoundsMode;
+  private readonly getStorage: () => Storage | null;
+  private readonly now: () => number;
+  private readonly sleepTimerScheduler: SleepTimerScheduler;
   private prefsHydrated = false;
-  private loadToken = 0;
+  private operationToken = 0;
+  private playRequested = false;
+  private ownerCount = 0;
+  private ownerDisposeTimer: ReturnType<typeof setTimeout> | null = null;
+  private lifecycleListenersAttached = false;
+
+  constructor(options: CalmPlayerServiceOptions = {}) {
+    this.createAudio =
+      options.createAudio ??
+      (() => {
+        if (typeof Audio === "undefined") {
+          throw new Error("Audio is not available in this environment.");
+        }
+        return new Audio();
+      });
+    this.getMode = options.getMode ?? getCalmSoundsMode;
+    this.getStorage =
+      options.getStorage ??
+      (() => {
+        if (typeof window === "undefined") return null;
+        return window.localStorage;
+      });
+    this.now = options.now ?? Date.now;
+    this.sleepTimerScheduler =
+      options.sleepTimerScheduler ??
+      new SleepTimerScheduler({ now: this.now });
+  }
 
   private get state(): CalmPlayerSnapshot {
     return this.cache.getSnapshot();
   }
 
-  subscribe(listener: (snapshot: CalmPlayerSnapshot) => void): () => void {
+  /**
+   * Keeps this singleton alive for the app-shell lifetime without eagerly
+   * creating audio. Deferred disposal tolerates React development remounts.
+   */
+  acquireOwner(): () => void {
     this.ensureHydrated();
-    const unsubscribe = this.cache.subscribe(listener);
-
-    this.refCount += 1;
-    if (this.refCount === 1) {
-      this.ensureAudio();
+    this.ownerCount += 1;
+    if (this.ownerDisposeTimer != null) {
+      clearTimeout(this.ownerDisposeTimer);
+      this.ownerDisposeTimer = null;
     }
+    this.attachLifecycleListeners();
 
+    let released = false;
     return () => {
-      unsubscribe();
-      this.refCount = Math.max(0, this.refCount - 1);
-      // Keep the element alive while shell may remount briefly; tear down only
-      // when fully idle with no subscribers and not playing.
-      if (this.refCount === 0 && this.state.status !== "playing") {
-        this.teardownAudioElement();
-      }
+      if (released) return;
+      released = true;
+      this.ownerCount = Math.max(0, this.ownerCount - 1);
+      if (this.ownerCount > 0) return;
+      this.ownerDisposeTimer = setTimeout(() => {
+        this.ownerDisposeTimer = null;
+        if (this.ownerCount === 0) this.handleLogout();
+      }, 0);
     };
   }
 
-  /**
-   * Must return the same object reference when state is unchanged.
-   * Required by React useSyncExternalStore.
-   */
+  subscribe(listener: (snapshot: CalmPlayerSnapshot) => void): () => void {
+    this.ensureHydrated();
+    return this.cache.subscribe(listener);
+  }
+
   getSnapshot(): CalmPlayerSnapshot {
     this.ensureHydrated();
     return this.cache.getSnapshot();
   }
 
-  selectSound(soundId: CalmSoundId, options?: { autoplay?: boolean }): void {
+  selectSound(soundId: CalmSoundId): boolean {
     this.ensureHydrated();
-    const sound = getSoundById(soundId);
-    if (!sound || !sound.active) {
+    const sound = getSoundById(soundId, this.getMode());
+    if (!sound) {
       this.patch({
         status: "error",
         errorMessage: calmErrorMessage("load"),
       });
-      return;
+      return false;
     }
 
-    const audio = this.ensureAudio();
-    const token = ++this.loadToken;
-    const shouldPlay = options?.autoplay ?? this.state.status === "playing";
+    let audio: HTMLAudioElement;
+    try {
+      audio = this.ensureAudio();
+    } catch {
+      this.patch({
+        status: "error",
+        errorMessage: calmErrorMessage("unsupported"),
+      });
+      return false;
+    }
 
+    this.operationToken += 1;
+    this.playRequested = false;
+    audio.pause();
+    this.resetCurrentTime(audio);
+    audio.loop = sound.loop;
+    audio.preload = "metadata";
+    audio.src = sound.source.src;
+    this.loadedSoundId = sound.id;
     this.patch({
       soundId,
       status: "loading",
       errorMessage: null,
       recentSoundId: soundId,
     });
+    this.updateMediaMetadata(sound.title);
+    this.setMediaPlaybackState("paused");
     this.persist();
-
-    audio.pause();
-    audio.loop = sound.continuous;
-    audio.preload = "metadata";
-    audio.src = sound.src;
     audio.load();
-
-    const onReady = () => {
-      if (token !== this.loadToken) return;
-      cleanup();
-      if (shouldPlay) {
-        void this.playInternal();
-      } else {
-        this.patch({ status: "paused" });
-      }
-    };
-
-    const onError = () => {
-      if (token !== this.loadToken) return;
-      cleanup();
-      const offline =
-        typeof navigator !== "undefined" && navigator.onLine === false;
-      this.patch({
-        status: "error",
-        errorMessage: calmErrorMessage(offline ? "offline" : "load"),
-      });
-    };
-
-    const cleanup = () => {
-      audio.removeEventListener("canplay", onReady);
-      audio.removeEventListener("error", onError);
-    };
-
-    audio.addEventListener("canplay", onReady, { once: true });
-    audio.addEventListener("error", onError, { once: true });
+    return true;
   }
 
+  /** Call only from a user or Media Session action. */
+  async selectAndPlay(soundId: CalmSoundId): Promise<void> {
+    if (!this.selectSound(soundId)) return;
+    await this.playInternal();
+  }
+
+  /** Call only from a user or Media Session action. */
   async play(): Promise<void> {
     this.ensureHydrated();
     if (!this.state.soundId) {
-      const fallback = this.state.recentSoundId ?? this.state.favouriteSoundId;
+      const fallback =
+        this.state.recentSoundId ?? this.state.favouriteSoundIds[0] ?? null;
       if (fallback) {
-        this.selectSound(fallback, { autoplay: true });
+        await this.selectAndPlay(fallback);
         return;
       }
       this.patch({
@@ -145,45 +185,57 @@ export class CalmPlayerService {
       return;
     }
 
-    if (this.state.status === "loading") return;
-    if (this.state.status === "error") {
-      this.selectSound(this.state.soundId, { autoplay: true });
+    const sound = getSoundById(this.state.soundId, this.getMode());
+    if (!sound) {
+      this.patch({
+        soundId: null,
+        status: "error",
+        errorMessage: calmErrorMessage("load"),
+      });
       return;
     }
-
+    if (
+      (this.loadedSoundId !== sound.id || this.state.status === "error") &&
+      !this.selectSound(sound.id)
+    ) {
+      return;
+    }
     await this.playInternal();
   }
 
   pause(): void {
-    const audio = this.ensureAudio();
-    audio.pause();
-    if (this.state.status === "playing" || this.state.status === "loading") {
+    this.operationToken += 1;
+    this.playRequested = false;
+    this.audio?.pause();
+    if (this.state.soundId) {
       this.patch({ status: "paused", errorMessage: null });
     }
+    this.setMediaPlaybackState("paused");
   }
 
+  /**
+   * Stop retains the selected track, pauses it, resets position to zero, and
+   * clears the sleep timer. Only logout/disposal unloads and clears the source.
+   */
   stop(): void {
-    this.loadToken += 1;
-    const audio = this.audio;
-    if (audio) {
-      audio.pause();
-      audio.removeAttribute("src");
-      audio.load();
+    this.operationToken += 1;
+    this.playRequested = false;
+    if (this.audio) {
+      this.audio.pause();
+      this.resetCurrentTime(this.audio);
     }
     this.clearSleepTimer();
     this.patch({
-      soundId: null,
-      status: "idle",
+      status: this.state.soundId ? "paused" : "idle",
       errorMessage: null,
     });
-    this.clearMediaSession();
+    this.setMediaPlaybackState("paused");
     this.persist();
   }
 
   setVolume(volume: number): void {
     const next = clampVolume(volume);
-    const audio = this.ensureAudio();
-    audio.volume = next;
+    if (this.audio) this.audio.volume = next;
     this.patch({ volume: next });
     this.persist();
   }
@@ -191,53 +243,61 @@ export class CalmPlayerService {
   toggleFavourite(soundId?: CalmSoundId | null): void {
     this.ensureHydrated();
     const target = soundId ?? this.state.soundId ?? this.state.recentSoundId;
-    if (!target) return;
-    const next = this.state.favouriteSoundId === target ? null : target;
-    this.patch({ favouriteSoundId: next });
+    if (!target || !getSoundById(target, this.getMode())) return;
+    const exists = this.state.favouriteSoundIds.includes(target);
+    const favouriteSoundIds = exists
+      ? this.state.favouriteSoundIds.filter((id) => id !== target)
+      : [...this.state.favouriteSoundIds, target];
+    this.patch({ favouriteSoundIds });
     this.persist();
   }
 
+  /** Compatibility for the device-preferences clear action. */
   setFavourite(soundId: CalmSoundId | null): void {
-    this.patch({ favouriteSoundId: soundId });
+    const favouriteSoundIds =
+      soundId && getSoundById(soundId, this.getMode()) ? [soundId] : [];
+    this.patch({ favouriteSoundIds });
     this.persist();
   }
 
-  setSleepTimer(minutes: SleepTimerMinutes, nowMs = Date.now()): void {
+  setSleepTimer(minutes: SleepTimerMinutes, nowMs = this.now()): void {
     if (!isSleepTimerMinutes(minutes)) return;
     if (minutes === 0) {
       this.clearSleepTimer();
       return;
     }
+    if (!this.state.soundId) return;
+
     const endsAt = sleepTimerEndsAt(minutes, nowMs);
+    if (endsAt == null) return;
     this.patch({
       sleepTimerMinutes: minutes,
       sleepTimerEndsAt: endsAt,
     });
-    this.startTimerWatch();
+    this.sleepTimerScheduler.replace(endsAt, () => {
+      this.expireSleepTimer();
+    });
   }
 
   clearSleepTimer(): void {
-    this.stopTimerWatch();
+    this.sleepTimerScheduler.cancel();
     this.cache.commit(clearTimerSnapshot(this.state));
   }
 
-  /** Stops audible playback and active timer; keeps device prefs. */
+  /** Stops and clears playback state while retaining device-only preferences. */
   handleLogout(): void {
-    this.loadToken += 1;
-    this.stopTimerWatch();
-    if (this.audio) {
-      this.audio.pause();
-      this.audio.removeAttribute("src");
-      this.audio.load();
-    }
+    this.operationToken += 1;
+    this.playRequested = false;
+    this.sleepTimerScheduler.cancel();
+    this.detachLifecycleListeners();
+    this.teardownAudioElement();
     this.cache.commit(logoutSnapshot(this.state));
     this.clearMediaSession();
-    this.teardownAudioElement();
+    this.persist();
   }
 
   private async playInternal(): Promise<void> {
-    const audio = this.ensureAudio();
-    const sound = getSoundById(this.state.soundId);
+    const sound = getSoundById(this.state.soundId, this.getMode());
     if (!sound) {
       this.patch({
         status: "error",
@@ -246,60 +306,83 @@ export class CalmPlayerService {
       return;
     }
 
+    let audio: HTMLAudioElement;
+    try {
+      audio = this.ensureAudio();
+    } catch {
+      this.patch({
+        status: "error",
+        errorMessage: calmErrorMessage("unsupported"),
+      });
+      return;
+    }
+
+    const token = ++this.operationToken;
+    this.playRequested = true;
     audio.volume = this.state.volume;
-    audio.loop = sound.continuous;
+    audio.loop = sound.loop;
+    this.patch({ status: "loading", errorMessage: null });
 
     try {
-      this.patch({ status: "loading", errorMessage: null });
       await audio.play();
+      if (token !== this.operationToken || !this.playRequested) return;
       this.patch({
         status: "playing",
         errorMessage: null,
         recentSoundId: sound.id,
       });
       this.persist();
-      this.updateMediaSession(sound.title, sound.categoryLabel);
+      this.updateMediaMetadata(sound.title);
+      this.setMediaPlaybackState("playing");
     } catch (error) {
+      if (token !== this.operationToken) return;
+      this.playRequested = false;
       const name =
         error && typeof error === "object" && "name" in error
           ? String((error as { name: string }).name)
           : "";
-      if (name === "NotAllowedError") {
-        this.patch({
-          status: "paused",
-          errorMessage: calmErrorMessage("play"),
-        });
-        return;
-      }
       this.patch({
-        status: "error",
+        status: name === "NotAllowedError" ? "paused" : "error",
         errorMessage: calmErrorMessage("play"),
       });
+      this.setMediaPlaybackState("paused");
     }
   }
 
-  /**
-   * Hydrate once from localStorage. Replaces the cached snapshot only when
-   * persisted values differ — never on every getSnapshot call.
-   * Uses replaceSilent so snapshot reads do not notify subscribers.
-   */
   private ensureHydrated(): void {
     if (this.prefsHydrated) return;
     this.prefsHydrated = true;
-    if (typeof window === "undefined") return;
 
-    const prefs = readPersistedPrefs(window.localStorage);
+    const prefs = readPersistedPrefsV2(this.getStorage());
     if (!prefs) return;
-
-    const next = hydrateSnapshotFromPrefs(this.state, prefs);
+    const mode = this.getMode();
+    const availableIds = new Set(
+      getSoundsForMode(mode).map((sound) => sound.id),
+    );
+    const next = hydrateSnapshotFromPrefs(this.state, {
+      volume: prefs.volume,
+      favouriteSoundIds: prefs.favouriteSoundIds.filter((id) =>
+        availableIds.has(id),
+      ),
+      recentSoundId:
+        isKnownCalmSoundId(prefs.recentSoundId) &&
+        availableIds.has(prefs.recentSoundId)
+          ? prefs.recentSoundId
+          : null,
+      selectedSoundId:
+        isKnownCalmSoundId(prefs.selectedSoundId) &&
+        availableIds.has(prefs.selectedSoundId)
+          ? prefs.selectedSoundId
+          : null,
+    });
     this.cache.replaceSilent(next);
   }
 
   private persist(): void {
-    if (typeof window === "undefined") return;
-    writePersistedPrefs(window.localStorage, {
+    writePersistedPrefs(this.getStorage(), {
+      version: 2,
       volume: this.state.volume,
-      favouriteSoundId: this.state.favouriteSoundId,
+      favouriteSoundIds: this.state.favouriteSoundIds,
       recentSoundId: this.state.recentSoundId,
       selectedSoundId: this.state.soundId,
     });
@@ -307,119 +390,187 @@ export class CalmPlayerService {
 
   private ensureAudio(): HTMLAudioElement {
     if (this.audio) return this.audio;
-    if (typeof window === "undefined" || typeof Audio === "undefined") {
-      throw new Error("Audio is not available in this environment.");
-    }
-
-    const audio = new Audio();
+    const audio = this.createAudio();
     audio.preload = "none";
     audio.volume = this.state.volume;
     audio.setAttribute("playsinline", "true");
-
-    audio.addEventListener("playing", () => {
-      if (this.state.status !== "playing") {
-        this.patch({ status: "playing", errorMessage: null });
-      }
-    });
-    audio.addEventListener("pause", () => {
-      if (this.state.status === "playing") {
-        this.patch({ status: "paused" });
-      }
-    });
-    audio.addEventListener("waiting", () => {
-      if (this.state.status === "playing") {
-        this.patch({ status: "loading" });
-      }
-    });
-    audio.addEventListener("stalled", () => {
-      if (this.state.status === "playing" || this.state.status === "loading") {
-        this.patch({
-          status: "error",
-          errorMessage: calmErrorMessage("load"),
-        });
-      }
-    });
-
+    audio.addEventListener("playing", this.handlePlaying);
+    audio.addEventListener("pause", this.handlePause);
+    audio.addEventListener("waiting", this.handleWaiting);
+    audio.addEventListener("canplay", this.handleCanPlay);
+    audio.addEventListener("stalled", this.handleStalled);
+    audio.addEventListener("error", this.handleAudioError);
+    audio.addEventListener("ended", this.handleEnded);
     this.audio = audio;
+    this.installMediaSessionHandlers();
     return audio;
+  }
+
+  private readonly handlePlaying = () => {
+    if (!this.playRequested) return;
+    this.patch({ status: "playing", errorMessage: null });
+    this.setMediaPlaybackState("playing");
+  };
+
+  private readonly handlePause = () => {
+    if (this.state.status === "playing") {
+      this.patch({ status: "paused" });
+    }
+    this.setMediaPlaybackState("paused");
+  };
+
+  private readonly handleWaiting = () => {
+    if (this.playRequested) this.patch({ status: "loading" });
+  };
+
+  private readonly handleCanPlay = () => {
+    if (!this.playRequested && this.state.status === "loading") {
+      this.patch({ status: "paused", errorMessage: null });
+    }
+  };
+
+  private readonly handleStalled = () => {
+    if (!this.playRequested) return;
+    this.patch({
+      status: "error",
+      errorMessage: calmErrorMessage(
+        typeof navigator !== "undefined" && navigator.onLine === false
+          ? "offline"
+          : "load",
+      ),
+    });
+  };
+
+  private readonly handleAudioError = () => {
+    this.playRequested = false;
+    const unsupported = this.audio?.error?.code === 4;
+    const offline =
+      typeof navigator !== "undefined" && navigator.onLine === false;
+    this.patch({
+      status: "error",
+      errorMessage: calmErrorMessage(
+        unsupported ? "unsupported" : offline ? "offline" : "load",
+      ),
+    });
+    this.setMediaPlaybackState("paused");
+  };
+
+  private readonly handleEnded = () => {
+    this.playRequested = false;
+    if (this.audio) this.resetCurrentTime(this.audio);
+    this.patch({ status: this.state.soundId ? "paused" : "idle" });
+    this.setMediaPlaybackState("paused");
+  };
+
+  private expireSleepTimer(): void {
+    if (this.state.sleepTimerEndsAt == null) return;
+    this.operationToken += 1;
+    this.playRequested = false;
+    if (this.audio) {
+      this.audio.pause();
+      this.resetCurrentTime(this.audio);
+    }
+    this.cache.commit(applyTimerExpiry(this.state));
+    this.setMediaPlaybackState("paused");
+  }
+
+  private resetCurrentTime(audio: HTMLAudioElement): void {
+    try {
+      audio.currentTime = 0;
+    } catch {
+      // Some browsers reject seeking before metadata; source replacement still
+      // starts the next track at zero.
+    }
   }
 
   private teardownAudioElement(): void {
     if (!this.audio) return;
+    this.audio.removeEventListener("playing", this.handlePlaying);
+    this.audio.removeEventListener("pause", this.handlePause);
+    this.audio.removeEventListener("waiting", this.handleWaiting);
+    this.audio.removeEventListener("canplay", this.handleCanPlay);
+    this.audio.removeEventListener("stalled", this.handleStalled);
+    this.audio.removeEventListener("error", this.handleAudioError);
+    this.audio.removeEventListener("ended", this.handleEnded);
     this.audio.pause();
     this.audio.removeAttribute("src");
     this.audio.load();
     this.audio = null;
+    this.loadedSoundId = null;
   }
 
-  private startTimerWatch(): void {
-    this.stopTimerWatch();
-    this.timerWatch = setInterval(() => {
-      this.checkSleepTimer();
-    }, 1000);
-    this.checkSleepTimer();
+  private attachLifecycleListeners(): void {
+    if (this.lifecycleListenersAttached || typeof window === "undefined") return;
+    window.addEventListener("pageshow", this.handleClockResume);
+    document.addEventListener("visibilitychange", this.handleClockResume);
+    this.lifecycleListenersAttached = true;
   }
 
-  private stopTimerWatch(): void {
-    if (this.timerWatch) {
-      clearInterval(this.timerWatch);
-      this.timerWatch = null;
-    }
+  private detachLifecycleListeners(): void {
+    if (!this.lifecycleListenersAttached || typeof window === "undefined") return;
+    window.removeEventListener("pageshow", this.handleClockResume);
+    document.removeEventListener("visibilitychange", this.handleClockResume);
+    this.lifecycleListenersAttached = false;
   }
 
-  private checkSleepTimer(nowMs = Date.now()): void {
-    if (!isSleepTimerExpired(this.state.sleepTimerEndsAt, nowMs)) {
-      // Remaining time is derived in UI from sleepTimerEndsAt + local clock.
-      // Do not emit on every tick — that would thrash subscribers.
-      return;
-    }
+  private readonly handleClockResume = () => {
+    this.sleepTimerScheduler.checkNow();
+  };
 
-    this.stopTimerWatch();
-    if (this.audio && !this.audio.paused) {
-      this.audio.pause();
-    }
-    this.cache.commit(applyTimerExpiry(this.state));
-    this.clearMediaSession();
-  }
-
-  private updateMediaSession(title: string, category: string): void {
-    if (typeof navigator === "undefined" || !("mediaSession" in navigator)) {
-      return;
-    }
+  private installMediaSessionHandlers(): void {
+    const mediaSession = this.getMediaSession();
+    if (!mediaSession) return;
     try {
-      navigator.mediaSession.metadata = new MediaMetadata({
-        title,
-        artist: "Glow Calm",
-        album: category,
-      });
-      navigator.mediaSession.setActionHandler("play", () => {
-        void this.play();
-      });
-      navigator.mediaSession.setActionHandler("pause", () => {
-        this.pause();
-      });
-      navigator.mediaSession.setActionHandler("stop", () => {
-        this.stop();
-      });
-      navigator.mediaSession.playbackState = "playing";
+      mediaSession.setActionHandler("play", () => void this.play());
+      mediaSession.setActionHandler("pause", () => this.pause());
+      mediaSession.setActionHandler("stop", () => this.stop());
     } catch {
-      // Media Session is best-effort.
+      // Media Session support is partial on some browser versions.
+    }
+  }
+
+  private updateMediaMetadata(soundTitle: string): void {
+    const mediaSession = this.getMediaSession();
+    if (!mediaSession || typeof MediaMetadata === "undefined") return;
+    try {
+      mediaSession.metadata = new MediaMetadata({
+        title: soundTitle,
+        artist: "Glow Sounds",
+      });
+    } catch {
+      // Metadata is best-effort and contains no account or wellbeing data.
+    }
+  }
+
+  private setMediaPlaybackState(state: MediaSessionPlaybackState): void {
+    const mediaSession = this.getMediaSession();
+    if (!mediaSession) return;
+    try {
+      mediaSession.playbackState = state;
+    } catch {
+      // Best-effort browser integration.
     }
   }
 
   private clearMediaSession(): void {
-    if (typeof navigator === "undefined" || !("mediaSession" in navigator)) {
-      return;
-    }
+    const mediaSession = this.getMediaSession();
+    if (!mediaSession) return;
     try {
-      navigator.mediaSession.metadata = null;
-      navigator.mediaSession.playbackState = "none";
-      navigator.mediaSession.setActionHandler("play", null);
-      navigator.mediaSession.setActionHandler("pause", null);
-      navigator.mediaSession.setActionHandler("stop", null);
+      mediaSession.metadata = null;
+      mediaSession.playbackState = "none";
+      mediaSession.setActionHandler("play", null);
+      mediaSession.setActionHandler("pause", null);
+      mediaSession.setActionHandler("stop", null);
     } catch {
-      // ignore
+      // Best-effort browser integration.
     }
+  }
+
+  private getMediaSession(): MediaSession | null {
+    if (typeof navigator === "undefined" || !("mediaSession" in navigator)) {
+      return null;
+    }
+    return navigator.mediaSession;
   }
 
   private patch(partial: Partial<CalmPlayerSnapshot>): void {
@@ -434,10 +585,7 @@ export function getCalmPlayerService(): CalmPlayerService {
   return shared;
 }
 
-/** Test-only: reset singleton between unit suites that touch the service. */
 export function __resetCalmPlayerServiceForTests(): void {
-  if (shared) {
-    shared.handleLogout();
-  }
+  shared?.handleLogout();
   shared = null;
 }

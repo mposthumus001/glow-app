@@ -1,36 +1,13 @@
-export type CalmCategoryId =
-  | "rain"
-  | "white-noise"
-  | "ocean"
-  | "night";
+import type { CalmSoundId } from "./sounds/types.ts";
 
-export type CalmSoundId =
-  | "soft-rain"
-  | "steady-hush"
-  | "gentle-waves"
-  | "quiet-evening";
-
-export type CalmSound = {
-  id: CalmSoundId;
-  title: string;
-  categoryId: CalmCategoryId;
-  categoryLabel: string;
-  description: string;
-  /** Public path under /public — placeholder assets until licensed audio lands. */
-  src: string;
-  continuous: boolean;
-  /** Soft visual treatment token for cards / player art. */
-  visual: "rain" | "hush" | "ocean" | "night";
-  active: boolean;
-  /** True while using in-repo generated placeholders. */
-  isPlaceholderAsset: boolean;
-};
-
-export type CalmCategory = {
-  id: CalmCategoryId;
-  title: string;
-  description: string;
-};
+export type {
+  CalmCategory,
+  CalmCategoryId,
+  CalmSound,
+  CalmSoundFormat,
+  CalmSoundId,
+  CalmSoundsMode,
+} from "./sounds/types.ts";
 
 export type PlaybackStatus =
   | "idle"
@@ -49,13 +26,16 @@ export type CalmPlayerSnapshot = {
   sleepTimerMinutes: SleepTimerMinutes;
   /** Absolute epoch ms when the timer should stop playback; null if off. */
   sleepTimerEndsAt: number | null;
-  favouriteSoundId: CalmSoundId | null;
+  favouriteSoundIds: readonly CalmSoundId[];
   recentSoundId: CalmSoundId | null;
 };
 
 export type CalmPersistedPrefs = {
+  version: 2;
   volume: number;
-  favouriteSoundId: CalmSoundId | null;
-  recentSoundId: CalmSoundId | null;
-  selectedSoundId: CalmSoundId | null;
+  favouriteSoundIds: readonly CalmSoundId[];
+  /** Compatibility alias for the first favourite in legacy settings UI. */
+  favouriteSoundId: string | null;
+  recentSoundId: string | null;
+  selectedSoundId: string | null;
 };

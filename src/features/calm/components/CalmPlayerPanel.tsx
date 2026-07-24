@@ -14,26 +14,29 @@ import {
   sleepTimerRemainingMs,
 } from "../player/playerLogic";
 import type { CalmPlayerSnapshot, SleepTimerMinutes } from "../types";
+import type { CalmSoundsMode } from "../sounds/types";
 
 export type CalmPlayerPanelProps = {
   snapshot: CalmPlayerSnapshot;
   reducedMotion: boolean;
   nowMs: number;
+  mode: Exclude<CalmSoundsMode, "off">;
 };
 
 export function CalmPlayerPanel({
   snapshot,
   reducedMotion,
   nowMs,
+  mode,
 }: CalmPlayerPanelProps) {
-  const sound = getSoundById(snapshot.soundId);
+  const sound = getSoundById(snapshot.soundId, mode);
   const service = getCalmPlayerService();
   const isPlaying = snapshot.status === "playing";
   const isLoading = snapshot.status === "loading";
   const remaining = sleepTimerRemainingMs(snapshot.sleepTimerEndsAt, nowMs);
   const favouriteActive =
-    snapshot.favouriteSoundId != null &&
-    snapshot.favouriteSoundId === snapshot.soundId;
+    snapshot.soundId != null &&
+    snapshot.favouriteSoundIds.includes(snapshot.soundId);
 
   const statusLabel = (() => {
     if (snapshot.status === "error") return snapshot.errorMessage ?? "Unavailable";
@@ -79,7 +82,7 @@ export function CalmPlayerPanel({
           {sound ? (
             <p className="mt-0.5 text-xs text-glow-text-tertiary">
               {sound.categoryLabel}
-              {sound.continuous ? " · Continuous" : null}
+              {sound.loop ? " · Continuous" : null}
             </p>
           ) : null}
         </div>
@@ -91,7 +94,12 @@ export function CalmPlayerPanel({
           className={controlButtonClass}
           aria-label={isPlaying ? "Pause" : "Play"}
           aria-pressed={isPlaying}
-          disabled={!sound && !snapshot.recentSoundId && !snapshot.favouriteSoundId}
+          disabled={
+            isLoading ||
+            (!sound &&
+              !snapshot.recentSoundId &&
+              snapshot.favouriteSoundIds.length === 0)
+          }
           onClick={() => {
             if (isPlaying) service.pause();
             else void service.play();
@@ -176,13 +184,11 @@ export function CalmPlayerPanel({
             const minutes = Number(event.target.value) as SleepTimerMinutes;
             service.setSleepTimer(minutes);
           }}
+          disabled={!snapshot.soundId}
         />
         {snapshot.sleepTimerEndsAt != null ? (
           <div className="flex items-center gap-2 pb-1">
-            <p
-              className="text-sm text-glow-text-secondary"
-              aria-live="polite"
-            >
+            <p className="text-sm text-glow-text-secondary">
               Stops in {formatRemainingTimer(remaining)}
             </p>
             <button
@@ -194,6 +200,11 @@ export function CalmPlayerPanel({
             </button>
           </div>
         ) : null}
+        <span className="sr-only" aria-live="polite" aria-atomic="true">
+          {snapshot.sleepTimerMinutes === 0
+            ? "Sleep timer off."
+            : `Sleep timer set for ${snapshot.sleepTimerMinutes} minutes.`}
+        </span>
       </div>
 
       {snapshot.errorMessage ? (

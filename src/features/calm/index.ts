@@ -4,7 +4,9 @@ export type {
   CalmPersistedPrefs,
   CalmPlayerSnapshot,
   CalmSound,
+  CalmSoundFormat,
   CalmSoundId,
+  CalmSoundsMode,
   PlaybackStatus,
   SleepTimerMinutes,
 } from "./types";
@@ -12,11 +14,17 @@ export type {
 export {
   CALM_CATEGORIES,
   CALM_SOUNDS,
+  PRODUCTION_SOUND_CATALOGUE,
   getActiveSounds,
   getSoundById,
   getSoundsByCategory,
   isCalmSoundId,
 } from "./catalogue";
+export {
+  getCalmSoundsMode,
+  isCalmSoundsEnabled,
+  resolveCalmSoundsMode,
+} from "./sounds/flags";
 
 export { CalmScreen } from "./components/CalmScreen";
 export { CalmMiniPlayer } from "./components/CalmMiniPlayer";

@@ -1,15 +1,15 @@
 import { CalmSoundsPreparation } from "@/features/calm/components/CalmSoundsPreparation";
+import { getCalmSoundsMode } from "@/features/calm/sounds/flags";
 
 export default async function CalmSoundsPage() {
-  const previewEnabled =
-    process.env.NEXT_PUBLIC_CALM_SOUNDS_PREVIEW_ENABLED === "true";
+  const mode = getCalmSoundsMode();
 
-  if (!previewEnabled) {
+  if (mode === "off") {
     return <CalmSoundsPreparation />;
   }
 
   const { CalmScreen } = await import(
     "@/features/calm/components/CalmScreen"
   );
-  return <CalmScreen />;
+  return <CalmScreen mode={mode} />;
 }

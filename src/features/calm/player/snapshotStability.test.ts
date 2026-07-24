@@ -22,17 +22,17 @@ describe("CalmSnapshotCache stability", () => {
   it("snapshot reference changes after a real state update", () => {
     const cache = new CalmSnapshotCache();
     const before = cache.getSnapshot();
-    const changed = cache.patch({ favouriteSoundId: "soft-rain" });
+    const changed = cache.patch({ favouriteSoundIds: ["soft-rain"] });
     assert.equal(changed, true);
     const after = cache.getSnapshot();
     assert.notEqual(before, after);
-    assert.equal(after.favouriteSoundId, "soft-rain");
+    assert.deepEqual(after.favouriteSoundIds, ["soft-rain"]);
     assert.equal(cache.getSnapshot(), after);
   });
 
   it("noop updates keep the same snapshot reference and do not notify", () => {
     const cache = new CalmSnapshotCache();
-    cache.patch({ favouriteSoundId: "gentle-waves" });
+    cache.patch({ favouriteSoundIds: ["gentle-waves"] });
     const snap = cache.getSnapshot();
     let notifications = 0;
     cache.subscribe(() => {
@@ -41,7 +41,7 @@ describe("CalmSnapshotCache stability", () => {
     // subscribe notifies once immediately
     assert.equal(notifications, 1);
 
-    const changed = cache.patch({ favouriteSoundId: "gentle-waves" });
+    const changed = cache.patch({ favouriteSoundIds: ["gentle-waves"] });
     assert.equal(changed, false);
     assert.equal(cache.getSnapshot(), snap);
     assert.equal(notifications, 1);
@@ -73,7 +73,7 @@ describe("CalmSnapshotCache stability", () => {
 
     const hydrated = hydrateSnapshotFromPrefs(cache.getSnapshot(), {
       volume: 0.33,
-      favouriteSoundId: "soft-rain",
+      favouriteSoundIds: ["soft-rain"],
       recentSoundId: "soft-rain",
       selectedSoundId: "soft-rain",
     });
@@ -85,7 +85,7 @@ describe("CalmSnapshotCache stability", () => {
     // Repeated hydration with same values keeps the same reference.
     const again = hydrateSnapshotFromPrefs(cache.getSnapshot(), {
       volume: 0.33,
-      favouriteSoundId: "soft-rain",
+      favouriteSoundIds: ["soft-rain"],
       recentSoundId: "soft-rain",
       selectedSoundId: "soft-rain",
     });

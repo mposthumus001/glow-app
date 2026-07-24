@@ -42,9 +42,6 @@ export function useCalmPlayer(): CalmPlayerSnapshot {
  */
 export function useCalmPlayerLifecycle(): void {
   useEffect(() => {
-    const service = getCalmPlayerService();
-    return service.subscribe(() => {
-      // Intentionally empty — ownership only.
-    });
+    return getCalmPlayerService().acquireOwner();
   }, []);
 }

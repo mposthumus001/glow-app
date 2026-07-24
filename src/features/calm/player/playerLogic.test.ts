@@ -80,6 +80,7 @@ describe("playerLogic sleep timer", () => {
     assert.equal(sleepTimerRemainingMs(6_000, now), 1_000);
 
     const active = createInitialSnapshot({
+      soundId: "soft-rain",
       status: "playing",
       sleepTimerMinutes: 15,
       sleepTimerEndsAt: 4_000,
@@ -112,7 +113,7 @@ describe("playerLogic sleep timer", () => {
         sleepTimerMinutes: 15,
         sleepTimerEndsAt: 1,
         volume: 0.55,
-        favouriteSoundId: "soft-rain",
+        favouriteSoundIds: ["soft-rain"],
         recentSoundId: "soft-rain",
       }),
     );
@@ -122,7 +123,7 @@ describe("playerLogic sleep timer", () => {
     assert.equal(afterLogout.status, "idle");
     assert.equal(afterLogout.soundId, null);
     assert.equal(afterLogout.volume, 0.55);
-    assert.equal(afterLogout.favouriteSoundId, "soft-rain");
+    assert.deepEqual(afterLogout.favouriteSoundIds, ["soft-rain"]);
   });
 });
 

@@ -18,17 +18,18 @@ import {
 import { useCalmPlayer } from "../hooks/useCalmPlayer";
 import { getCalmPlayerService } from "../player/CalmPlayerService";
 import type { CalmCategoryId, CalmSoundId } from "../types";
+import type { CalmSoundsMode } from "../sounds/types";
 import { CalmPlayerPanel } from "./CalmPlayerPanel";
 import { SoundCard } from "./SoundCard";
 
 /**
  * Preview-only placeholder sounds catalogue and shared player.
  */
-export function CalmScreen() {
+export function CalmScreen({ mode }: { mode: Exclude<CalmSoundsMode, "off"> }) {
   const snapshot = useCalmPlayer();
   const reducedMotion = useGlowReducedMotion();
   const service = getCalmPlayerService();
-  const sounds = getActiveSounds();
+  const sounds = getActiveSounds(mode);
   const [nowMs, setNowMs] = useState(() => Date.now());
   const [filter, setFilter] = useState<CalmCategoryId | "all">("all");
 
@@ -39,34 +40,46 @@ export function CalmScreen() {
   }, [snapshot.sleepTimerEndsAt]);
 
   const visibleSounds =
-    filter === "all" ? sounds : getSoundsByCategory(filter);
+    filter === "all" ? sounds : getSoundsByCategory(filter, mode);
 
-  const favourite = getSoundById(snapshot.favouriteSoundId);
-  const recent = getSoundById(snapshot.recentSoundId);
+  const favourite =
+    snapshot.favouriteSoundIds
+      .map((soundId) => getSoundById(soundId, mode))
+      .find(Boolean) ?? null;
+  const recent = getSoundById(snapshot.recentSoundId, mode);
 
   function handlePlayToggle(soundId: CalmSoundId) {
     if (snapshot.soundId === soundId && snapshot.status === "playing") {
       service.pause();
       return;
     }
-    if (snapshot.soundId === soundId && snapshot.status === "paused") {
+    if (
+      snapshot.soundId === soundId &&
+      snapshot.status !== "loading"
+    ) {
       void service.play();
       return;
     }
-    service.selectSound(soundId, { autoplay: true });
+    void service.selectAndPlay(soundId);
   }
 
   return (
     <div className="overflow-y-auto pt-safe">
       <GlowContainer size="md" as="div" className="pb-10 pt-6">
         <PageHeader
-          title="Sounds preview"
-          subtitle="Temporary sound loops for private beta testing."
+          title={mode === "preview" ? "Sounds preview" : "Sounds"}
+          subtitle={
+            mode === "preview"
+              ? "Temporary sound loops for private beta testing."
+              : "A gentle background when a little quiet may help."
+          }
         />
 
         <p className="mb-6 max-w-prose text-sm leading-relaxed text-glow-text-secondary">
-          Soundscapes are still being prepared for the Glow beta. These
-          placeholder loops are not finished soundscapes. Nothing autoplays.
+          {mode === "preview"
+            ? "These short, low-fidelity loops are for private QA only, not finished soundscapes."
+            : "Choose a sound when you are ready."}{" "}
+          Nothing plays automatically.
         </p>
 
         {(favourite || recent) && (
@@ -130,6 +143,7 @@ export function CalmScreen() {
             snapshot={snapshot}
             reducedMotion={reducedMotion}
             nowMs={nowMs}
+            mode={mode}
           />
         </section>
 
@@ -181,6 +195,10 @@ export function CalmScreen() {
                       snapshot.soundId === sound.id &&
                       snapshot.status === "playing"
                     }
+                    loading={
+                      snapshot.soundId === sound.id &&
+                      snapshot.status === "loading"
+                    }
                     onPlay={handlePlayToggle}
                   />
                 </li>
@@ -196,7 +214,7 @@ export function CalmScreen() {
           >
             Categories
           </h2>
-          <ul className="grid gap-3 sm:grid-cols-2">
+          <ul className="grid min-w-0 gap-3 sm:grid-cols-2">
             {CALM_CATEGORIES.map((category) => (
               <li key={category.id}>
                 <button

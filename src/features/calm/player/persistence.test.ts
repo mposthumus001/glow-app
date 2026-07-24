@@ -7,19 +7,24 @@ import {
   serializePersistedPrefs,
   writePersistedPrefs,
   readPersistedPrefs,
+  readPersistedPrefsV2,
 } from "./persistence.ts";
 
 describe("Calm persistence", () => {
   it("round-trips volume, favourite, and recent", () => {
     const raw = serializePersistedPrefs({
+      version: 2,
       volume: 0.42,
+      favouriteSoundIds: ["soft-rain"],
       favouriteSoundId: "soft-rain",
       recentSoundId: "gentle-waves",
       selectedSoundId: "gentle-waves",
     });
     const parsed = parsePersistedPrefs(raw);
     assert.deepEqual(parsed, {
+      version: 2,
       volume: 0.42,
+      favouriteSoundIds: ["soft-rain"],
       favouriteSoundId: "soft-rain",
       recentSoundId: "gentle-waves",
       selectedSoundId: "gentle-waves",
@@ -30,20 +35,21 @@ describe("Calm persistence", () => {
     const parsed = parsePersistedPrefs(
       JSON.stringify({
         volume: 9,
-        favouriteSoundId: "nope",
+        favouriteSoundIds: ["nope", "soft-rain", "soft-rain"],
         recentSoundId: "soft-rain",
         selectedSoundId: null,
       }),
     );
     assert.equal(parsed?.volume, 1);
-    assert.equal(parsed?.favouriteSoundId, null);
+    assert.deepEqual(parsed?.favouriteSoundIds, ["soft-rain"]);
     assert.equal(parsed?.recentSoundId, "soft-rain");
   });
 
   it("does not persist a sleep timer", () => {
     const raw = serializePersistedPrefs({
+      version: 2,
       volume: 0.7,
-      favouriteSoundId: null,
+      favouriteSoundIds: [],
       recentSoundId: null,
       selectedSoundId: null,
     });
@@ -61,20 +67,36 @@ describe("Calm persistence", () => {
     };
 
     writePersistedPrefs(storage, {
+      version: 2,
       volume: 0.2,
-      favouriteSoundId: "quiet-evening",
+      favouriteSoundIds: ["quiet-evening"],
       recentSoundId: "quiet-evening",
       selectedSoundId: "quiet-evening",
     });
 
     assert.ok(store.has(CALM_PREFS_STORAGE_KEY));
-    const prefs = readPersistedPrefs(storage);
-    assert.equal(prefs?.favouriteSoundId, "quiet-evening");
+    const prefs = readPersistedPrefsV2(storage);
+    assert.deepEqual(prefs?.favouriteSoundIds, ["quiet-evening"]);
     assert.equal(prefs?.volume, 0.2);
+    assert.equal(readPersistedPrefs(storage)?.favouriteSoundId, "quiet-evening");
   });
 
   it("returns null for corrupt storage", () => {
     assert.equal(parsePersistedPrefs("{"), null);
     assert.equal(parsePersistedPrefs(null), null);
+  });
+
+  it("safely migrates the v1 single favourite shape", () => {
+    const parsed = parsePersistedPrefs(
+      JSON.stringify({
+        volume: "invalid",
+        favouriteSoundId: "soft-rain",
+        selectedSoundId: "unknown",
+      }),
+    );
+    assert.equal(parsed?.version, 2);
+    assert.equal(parsed?.volume, 0.7);
+    assert.deepEqual(parsed?.favouriteSoundIds, ["soft-rain"]);
+    assert.equal(parsed?.selectedSoundId, null);
   });
 });

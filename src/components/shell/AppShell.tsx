@@ -81,7 +81,8 @@ export function AppShell({
 
       <div className="flex min-h-dvh flex-col">
         <ReconnectBanner connectionState={connectionState} />
-        {process.env.NEXT_PUBLIC_CALM_SOUNDS_PREVIEW_ENABLED === "true" ? (
+        {process.env.NEXT_PUBLIC_CALM_SOUNDS_ENABLED === "true" ||
+        process.env.NEXT_PUBLIC_CALM_SOUNDS_PREVIEW_ENABLED === "true" ? (
           <CalmAudioOwner />
         ) : null}
 

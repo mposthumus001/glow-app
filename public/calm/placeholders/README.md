@@ -19,6 +19,9 @@ Before App Store / production launch, replace each file with properly licensed o
 | `gentle-waves.wav` | `gentle-waves` | Gentle ocean |
 | `quiet-evening.wav` | `quiet-evening` | Quiet night atmosphere |
 
-Update `src/features/calm/catalogue.ts` `src` paths if filenames change.
+Preview metadata and checksums live in
+`src/features/calm/sounds/catalogue.ts` and
+`src/features/calm/sounds/assetRegistry.ts`. Update both if the exact preview
+bytes or filenames change.
 
 Do not point the catalogue at arbitrary copyrighted CDN tracks.

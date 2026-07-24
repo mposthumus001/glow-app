@@ -2,7 +2,7 @@ import type {
   CalmPlayerSnapshot,
   PlaybackStatus,
   SleepTimerMinutes,
-} from "../types";
+} from "../types.ts";
 
 export const DEFAULT_VOLUME = 0.7;
 export const SLEEP_TIMER_OPTIONS: readonly SleepTimerMinutes[] = [
@@ -19,7 +19,7 @@ export function createInitialSnapshot(
     errorMessage: null,
     sleepTimerMinutes: 0,
     sleepTimerEndsAt: null,
-    favouriteSoundId: null,
+    favouriteSoundIds: [],
     recentSoundId: null,
     ...partial,
   };
@@ -40,7 +40,10 @@ export function snapshotsEqual(
     a.errorMessage === b.errorMessage &&
     a.sleepTimerMinutes === b.sleepTimerMinutes &&
     a.sleepTimerEndsAt === b.sleepTimerEndsAt &&
-    a.favouriteSoundId === b.favouriteSoundId &&
+    a.favouriteSoundIds.length === b.favouriteSoundIds.length &&
+    a.favouriteSoundIds.every(
+      (soundId, index) => soundId === b.favouriteSoundIds[index],
+    ) &&
     a.recentSoundId === b.recentSoundId
   );
 }
@@ -103,7 +106,7 @@ export function hydrateSnapshotFromPrefs(
   current: CalmPlayerSnapshot,
   prefs: {
     volume: number;
-    favouriteSoundId: CalmPlayerSnapshot["favouriteSoundId"];
+    favouriteSoundIds: CalmPlayerSnapshot["favouriteSoundIds"];
     recentSoundId: CalmPlayerSnapshot["recentSoundId"];
     selectedSoundId: CalmPlayerSnapshot["soundId"];
   },
@@ -111,7 +114,7 @@ export function hydrateSnapshotFromPrefs(
   const next: CalmPlayerSnapshot = {
     ...current,
     volume: prefs.volume,
-    favouriteSoundId: prefs.favouriteSoundId,
+    favouriteSoundIds: prefs.favouriteSoundIds,
     recentSoundId: prefs.recentSoundId,
     soundId: prefs.selectedSoundId ?? prefs.recentSoundId,
     status: "idle",
@@ -218,7 +221,8 @@ export function applyTimerExpiry(
 ): CalmPlayerSnapshot {
   return {
     ...current,
-    status: current.status === "playing" ? "paused" : current.status,
+    status: current.soundId ? "paused" : "idle",
+    errorMessage: null,
     sleepTimerMinutes: 0,
     sleepTimerEndsAt: null,
   };
@@ -239,7 +243,7 @@ export function logoutSnapshot(
 ): CalmPlayerSnapshot {
   return createInitialSnapshot({
     volume: current.volume,
-    favouriteSoundId: current.favouriteSoundId,
+    favouriteSoundIds: current.favouriteSoundIds,
     recentSoundId: current.recentSoundId,
   });
 }

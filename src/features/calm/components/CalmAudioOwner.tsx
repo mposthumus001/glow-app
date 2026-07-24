@@ -1,5 +1,7 @@
 "use client";
 
+import { usePathname } from "next/navigation";
+
 import { useCalmPlayerLifecycle } from "../hooks/useCalmPlayer";
 import { CalmMiniPlayer } from "./CalmMiniPlayer";
 
@@ -9,6 +11,8 @@ import { CalmMiniPlayer } from "./CalmMiniPlayer";
  * for the default preview-off experience.
  */
 export function CalmAudioOwner() {
+  const pathname = usePathname();
   useCalmPlayerLifecycle();
+  if (pathname === "/calm" || pathname === "/calm/sounds") return null;
   return <CalmMiniPlayer />;
 }

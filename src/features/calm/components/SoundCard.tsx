@@ -32,6 +32,7 @@ export type SoundCardProps = {
   sound: CalmSound;
   selected: boolean;
   playing: boolean;
+  loading: boolean;
   onPlay: (soundId: CalmSound["id"]) => void;
 };
 
@@ -39,12 +40,15 @@ export function SoundCard({
   sound,
   selected,
   playing,
+  loading,
   onPlay,
 }: SoundCardProps) {
   const visual = VISUAL[sound.visual];
   const Icon = visual.icon;
   const label = playing
     ? `Pause ${sound.title}`
+    : loading
+      ? `Preparing ${sound.title}`
     : selected
       ? `Resume ${sound.title}`
       : `Play ${sound.title}`;
@@ -90,16 +94,16 @@ export function SoundCard({
             </span>
           </div>
           <p className="mt-1.5 text-sm leading-relaxed text-glow-text-secondary">
-            {sound.description}
+            {sound.summary}
           </p>
-          {sound.isPlaceholderAsset ? (
+          {sound.previewOnly ? (
             <p className="mt-2 text-[11px] text-glow-text-tertiary">
               Placeholder audio — replace before production
             </p>
           ) : null}
           {selected ? (
             <p className="mt-2 text-xs font-medium text-glow-primary-light">
-              {playing ? "Playing now" : "Selected"}
+              {loading ? "Preparing…" : playing ? "Playing now" : "Selected"}
             </p>
           ) : null}
         </div>
@@ -109,6 +113,7 @@ export function SoundCard({
           onClick={() => onPlay(sound.id)}
           aria-label={label}
           aria-pressed={playing}
+          disabled={loading}
           className={cn(
             "relative z-[1] inline-flex h-11 min-w-11 shrink-0 items-center justify-center rounded-glow-button px-3",
             "text-sm font-medium transition-colors duration-200",
@@ -119,7 +124,7 @@ export function SoundCard({
               : "bg-white/[0.06] text-glow-text hover:bg-white/[0.1]",
           )}
         >
-          {playing ? "Pause" : "Play"}
+          {loading ? "Loading…" : playing ? "Pause" : "Play"}
         </button>
       </div>
     </article>

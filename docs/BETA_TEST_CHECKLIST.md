@@ -123,6 +123,50 @@ Run C1A–C14 with `NEXT_PUBLIC_CALM_SOUNDS_PREVIEW_ENABLED` unset or `false`. R
 
 Production sign-off requires approved licensed or Glow-owned final assets, placeholder removal/replacement, and passes for C15A–C24A on the agreed browser/device matrix.
 
+### Calm 1B player and catalogue QA
+
+Run these checks only on a private build with
+`NEXT_PUBLIC_CALM_SOUNDS_PREVIEW_ENABLED=true` and
+`NEXT_PUBLIC_CALM_SOUNDS_ENABLED` unset/false:
+
+- Confirm opening Support, the preparation state, and the preview Sounds route
+  before selecting a track creates no audio request and makes no sound.
+- Select a track without Play through keyboard focus/navigation where possible;
+  confirm selection alone is silent. Activate Play and confirm one audio element
+  and one source.
+- Pause after several seconds and resume; position is retained. Stop; position
+  returns to zero, the track remains selected, and the mini-player remains
+  available away from Sounds.
+- While playing, select every other track rapidly. Confirm the prior source
+  stops, no overlap occurs, and loading/error state belongs to the latest track.
+- Navigate Sounds → Support → Tonight → profile and back. Playback and the one
+  mini-player persist; the full and mini players never appear together.
+- Reload while selected/playing. Confirm no autoplay and no audio element until
+  Play; selected track, favourites, and valid volume may restore paused.
+- Corrupt `glow.calm.prefs.v2`, use an invalid volume and unknown sound IDs, then
+  reload. Confirm safe defaults and no crash. Confirm the legacy v1 favourite
+  migrates.
+- Set each timer, replace it, cancel it, pause/resume playback, navigate, and
+  let it expire. Expiry fires once, rewinds playback, clears the timer, and
+  keeps the selected track. Repeat after backgrounding longer than the deadline
+  and record actual wake-up timing.
+- Sign out from both the Sounds page and another authenticated route while
+  playing. Confirm audio/source/timer and OS media metadata are cleared.
+- Verify Play/Pause/Stop from available lock-screen, notification, headset, and
+  desktop media controls. Record unsupported controls rather than failing the
+  in-page contract.
+- Simulate offline before selecting, during loading, and after buffering.
+  Confirm calm errors, no raw URL/exception, and no automatic restart.
+- At 320 CSS px and with 200% text zoom, confirm no horizontal overflow,
+  clipped controls, or inaccessible native select options. Complete the page
+  with keyboard and a screen reader.
+- Build once with both flags true. Confirm production precedence and that no
+  preview card or placeholder path renders. Keep that build internal because
+  the production catalogue is intentionally empty.
+- Verify source and network activity contain no vibration, notification,
+  download, offline-cache, listening-history, duration, volume, Baby, family,
+  or emotional-state analytics.
+
 ---
 
 ## Moments (Sprint 9.1 + 9.2A + 9.2B)
