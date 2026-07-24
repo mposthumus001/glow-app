@@ -1,13 +1,10 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef } from "react";
 
 import { GlowPage } from "@/components/layout";
-import {
-  CalmMiniPlayer,
-  useCalmPlayerLifecycle,
-} from "@/features/calm";
 import { usePresenceConnection } from "@/features/presence";
 import { cn } from "@/lib/utils/cn";
 
@@ -15,6 +12,14 @@ import { DesktopSideNav } from "./DesktopSideNav";
 import { MobileBottomNav } from "./MobileBottomNav";
 import { resolveActiveNav } from "./nav";
 import { ReconnectBanner } from "./ReconnectBanner";
+
+const CalmAudioOwner = dynamic(
+  () =>
+    import("@/features/calm/components/CalmAudioOwner").then(
+      (module) => module.CalmAudioOwner,
+    ),
+  { ssr: false },
+);
 
 export type AppShellProps = {
   children: React.ReactNode;
@@ -26,8 +31,7 @@ export type AppShellProps = {
  * Permanent authenticated shell.
  *
  * Owns: navigation, safe areas, background, presence lifecycle,
- * Calm player lifecycle (single audio element), and a quiet global
- * reconnect banner.
+ * the optional shell-level Calm audio slot, and a quiet reconnect banner.
  *
  * Does not own: Atlas cluster subscription (Tonight) or Circle messaging
  * (Circle) — those stay feature-scoped to avoid duplicate channels.
@@ -40,7 +44,6 @@ export function AppShell({
   const pathname = usePathname();
   const activeId = resolveActiveNav(pathname);
   const connectionState = usePresenceConnection();
-  useCalmPlayerLifecycle();
   const mainRef = useRef<HTMLElement>(null);
   const previousPath = useRef(pathname);
 
@@ -78,7 +81,9 @@ export function AppShell({
 
       <div className="flex min-h-dvh flex-col">
         <ReconnectBanner connectionState={connectionState} />
-        <CalmMiniPlayer />
+        {process.env.NEXT_PUBLIC_CALM_SOUNDS_PREVIEW_ENABLED === "true" ? (
+          <CalmAudioOwner />
+        ) : null}
 
         <main
           id="glow-main"

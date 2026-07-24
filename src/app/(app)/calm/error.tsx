@@ -15,7 +15,7 @@ export default function CalmError({
       reset={reset}
       featureArea="calm"
       title="Calm didn't load"
-      message="Your sound preferences are still saved on this device. Please try again."
+      message="Your place in Glow is safe. Please try again."
     />
   );
 }

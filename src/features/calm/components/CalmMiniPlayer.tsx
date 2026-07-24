@@ -11,7 +11,8 @@ import { useCalmPlayer } from "../hooks/useCalmPlayer";
 import { getCalmPlayerService } from "../player/CalmPlayerService";
 
 /**
- * Restrained shell strip when audio is active away from /calm.
+ * Restrained shell strip when preview audio is active away from the full
+ * Sounds player.
  * Not a music-app dock — just enough to pause or return.
  */
 export function CalmMiniPlayer() {
@@ -20,7 +21,7 @@ export function CalmMiniPlayer() {
   const sound = getSoundById(snapshot.soundId);
   const service = getCalmPlayerService();
 
-  if (pathname === "/calm") return null;
+  if (pathname === "/calm" || pathname === "/calm/sounds") return null;
   if (!sound) return null;
   if (snapshot.status === "idle") return null;
 
@@ -39,7 +40,7 @@ export function CalmMiniPlayer() {
         <button
           type="button"
           className={cn(
-            "inline-flex h-10 w-10 items-center justify-center rounded-glow-button",
+            "inline-flex h-11 w-11 items-center justify-center rounded-glow-button",
             "bg-white/[0.06] text-glow-text",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-glow-primary/50",
           )}
@@ -64,8 +65,8 @@ export function CalmMiniPlayer() {
           </p>
         </div>
         <Link
-          href="/calm"
-          className="shrink-0 text-sm font-medium text-glow-primary-light underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-glow-primary/50"
+          href="/calm/sounds"
+          className="inline-flex min-h-11 shrink-0 items-center text-sm font-medium text-glow-primary-light underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-glow-primary/50"
         >
           Open Calm
         </Link>

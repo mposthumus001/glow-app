@@ -22,7 +22,7 @@ import { CalmPlayerPanel } from "./CalmPlayerPanel";
 import { SoundCard } from "./SoundCard";
 
 /**
- * Glow Calm home — curated sounds, shared player, sleep timer, favourite.
+ * Preview-only placeholder sounds catalogue and shared player.
  */
 export function CalmScreen() {
   const snapshot = useCalmPlayer();
@@ -60,13 +60,13 @@ export function CalmScreen() {
     <div className="overflow-y-auto pt-safe">
       <GlowContainer size="md" as="div" className="pb-10 pt-6">
         <PageHeader
-          title="Calm"
-          subtitle="A quiet corner for soft sound — when you need a breath, not a feed."
+          title="Sounds preview"
+          subtitle="Temporary sound loops for private beta testing."
         />
 
         <p className="mb-6 max-w-prose text-sm leading-relaxed text-glow-text-secondary">
-          Choose one gentle soundscape. Nothing autoplays. Nothing competes for
-          your attention.
+          Soundscapes are still being prepared for the Glow beta. These
+          placeholder loops are not finished soundscapes. Nothing autoplays.
         </p>
 
         {(favourite || recent) && (
@@ -238,7 +238,7 @@ function FilterChip({
       onClick={onClick}
       aria-pressed={active}
       className={cn(
-        "h-9 rounded-glow-button px-3 text-xs font-medium transition-colors",
+        "h-11 rounded-glow-button px-3 text-xs font-medium transition-colors",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-glow-primary/50",
         active
           ? "bg-glow-primary/20 text-glow-primary-light"

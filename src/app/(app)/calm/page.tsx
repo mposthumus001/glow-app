@@ -1,7 +1,5 @@
-import { CalmScreen } from "@/features/calm";
-import { requireAppUser } from "@/lib/auth/require-app-user";
+import { redirect } from "next/navigation";
 
-export default async function CalmPage() {
-  await requireAppUser();
-  return <CalmScreen />;
+export default function CalmPage() {
+  redirect("/calm/support");
 }

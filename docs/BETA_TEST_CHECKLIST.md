@@ -15,6 +15,7 @@ Mark each item Pass / Fail / N/A.
 - [ ] `beta_testers` seeded with invited emails
 - [ ] `NEXT_PUBLIC_SENTRY_DSN` set (optional — verify events in Sentry when enabled)
 - [ ] `SENTRY_AUTH_TOKEN` + org/project on Vercel for source maps (optional)
+- [ ] `NEXT_PUBLIC_CALM_SOUNDS_PREVIEW_ENABLED` unset/`false` for production-facing builds; set to exactly `true` only on an approved Sounds QA build
 
 ---
 
@@ -51,8 +52,8 @@ Mark each item Pass / Fail / N/A.
 | 8 | Add reaction |
 | 9 | Baby — log feeding, sleep, nappy |
 | 10 | Edit / delete baby event |
-| 11 | Calm — play / pause / timer |
-| 12 | Navigate while Calm plays |
+| 11 | Calm — Support opens by default; complete or leave each exercise early |
+| 12 | Sounds preparation state, or approved preview playback QA when explicitly enabled |
 | 13 | Edit profile + Atlas privacy |
 | 14 | Submit feedback (Bug / Suggestion + optional details) |
 | 14b | Confirm calm success state; rapid resubmit blocked |
@@ -86,6 +87,41 @@ Mark each item Pass / Fail / N/A.
 | 28 | No cross-circle messages |
 | 29 | No cross-family baby events |
 | 30 | No unrelated parent SELECT (0009) |
+
+---
+
+## Calm 1A — Support and Sounds
+
+Run C1A–C14 with `NEXT_PUBLIC_CALM_SOUNDS_PREVIEW_ENABLED` unset or `false`. Run C15–C24 only on an approved build made with the flag set to exactly `true`.
+
+| # | Step | Expected |
+|---|------|----------|
+| C1A | Open `/calm` with a query string | Server redirects to `/calm/support`; query is not forwarded; no loading flash |
+| C2A | Check desktop and mobile primary nav on Support, exercise, and Sounds routes | Calm remains active |
+| C3A | Move between Support and Sounds | Correct link has `aria-current="page"`, weight, and underline |
+| C4A | Open Support on a narrow phone viewport | Six need cards stack; no horizontal overflow |
+| C5A | Use keyboard only through each exercise | Visible focus; previous/next/skip/finish controls work; no trap |
+| C6A | Advance breathing and grounding steps | Current instruction receives focus; polite step announcement is not duplicated |
+| C7A | Enable reduced motion and start optional breathing timer | No pulsing animation; timer can pause/continue; exercise remains usable without timer |
+| C8A | Choose Finish early from each exercise | Calm completion/return copy; no score, streak, success, or failure language |
+| C9A | Review all Support copy against `docs/Calm.md` | Exact approved wording; no medical, therapeutic, feeding, sleep, or outcome claim |
+| C10A | Open Support safety link | Existing `/profile/safety` route opens; no duplicate emergency flow |
+| C11A | Open `/calm/sounds` directly | Title and exact copy: “Soundscapes are still being prepared for the Glow beta.” |
+| C12A | Inspect disabled Sounds page and network/runtime activity | No catalogue/player/volume/timer/favourite UI; no audio request, autoplay, vibration, notification, or crash |
+| C13A | Navigate Support → Sounds → Support | Navigation remains safe; no audio service or mini player appears |
+| C14A | Check Tonight before and after Calm use | Tonight UI and behaviour are unchanged; no Calm exercise is embedded |
+| C15A | Open approved preview build at `/calm/sounds` | Temporary preview is clearly labelled; nothing autoplays |
+| C16A | Select and play each placeholder | One sound/audio owner only; selecting another stops the previous source |
+| C17A | Play, pause, resume, and stop | State and audio agree; repeated actions do not crash |
+| C18A | Change volume, including minimum and maximum | Audible level and accessible value agree |
+| C19A | Set, cancel, and expire each timer option | Correct expiry; no stale or duplicate timer |
+| C20A | Navigate to Support while playing, then return to Sounds | Mini player only when a sound is selected/non-idle; full and mini players never appear together |
+| C21A | Refresh, sign out, and sign back in | No audible auto-resume; sign-out stops audio and clears timer |
+| C22A | Background and lock supported test devices | Record actual behaviour; do not promise iOS Safari continuity |
+| C23A | Trigger missing/corrupt asset and offline paths | Calm error state; recovery works; no raw technical detail |
+| C24A | Inspect deployed placeholder asset URL with flag off | Confirm public URL is still reachable; record replacement/removal as release blocker |
+
+Production sign-off requires approved licensed or Glow-owned final assets, placeholder removal/replacement, and passes for C15A–C24A on the agreed browser/device matrix.
 
 ---
 

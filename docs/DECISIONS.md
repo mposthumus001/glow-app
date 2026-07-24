@@ -1,3 +1,22 @@
+## 2026-07-24 — Calm 1A Support-first boundary
+
+Decision:
+Make `/calm/support` the default Calm destination through a server redirect from `/calm`. Keep three reviewed, typed, local Support exercises separate from Tonight and from all Baby/family data. Keep `/calm/sounds` available, but default it to a preparation state unless `NEXT_PUBLIC_CALM_SOUNDS_PREVIEW_ENABLED=true` was present at build time.
+
+Reason:
+Parents receive useful, optional wellbeing support without presenting placeholder audio as finished, creating a medical/therapeutic claim, storing emotional or completion data, or coupling Calm to Tonight.
+
+Audio ownership:
+When preview is enabled, the authenticated shell remains the only lifecycle owner of the singleton `CalmPlayerService` and its one `HTMLAudioElement`. The preview-off route returns before importing preview UI, and the shell does not mount the audio owner. The full `/calm/sounds` player and mini player are mutually exclusive.
+
+Safety and privacy:
+Support wording is general wellbeing content only. It contains no feeding, sleep, medical, therapeutic, or guaranteed-outcome advice. Operational monitoring may use stable exercise IDs and technical categories only; it must not record need selection, exercise text, inferred emotion, Baby context, volume, or timer behaviour.
+
+Release blocker:
+Sounds is not production-ready until placeholder WAVs are replaced or removed and agreed browser/device QA passes for playback controls, volume, timer, background/lock-screen behaviour, Media Session, failures, route continuity, logout, and cleanup. Disabling the public flag hides UI but does not remove files from `public/`.
+
+---
+
 ## 2026-07-11 — Glow Calm foundation (Sprint 5.3)
 
 Decision:

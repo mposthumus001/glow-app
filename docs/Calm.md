@@ -1,131 +1,103 @@
 # Glow Calm
 
-## Purpose
+## Calm 1A route model
 
-Create a peaceful, private sound experience for parents — soft soundscapes when they need a breath, not a feed.
+- `/calm` server-redirects to `/calm/support`; query parameters are not forwarded.
+- `/calm/support` is the default, need-based wellbeing Support experience.
+- `/calm/support/[slug]` renders one of three typed, local exercises.
+- `/calm/sounds` is a valid route but defaults to an honest preparation state.
+- The persistent Calm navigation exposes explicit Support and Sounds links. Active state uses `aria-current="page"`, weight, and an underline rather than colour alone.
+- Tonight remains separate. Calm does not add exercises, state, or data access to Tonight.
 
-Glow Calm must feel calm, premium, private, hopeful, and human.
+Support content is static typed copy. It creates no database records, completion history, Baby context, emotional-state analytics, notifications, vibration, or audio.
 
-It must **not** feel like a music streaming app, meditation marketplace, or engagement product.
+## Reviewed Support wording
 
----
+### One-minute breathing reset
 
-## Beta scope (Sprint 5.3)
+Summary: “A short, gentle pause with your breath. You can do this in the position you are already in.”
 
-### Included
+1. “Let yourself stay exactly where you are. There is nothing you need to arrange first.”
+2. “Notice your breath as it is. You do not need to make it deeper or slower.”
+3. “When you are ready, breathe in gently. If counting helps, count to three. If it does not, leave the counting out.”
+4. “Let the breath out without forcing it. You might count to four, or simply notice it leaving.”
+5. “Take another easy breath in, then let it go. Continue only for as long as this feels useful.”
+6. “Notice one place where your body is supported — the floor, a chair, a bed, or the wall behind you.”
 
-* Curated sound library (intentionally small)
-* Shared audio player (play / pause / resume / stop / volume)
-* Track selection (one sound at a time)
-* Sleep timer (Off / 15 / 30 / 45 / 60 minutes)
-* Favourite sound (one) + recent sound return path
-* Graceful loading, empty, and failure states
-* Playback preserved while navigating authenticated routes
-* Media Session metadata where the browser supports it
+Completion: “That is enough for now. You can repeat a step, stay still for a moment, or return to Glow.”
 
-### Categories
+Safety note: “If focusing on your breath feels uncomfortable, stop and choose another support option.”
 
-* Rain
-* White Noise
-* Ocean
-* Night Sounds
+Metadata: `About 1 minute`; breathing; pause and skip supported; low-light mode off; version 1.
 
-### Excluded (this sprint)
+### Five-senses grounding
 
-* Subscriptions / premium gating UI
-* Downloads / offline library
-* User-uploaded audio
-* AI-generated audio
-* Social sharing / listener counts UI
-* Playlists / recommendations
-* Large content catalogue
-* Sleep stories / guided meditation content packs
-* Alarms or push notifications
+Summary: “A no-rush way to notice what is around you. Skip any sense that does not fit.”
 
----
+1. “Look around and name up to five things you can see. One is enough if that is all you want to do.”
+2. “Notice up to four things you can feel — clothing, a surface, the air, or the weight of something you are holding.”
+3. “Listen for up to three sounds. They can be close by or further away.”
+4. “Notice up to two scents, or simply notice that no scent stands out.”
+5. “Notice one taste, or the feeling inside your mouth. You may skip this.”
+6. “Choose one thing around you to notice again. There is nothing else you need to complete.”
 
-## Player ownership
+Completion: “You can finish here, revisit any step, or move on with your night.”
 
-**Owner:** `CalmPlayerService` singleton, kept alive by `useCalmPlayerLifecycle()` in `AppShell`.
+Safety note: “Keep your attention on your surroundings and anything that needs your care. Skip any prompt that does not fit where you are.”
 
-| Rule | Detail |
-|------|--------|
-| One audio element | Single `HTMLAudioElement` for the authenticated session |
-| Route changes | Do not recreate the player; audio continues |
-| Logout | `LogoutButton` calls `handleLogout()` — stops audio, clears timer |
-| No multi-play | Selecting a new sound stops the previous source |
+Metadata: `2–3 minutes`; grounding; skip supported; no timer or pause contract; low-light mode off; version 1.
 
-UI binds via `useCalmPlayer()` (`useSyncExternalStore`). A restrained `CalmMiniPlayer` appears in the shell when audio is active away from `/calm`.
+### Tonight is hard reassurance
 
----
+Summary: “A few quiet words for a difficult stretch of the night. Read only what feels useful.”
 
-## Sound catalogue source of truth
+1. “This moment is hard. You do not have to make it feel meaningful.”
+2. “You can care deeply and still wish this part were easier.”
+3. “One difficult stretch does not define you or your family.”
+4. “There is no need to solve the whole night right now. You can take it one small moment at a time.”
+5. “If practical help from someone you trust is available, it is okay to ask for it.”
+6. “You may stay with these words, return to an earlier line, or leave whenever you like.”
 
-**Beta source:** static typed catalogue in `src/features/calm/catalogue.ts`.
+Completion: “There is nothing to complete here. Glow will still be here when you return.”
 
-Supabase `media_library` exists for a future CMS, but seed URLs point at a non-existent CDN and categories do not match the beta IA. Do not use it for Sprint 5.3 playback.
+Safety note: “Glow offers general wellbeing support and is not a substitute for professional or emergency care.”
 
-Each sound has: stable ID, title, category, description, audio `src`, continuous-loop flag, visual treatment, active flag, placeholder marker.
+Metadata: `Read at your own pace`; reassurance; no timer, pause, or skip contract; low-light mode on; version 1.
 
----
+## Content safety boundary
 
-## Audio assets
+The exercises are optional general wellbeing support, not medical, therapeutic, feeding, sleep, or outcome advice. They make no diagnosis, treatment claim, feeding recommendation, sleep recommendation, or guaranteed-outcome claim. The breathing safety note is a precaution that tells the reader to stop if uncomfortable. The practical-help line is permission to seek support from a trusted person, not treatment advice. Shared safety copy links to `/profile/safety`; do not create a parallel emergency workflow.
 
-Placeholder WAVs live in `public/calm/placeholders/` (Glow-generated, clearly marked for replacement).
+Only stable exercise IDs and technical error categories may be used for operational monitoring. Never log selected need categories, exercise text, inferred emotion, Baby context, volume, or timer behaviour.
 
-**Production audio must be properly licensed or Glow-owned before launch.** See the folder README.
+## Sounds preview flag
 
----
+`NEXT_PUBLIC_CALM_SOUNDS_PREVIEW_ENABLED` must be exactly `true` to expose the temporary interactive Sounds preview. It should be unset or `false` in production-facing environments until Calm 1B QA is complete. Because this is a `NEXT_PUBLIC_` build-time variable, set it before `next build` and redeploy after changing it.
 
-## Persistence
+With the flag off:
 
-Device-local via `localStorage` key `glow.calm.prefs.v1`:
+- `/calm/sounds` shows “Soundscapes are still being prepared for the Glow beta.”
+- the server route returns the standalone preparation component before dynamically importing preview UI;
+- the shell does not mount the Calm audio owner;
+- no player, catalogue, volume, timer, favourite control, subscription, selected sound, or audio element is initialised.
 
-* Persists: volume, favourite sound, recent sound, selected sound id
-* Does **not** auto-resume audible playback after full refresh
-* Does **not** persist sleep timer (expired or active)
+With the flag on, the authenticated shell owns one `CalmPlayerService` and one `HTMLAudioElement`. `CalmAudioOwner` is the only lifecycle owner. The full player is shown on `/calm/sounds`; the mini player is hidden there and at redirect-only `/calm`. Nothing autoplays on route entry. Selecting Play is the user action that may start audio.
 
----
+## Placeholder assets and release blocker
 
-## Sleep timer
+The four WAV files under `public/calm/placeholders/` are procedurally generated in-repository, Glow-owned, short, low-fidelity development loops. Retain them only for private preview QA.
 
-Absolute end timestamp (`sleepTimerEndsAt`). One watch interval at a time. Cancels cleanly. Expiry pauses playback. Cleared on logout. Recovers after brief backgrounding via wall-clock comparison (subject to browser timer throttling).
+The flag hides UI; it does **not** remove files in `public/` from the deployment. Direct asset URLs remain distributable. Before general production or App Store readiness, replace them with approved licensed/Glow-owned production assets and update catalogue paths, or remove them from `public/` entirely.
 
----
+Sounds is not production-ready until real approved assets and reliable play/pause/stop, volume, timer, background and lock-screen behaviour, Media Session, failure handling, route continuity, logout cleanup, and resource cleanup pass agreed browser/device QA. iOS Safari background playback must not be promised.
 
-## Background / screen-lock limitations
+Recommended asset handoff: mastered compressed loops with documented creator/licence provenance, seamless-loop QA, loudness/peak targets agreed by product, accessible titles, and tested fallback/error behaviour. Avoid arbitrary copyrighted CDN tracks.
 
-| Platform | Expectation |
-|----------|-------------|
-| In-app navigation | Playback continues (shell-owned element) |
-| Android Chrome | Often continues in background; Media Session helps lock-screen controls |
-| iOS Safari | Background/lock playback is unreliable; may pause when the tab is suspended |
-| Installed PWA | Better on Android; iOS still constrained by WebKit policies |
-| Tab suspension | Browser may throttle timers; sleep timer uses absolute end time |
+## Accessibility and privacy QA
 
-Do not promise lock-screen continuity on iOS Safari.
-
----
-
-## Offline
-
-If the browser has already cached a local placeholder asset, playback may continue. No download manager in this sprint. Remote/missing assets show a calm unavailable message.
-
----
-
-## Accessibility
-
-* Named play/pause/stop/favourite/volume/timer controls
-* Selected state via text + border (not colour alone)
-* `aria-live` for now-playing / timer remaining (restrained)
-* Keyboard-operable controls with visible focus
-* Reduced motion respected for decorative player glow
-
----
-
-## Next sprint recommendation
-
-* Replace placeholder WAVs with licensed production audio
-* Optional: align `media_library` schema (descriptions, artwork, continuous flag) and migrate catalogue
-* Optional: quiet listener presence (privacy-safe counts) — only if product still wants it
-* Sleep stories / short meditations as a separate content pack
+- All exercise and audio controls are keyboard operable, visibly focused, and at least 44px high/wide.
+- Step changes use a restrained polite live region and move focus to the current instruction.
+- Decorative breathing motion respects reduced-motion preference.
+- Exercise completion is optional and has no success/failure or streak language.
+- Need cards stack on phones and must not introduce horizontal overflow.
+- Audio preferences remain device-local; no emotional or exercise-completion profile is stored.

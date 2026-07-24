@@ -24,7 +24,12 @@ describe("resolveActiveNav", () => {
     assert.equal(resolveActiveNav("/baby"), "baby");
     assert.equal(resolveActiveNav("/baby/growth"), "baby");
     assert.equal(resolveActiveNav("/calm"), "calm");
-    assert.equal(resolveActiveNav("/calm/rain"), "calm");
+    assert.equal(resolveActiveNav("/calm/support"), "calm");
+    assert.equal(
+      resolveActiveNav("/calm/support/one-minute-breathing-reset"),
+      "calm",
+    );
+    assert.equal(resolveActiveNav("/calm/sounds"), "calm");
     assert.equal(resolveActiveNav("/profile"), "profile");
     assert.equal(resolveActiveNav("/profile/privacy"), "profile");
   });
